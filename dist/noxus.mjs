@@ -1,3 +1,8 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
@@ -31,6 +36,14 @@ var _UnauthorizedException = class _UnauthorizedException extends ResponseExcept
 };
 __name(_UnauthorizedException, "UnauthorizedException");
 var UnauthorizedException = _UnauthorizedException;
+var _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 402);
+  }
+};
+__name(_PaymentRequiredException, "PaymentRequiredException");
+var PaymentRequiredException = _PaymentRequiredException;
 var _ForbiddenException = class _ForbiddenException extends ResponseException {
   constructor() {
     super(...arguments);
@@ -922,6 +935,7 @@ export {
   NotFoundException,
   NotImplementedException,
   Patch,
+  PaymentRequiredException,
   Post,
   Put,
   ROUTE_METADATA_KEY,
@@ -943,4 +957,9 @@ export {
   getModuleMetadata,
   getRouteMetadata
 };
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
 //# sourceMappingURL=noxus.mjs.map

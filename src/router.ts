@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import 'reflect-metadata';
 import { getControllerMetadata } from 'src/decorators/controller.decorator';
 import { getGuardForController, getGuardForControllerAction, IGuard } from 'src/decorators/guards.decorator';

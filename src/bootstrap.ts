@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import { ipcMain } from "electron";
 import { app, BrowserWindow, MessageChannelMain } from "electron/main";
 import { IApp } from "src/app";

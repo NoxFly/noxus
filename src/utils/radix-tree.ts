@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 type Params = Record<string, string>;
 
 interface ISearchResult<T> {

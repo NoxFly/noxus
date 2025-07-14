@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 
 import { CONTROLLER_METADATA_KEY } from "src/decorators/controller.decorator";

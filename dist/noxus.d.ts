@@ -1,7 +1,13 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
 interface Type<T> extends Function {
     new (...args: any[]): T;
 }
 type MaybeAsync<T> = T | Promise<T>;
+
 
 type Lifetime = 'singleton' | 'scope' | 'transient';
 interface IBinding {
@@ -37,6 +43,7 @@ interface IApp {
     onReady(): Promise<void>;
 }
 
+
 interface IRouteMetadata {
     method: HttpMethod;
     path: string;
@@ -51,6 +58,7 @@ declare const Patch: (path: string) => MethodDecorator;
 declare const Delete: (path: string) => MethodDecorator;
 declare const ROUTE_METADATA_KEY: unique symbol;
 declare function getRouteMetadata(target: Type<unknown>): IRouteMetadata[];
+
 
 declare class Request {
     readonly app: IApp;
@@ -76,6 +84,7 @@ interface IResponse<T = any> {
     error?: string;
 }
 
+
 interface IGuard {
     canActivate(request: Request): MaybeAsync<boolean>;
 }
@@ -86,6 +95,7 @@ interface IGuard {
 declare function Authorize(...guardClasses: Type<IGuard>[]): MethodDecorator & ClassDecorator;
 declare function getGuardForController(controllerName: string): Type<IGuard>[];
 declare function getGuardForControllerAction(controllerName: string, actionName: string): Type<IGuard>[];
+
 
 interface IRouteDefinition {
     method: string;
@@ -105,6 +115,7 @@ declare class Router {
     private extractParams;
 }
 
+
 /**
  *
  */
@@ -119,6 +130,9 @@ declare class BadRequestException extends ResponseException {
 }
 declare class UnauthorizedException extends ResponseException {
     readonly status = 401;
+}
+declare class PaymentRequiredException extends ResponseException {
+    readonly status = 402;
 }
 declare class ForbiddenException extends ResponseException {
     readonly status = 403;
@@ -181,6 +195,7 @@ declare class NetworkConnectTimeoutException extends ResponseException {
     readonly status = 599;
 }
 
+
 interface IControllerMetadata {
     path: string;
     guards: Type<IGuard>[];
@@ -189,9 +204,11 @@ declare function Controller(path: string): ClassDecorator;
 declare const CONTROLLER_METADATA_KEY: unique symbol;
 declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
 
+
 declare function Injectable(lifetime?: Lifetime): ClassDecorator;
 declare const INJECTABLE_METADATA_KEY: unique symbol;
 declare function getInjectableMetadata(target: Type<unknown>): Lifetime | undefined;
+
 
 declare function Module(metadata: IModuleMetadata): ClassDecorator;
 declare const MODULE_METADATA_KEY: unique symbol;
@@ -231,4 +248,4 @@ declare namespace Logger {
     function debug(...args: any[]): void;
 }
 
-export { Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, Patch, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getModuleMetadata, getRouteMetadata };
+export { Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getModuleMetadata, getRouteMetadata };

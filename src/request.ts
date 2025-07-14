@@ -1,10 +1,13 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import 'reflect-metadata';
 import { IApp } from 'src/app';
 import { HttpMethod } from 'src/decorators/method.decorator';
 import { RootInjector } from 'src/DI/app-injector';
-
-
-//
 
 export class Request {
     public readonly context: any = RootInjector.createScope();

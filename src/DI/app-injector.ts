@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import 'reflect-metadata';
 import { InternalServerException } from 'src/exceptions';
 import { Type } from 'src/utils/types';

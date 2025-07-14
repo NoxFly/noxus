@@ -1,5 +1,13 @@
 import { defineConfig } from "tsup";
 
+const copyrights = `
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+`.trim()
+
 export default defineConfig({
     entry: {
         noxus: "src/index.ts"
@@ -17,4 +25,7 @@ export default defineConfig({
     splitting: false,
     shims: false,
     treeshake: false,
+    banner: {
+        js: copyrights,
+    }
 });

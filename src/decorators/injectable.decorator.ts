@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import { Lifetime } from "src/DI/app-injector";
 import { InjectorExplorer } from "src/DI/injector-explorer";
 import { Type } from "src/utils/types";

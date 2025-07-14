@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import { getGuardForControllerAction, IGuard } from "src/decorators/guards.decorator";
 import { Type } from "src/utils/types";
 

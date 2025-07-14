@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 export * from './DI/app-injector';
 export * from './router';
 export * from './app';

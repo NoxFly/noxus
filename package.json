@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsup",
     "prepublishOnly": "npm run build",
-    "prepush": "npm run build"
+    "prepush": "npm run build",
+    "postbuild": "node scripts/postbuild.js"
   },
   "keywords": [
     "noxus",

@@ -1,3 +1,8 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
 "use strict";
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -50,6 +55,7 @@ __export(src_exports, {
   NotFoundException: () => NotFoundException,
   NotImplementedException: () => NotImplementedException,
   Patch: () => Patch,
+  PaymentRequiredException: () => PaymentRequiredException,
   Post: () => Post,
   Put: () => Put,
   ROUTE_METADATA_KEY: () => ROUTE_METADATA_KEY,
@@ -101,6 +107,14 @@ var _UnauthorizedException = class _UnauthorizedException extends ResponseExcept
 };
 __name(_UnauthorizedException, "UnauthorizedException");
 var UnauthorizedException = _UnauthorizedException;
+var _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 402);
+  }
+};
+__name(_PaymentRequiredException, "PaymentRequiredException");
+var PaymentRequiredException = _PaymentRequiredException;
 var _ForbiddenException = class _ForbiddenException extends ResponseException {
   constructor() {
     super(...arguments);
@@ -993,6 +1007,7 @@ var Nox = (_a3 = class {
   NotFoundException,
   NotImplementedException,
   Patch,
+  PaymentRequiredException,
   Post,
   Put,
   ROUTE_METADATA_KEY,
@@ -1014,4 +1029,9 @@ var Nox = (_a3 = class {
   getModuleMetadata,
   getRouteMetadata
 });
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
 //# sourceMappingURL=noxus.js.map

@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import { getControllerMetadata } from "src/decorators/controller.decorator";
 import { getInjectableMetadata } from "src/decorators/injectable.decorator";
 import { getRouteMetadata } from "src/decorators/method.decorator";

@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 export abstract class ResponseException extends Error {
     public abstract readonly status: number;
 
@@ -12,6 +18,7 @@ export abstract class ResponseException extends Error {
 // 4XX
 export class BadRequestException extends ResponseException { public readonly status = 400; }
 export class UnauthorizedException extends ResponseException { public readonly status = 401; }
+export class PaymentRequiredException extends ResponseException { public readonly status = 402; }
 export class ForbiddenException extends ResponseException { public readonly status = 403; }
 export class NotFoundException extends ResponseException { public readonly status = 404; }
 export class MethodNotAllowedException extends ResponseException { public readonly status = 405; }

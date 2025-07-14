@@ -1,3 +1,9 @@
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ */
+
 import { Request } from 'src/request';
 import { Logger } from 'src/utils/logger';
 import { MaybeAsync, Type } from 'src/utils/types';
