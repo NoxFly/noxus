@@ -169,7 +169,7 @@ Further upgrades might include new decorators like `@Param()`, `@Body()` etc... 
 ```ts
 // main/guards/auth.guard.ts
 
-import { IGuard, Injectable, MaybeAsync, Request } from 'nox';
+import { IGuard, Injectable, MaybeAsync, Request } from '@noxfly/noxus';
 
 @Injectable()
 export class AuthGuard implements IGuard {

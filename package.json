@@ -20,6 +20,10 @@
   "author": "NoxFly",
   "license": "MIT",
   "description": "Simulate lightweight HTTP-like requests between renderer and main process in Electron applications with MessagePort, with structured and modular design.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NoxFly/noxus"
+  },
   "dependencies": {
     "reflect-metadata": "^0.2.2"
   },
