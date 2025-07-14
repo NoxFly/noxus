@@ -1,6 +1,6 @@
 {
   "name": "@noxfly/noxus",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist/noxus.js",
   "types": "dist/noxus.d.ts",
   "scripts": {
