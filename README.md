@@ -1,12 +1,12 @@
 # ⚡ Noxus — The NestJS-Inspired Framework Built for Electron
 
-Nox.js brings the elegance and power of NestJS-like architecture to Electron applications — but with a purpose-built design for IPC and MessagePort communication instead of HTTP.
+Noxus brings the elegance and power of NestJS-like architecture to Electron applications — but with a purpose-built design for IPC and MessagePort communication instead of HTTP.
 
 While NestJS is an excellent framework for building web servers, it is not suited for Electron environments where communication between the main process and the renderer is critical.
 
 Transferring data between these using a local server and using HTTP request would be a waste of resources for the user's target device.
 
-Nox.js fills that gap.
+Noxus fills that gap.
 
 ✅ Use of decorators
 
@@ -37,13 +37,13 @@ Nox.js fills that gap.
 Install the package in your main process application :
 
 ```sh
-npm i nox.js
+npm i @noxfly/noxus
 ```
 
 If you have a separated renderer from the main process, you'd like to install the package as well to get typed requests/responses models, for development purposes :
 
 ```sh
-npm i -D nox.js
+npm i -D @noxfly/noxus
 ```
 
 Because you only need types during development, using the `-D` argument will make this package a `devDependency`, thus won't be present on your build.
@@ -61,7 +61,7 @@ However, you can feel free to keep both merged, this won't change anything, but 
 ```ts
 // main/index.ts
 
-import { bootstrapApplication } from 'nox.js';
+import { bootstrapApplication } from '@noxfly/noxus';
 import { Application } from './modules/app.service.ts';
 
 async function main() {
@@ -76,7 +76,7 @@ main();
 ```ts
 // main/modules/app.service.ts
 
-import { IApp, Injectable, Logger } from 'nox.js';
+import { IApp, Injectable, Logger } from '@noxfly/noxus';
 
 @Injectable('singleton')
 export class Application implements IApp {
@@ -96,7 +96,7 @@ export class Application implements IApp {
 ```ts
 // main/modules/app.module.ts
 
-import { Module } from 'nox.js';
+import { Module } from '@noxfly/noxus';
 
 @Module({
     imports: [UsersModule], // import modules to be found here
@@ -111,7 +111,7 @@ export class AppModule {}
 ```ts
 // main/modules/users/users.module.ts
 
-import { Module } from 'nox.js';
+import { Module } from '@noxfly/noxus';
 
 @Module({
     providers: [UsersService],
@@ -123,7 +123,7 @@ export class UsersModule {}
 ```ts
 // main/modules/users/users.service.ts
 
-import { Injectable } from 'nox.js';
+import { Injectable } from '@noxfly/noxus';
 
 @Injectable()
 export class UsersService {
@@ -142,7 +142,7 @@ export class UsersService {
 ```ts
 // main/modules/users/users.controller.ts
 
-import { Controller, Get } from 'nox.js';
+import { Controller, Get } from '@noxfly/noxus';
 import { UsersService } from './users.service.ts';
 
 @Controller('users')
@@ -226,7 +226,7 @@ Maybe this should become a class directly available from @noxfly/noxus;
 ```ts
 // renderer/anyFileAtStartup.ts
 
-import { IRequest, IResponse } from 'nox.js';
+import { IRequest, IResponse } from '@noxfly/noxus';
 
 interface PendingRequestHandlers<T> {
     resolve: (value: IResponse<T>) => void;
