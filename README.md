@@ -1,4 +1,4 @@
-# ⚡ Nox.js — The NestJS-Inspired Framework Built for Electron
+# ⚡ Noxus — The NestJS-Inspired Framework Built for Electron
 
 Nox.js brings the elegance and power of NestJS-like architecture to Electron applications — but with a purpose-built design for IPC and MessagePort communication instead of HTTP.
 
