@@ -1,7 +1,7 @@
 export abstract class ResponseException extends Error {
     public abstract readonly status: number;
 
-    constructor(message: string) {
+    constructor(message: string = "") {
         super(message);
         
         this.name = this.constructor.name
