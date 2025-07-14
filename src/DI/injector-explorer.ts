@@ -1,7 +1,11 @@
-import { Lifetime, RootInjector } from "src/app-injector";
-import { Logger } from "src/logger";
-import { Type, getModuleMetadata, getControllerMetadata, getRouteMetadata, getInjectableMetadata } from "src/metadata";
+import { getControllerMetadata } from "src/decorators/controller.decorator";
+import { getInjectableMetadata } from "src/decorators/injectable.decorator";
+import { getRouteMetadata } from "src/decorators/method.decorator";
+import { getModuleMetadata } from "src/decorators/module.decorator";
+import { Lifetime, RootInjector } from "src/DI/app-injector";
 import { Router } from "src/router";
+import { Logger } from "src/utils/logger";
+import { Type } from "src/utils/types";
 
 export class InjectorExplorer {
     /**

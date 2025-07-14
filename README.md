@@ -334,6 +334,51 @@ const response: User[] = await electronService.request<User[]>({
 ![Startup image](./images/screenshot-requests.png)
 
 
+### Error Handling
+
+You have a bunch of `*Exception` classes that are at your disposal to help you have a clean code.
+
+Replace `*` By any of the HTTP status code's name that is available in the list below.
+
+If you throw any of these exception, the response to the renderer will contains the associated status code.
+
+You can specify a message in the constructor.
+
+You throw it as follow : 
+```ts
+throw new UnauthorizedException("Invalid credentials");
+throw new BadRequestException("id is missing in the body");
+throw new UnavailableException();
+// ...
+```
+
+| status code | class to throw                         |
+| ----------- | -------------------------------------- |
+| 400         | BadRequestException                    |
+| 401         | UnauthorizedException                  |
+| 402         | PaymentRequiredException               |
+| 403         | ForbiddenException                     |
+| 404         | NotFoundException                      |
+| 405         | MethodNotAllowedException              |
+| 406         | NotAcceptableException                 |
+| 408         | RequestTimeoutException                |
+| 409         | ConflictException                      |
+| 426         | UpgradeRequiredException               |
+| 429         | TooManyRequestsException               |
+| 500         | InternalServerException                |
+| 501         | NotImplementedException                |
+| 502         | BadGatewayException                    |
+| 503         | ServiceUnavailableException            |
+| 504         | GatewayTimeoutException                |
+| 505         | HttpVersionNotSupportedException       |
+| 506         | VariantAlsoNegotiatesException         |
+| 507         | InsufficientStorageException           |
+| 508         | LoopDetectedException                  |
+| 510         | NotExtendedException                   |
+| 511         | NetworkAuthenticationRequiredException |
+| 599         | NetworkConnectTimeoutException         |
+
+
 ## Contributing
 
 1. Clone the repo

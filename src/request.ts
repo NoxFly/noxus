@@ -1,7 +1,7 @@
-import { IApp } from 'src/app';
-import { RootInjector } from 'src/app-injector';
-import { HttpMethod } from 'src/router';
 import 'reflect-metadata';
+import { IApp } from 'src/app';
+import { HttpMethod } from 'src/decorators/method.decorator';
+import { RootInjector } from 'src/DI/app-injector';
 
 
 //

@@ -1,6 +1,6 @@
-import { InternalServerException } from 'src/exceptions';
-import { Type } from 'src/metadata';
 import 'reflect-metadata';
+import { InternalServerException } from 'src/exceptions';
+import { Type } from 'src/utils/types';
 
 export type Lifetime = 'singleton' | 'scope' | 'transient';
 

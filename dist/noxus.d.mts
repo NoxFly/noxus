@@ -1,36 +1,56 @@
+interface Type<T> extends Function {
+    new (...args: any[]): T;
+}
 type MaybeAsync<T> = T | Promise<T>;
+
+type Lifetime = 'singleton' | 'scope' | 'transient';
+interface IBinding {
+    lifetime: Lifetime;
+    implementation: Type<unknown>;
+    instance?: InstanceType<Type<unknown>>;
+}
+declare class AppInjector {
+    readonly name: string | null;
+    bindings: Map<Type<unknown>, IBinding>;
+    singletons: Map<Type<unknown>, unknown>;
+    scoped: Map<Type<unknown>, unknown>;
+    constructor(name?: string | null);
+    /**
+     * Utilisé généralement pour créer un scope d'injection de dépendances
+     * au niveau "scope" (donc durée de vie d'une requête)
+     */
+    createScope(): AppInjector;
+    /**
+     * Appelé lorsqu'on souhaite résoudre une dépendance,
+     * c'est-à-dire récupérer l'instance d'une classe donnée.
+     */
+    resolve<T extends Type<unknown>>(target: T): InstanceType<T>;
+    /**
+     *
+     */
+    private instantiate;
+}
+declare const RootInjector: AppInjector;
 
 interface IApp {
     dispose(): Promise<void>;
     onReady(): Promise<void>;
 }
-declare function Injectable(lifetime?: Lifetime): ClassDecorator;
-declare function Module(metadata: IModuleMetadata): ClassDecorator;
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-interface IRouteDefinition {
-    method: string;
+interface IRouteMetadata {
+    method: HttpMethod;
     path: string;
-    controller: Type<any>;
     handler: string;
     guards: Type<IGuard>[];
 }
-type ControllerAction = (request: Request, response: IResponse) => any;
-declare function Controller(path: string): ClassDecorator;
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 declare const Get: (path: string) => MethodDecorator;
 declare const Post: (path: string) => MethodDecorator;
 declare const Put: (path: string) => MethodDecorator;
 declare const Patch: (path: string) => MethodDecorator;
 declare const Delete: (path: string) => MethodDecorator;
-declare class Router {
-    private readonly routes;
-    registerController(controllerClass: Type<unknown>): Router;
-    handle(request: Request): Promise<IResponse>;
-    private findRoute;
-    private resolveController;
-    private verifyRequestBody;
-    private extractParams;
-}
+declare const ROUTE_METADATA_KEY: unique symbol;
+declare function getRouteMetadata(target: Type<unknown>): IRouteMetadata[];
 
 declare class Request {
     readonly app: IApp;
@@ -67,62 +87,23 @@ declare function Authorize(...guardClasses: Type<IGuard>[]): MethodDecorator & C
 declare function getGuardForController(controllerName: string): Type<IGuard>[];
 declare function getGuardForControllerAction(controllerName: string, actionName: string): Type<IGuard>[];
 
-interface Type<T> extends Function {
-    new (...args: any[]): T;
-}
-declare const MODULE_METADATA_KEY: unique symbol;
-declare const INJECTABLE_METADATA_KEY: unique symbol;
-declare const CONTROLLER_METADATA_KEY: unique symbol;
-declare const ROUTE_METADATA_KEY: unique symbol;
-interface IModuleMetadata {
-    imports?: Type<unknown>[];
-    providers?: Type<unknown>[];
-    controllers?: Type<unknown>[];
-    exports?: Type<unknown>[];
-}
-interface IRouteMetadata {
-    method: HttpMethod;
+interface IRouteDefinition {
+    method: string;
     path: string;
+    controller: Type<any>;
     handler: string;
     guards: Type<IGuard>[];
 }
-interface IControllerMetadata {
-    path: string;
-    guards: Type<IGuard>[];
+type ControllerAction = (request: Request, response: IResponse) => any;
+declare class Router {
+    private readonly routes;
+    registerController(controllerClass: Type<unknown>): Router;
+    handle(request: Request): Promise<IResponse>;
+    private findRoute;
+    private resolveController;
+    private verifyRequestBody;
+    private extractParams;
 }
-declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
-declare function getRouteMetadata(target: Type<unknown>): IRouteMetadata[];
-declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
-declare function getInjectableMetadata(target: Type<unknown>): Lifetime | undefined;
-
-type Lifetime = 'singleton' | 'scope' | 'transient';
-interface IBinding {
-    lifetime: Lifetime;
-    implementation: Type<unknown>;
-    instance?: InstanceType<Type<unknown>>;
-}
-declare class AppInjector {
-    readonly name: string | null;
-    bindings: Map<Type<unknown>, IBinding>;
-    singletons: Map<Type<unknown>, unknown>;
-    scoped: Map<Type<unknown>, unknown>;
-    constructor(name?: string | null);
-    /**
-     * Utilisé généralement pour créer un scope d'injection de dépendances
-     * au niveau "scope" (donc durée de vie d'une requête)
-     */
-    createScope(): AppInjector;
-    /**
-     * Appelé lorsqu'on souhaite résoudre une dépendance,
-     * c'est-à-dire récupérer l'instance d'une classe donnée.
-     */
-    resolve<T extends Type<unknown>>(target: T): InstanceType<T>;
-    /**
-     *
-     */
-    private instantiate;
-}
-declare const RootInjector: AppInjector;
 
 /**
  *
@@ -131,7 +112,7 @@ declare function bootstrapApplication(root: Type<IApp>, rootModule: Type<any>): 
 
 declare abstract class ResponseException extends Error {
     abstract readonly status: number;
-    constructor(message: string);
+    constructor(message?: string);
 }
 declare class BadRequestException extends ResponseException {
     readonly status = 400;
@@ -199,6 +180,28 @@ declare class NetworkAuthenticationRequiredException extends ResponseException {
 declare class NetworkConnectTimeoutException extends ResponseException {
     readonly status = 599;
 }
+
+interface IControllerMetadata {
+    path: string;
+    guards: Type<IGuard>[];
+}
+declare function Controller(path: string): ClassDecorator;
+declare const CONTROLLER_METADATA_KEY: unique symbol;
+declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
+
+declare function Injectable(lifetime?: Lifetime): ClassDecorator;
+declare const INJECTABLE_METADATA_KEY: unique symbol;
+declare function getInjectableMetadata(target: Type<unknown>): Lifetime | undefined;
+
+declare function Module(metadata: IModuleMetadata): ClassDecorator;
+declare const MODULE_METADATA_KEY: unique symbol;
+interface IModuleMetadata {
+    imports?: Type<unknown>[];
+    exports?: Type<unknown>[];
+    providers?: Type<unknown>[];
+    controllers?: Type<unknown>[];
+}
+declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
 
 type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 declare namespace Logger {

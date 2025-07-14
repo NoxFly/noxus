@@ -1,10 +1,12 @@
 import { ipcMain } from "electron";
 import { app, BrowserWindow, MessageChannelMain } from "electron/main";
 import { IApp } from "src/app";
-import { RootInjector } from "src/app-injector";
-import { getInjectableMetadata, getModuleMetadata, Type } from "src/metadata";
-import { Request, IResponse, IRequest } from "src/request";
+import { getInjectableMetadata } from "src/decorators/injectable.decorator";
+import { getModuleMetadata } from "src/decorators/module.decorator";
+import { RootInjector } from "src/DI/app-injector";
+import { IRequest, IResponse, Request } from "src/request";
 import { Router } from "src/router";
+import { Type } from "src/utils/types";
 
 /**
  * 

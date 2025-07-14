@@ -1,7 +1,6 @@
-import { Logger } from 'src/logger';
-import { Type } from 'src/metadata';
-import { MaybeAsync } from 'src/misc';
 import { Request } from 'src/request';
+import { Logger } from 'src/utils/logger';
+import { MaybeAsync, Type } from 'src/utils/types';
 
 export interface IGuard {
     canActivate(request: Request): MaybeAsync<boolean>;

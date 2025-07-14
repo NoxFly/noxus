@@ -1,15 +1,15 @@
 import 'reflect-metadata';
-import { Injectable } from 'src/app';
+import { getControllerMetadata } from 'src/decorators/controller.decorator';
+import { getGuardForController, getGuardForControllerAction, IGuard } from 'src/decorators/guards.decorator';
+import { Injectable } from 'src/decorators/injectable.decorator';
+import { getRouteMetadata } from 'src/decorators/method.decorator';
 import { MethodNotAllowedException, NotFoundException, ResponseException, UnauthorizedException } from 'src/exceptions';
-import { getGuardForController, getGuardForControllerAction, IGuard } from 'src/guards';
-import { Logger } from 'src/logger';
-import { CONTROLLER_METADATA_KEY, IControllerMetadata, getControllerMetadata, getRouteMetadata, ROUTE_METADATA_KEY, IRouteMetadata, Type } from 'src/metadata';
-import { RadixTree } from 'src/radix-tree';
-import { Request, IResponse } from 'src/request';
+import { IResponse, Request } from 'src/request';
+import { Logger } from 'src/utils/logger';
+import { RadixTree } from 'src/utils/radix-tree';
+import { Type } from 'src/utils/types';
 
 // types & interfaces
-
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface IRouteDefinition {
     method: string;
@@ -21,42 +21,6 @@ export interface IRouteDefinition {
 
 export type ControllerAction = (request: Request, response: IResponse) => any;
 
-export function Controller(path: string): ClassDecorator {
-    return (target) => {
-        const data: IControllerMetadata = {
-            path,
-            guards: getGuardForController(target.name)
-        };
-
-        Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
-        Injectable('scope')(target);
-    };
-}
-
-function createRouteDecorator(verb: HttpMethod): (path: string) => MethodDecorator {
-    return (path: string): MethodDecorator => {
-        return (target, propertyKey) => {
-            const existingRoutes: IRouteMetadata[] = Reflect.getMetadata(ROUTE_METADATA_KEY, target.constructor) || [];
-
-            const metadata: IRouteMetadata = {
-                method: verb,
-                path: path.trim().replace(/^\/|\/$/g, ''),
-                handler: propertyKey as string,
-                guards: getGuardForControllerAction((target.constructor as any).__controllerName, propertyKey as string),
-            };
-
-            existingRoutes.push(metadata);
-
-            Reflect.defineMetadata(ROUTE_METADATA_KEY, existingRoutes, target.constructor);
-        };
-    };
-}
-
-export const Get = createRouteDecorator('GET');
-export const Post = createRouteDecorator('POST');
-export const Put = createRouteDecorator('PUT');
-export const Patch = createRouteDecorator('PATCH');
-export const Delete = createRouteDecorator('DELETE');
 
 @Injectable('singleton')
 export class Router {
