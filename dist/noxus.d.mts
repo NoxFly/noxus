@@ -37,11 +37,7 @@ declare class AppInjector {
     private instantiate;
 }
 declare const RootInjector: AppInjector;
-
-interface IApp {
-    dispose(): Promise<void>;
-    onReady(): Promise<void>;
-}
+declare function inject<T>(t: Type<T>): T;
 
 
 interface IRouteMetadata {
@@ -61,7 +57,6 @@ declare function getRouteMetadata(target: Type<unknown>): IRouteMetadata[];
 
 
 declare class Request {
-    readonly app: IApp;
     readonly event: Electron.MessageEvent;
     readonly id: string;
     readonly method: HttpMethod;
@@ -69,9 +64,10 @@ declare class Request {
     readonly body: any;
     readonly context: any;
     readonly params: Record<string, string>;
-    constructor(app: IApp, event: Electron.MessageEvent, id: string, method: HttpMethod, path: string, body: any);
+    constructor(event: Electron.MessageEvent, id: string, method: HttpMethod, path: string, body: any);
 }
 interface IRequest<T = any> {
+    senderId: number;
     requestId: string;
     path: string;
     method: HttpMethod;
@@ -116,10 +112,50 @@ declare class Router {
 }
 
 
+interface IApp {
+    dispose(): Promise<void>;
+    onReady(): Promise<void>;
+    onActivated(): Promise<void>;
+}
+declare class NoxApp {
+    private readonly router;
+    private readonly messagePorts;
+    private app;
+    constructor(router: Router);
+    /**
+     *
+     */
+    init(): Promise<NoxApp>;
+    /**
+     *
+     */
+    private giveTheRendererAPort;
+    /**
+     * Electron specific message handling.
+     * Replaces HTTP calls by using Electron's IPC mechanism.
+     */
+    private onRendererMessage;
+    /**
+     * MacOS specific behavior.
+     */
+    private onAppActivated;
+    private shutdownChannel;
+    /**
+     *
+     */
+    private onAllWindowsClosed;
+    configure(app: Type<IApp>): NoxApp;
+    /**
+     * Should be called after the bootstrapApplication function is called.
+     */
+    start(): NoxApp;
+}
+
+
 /**
  *
  */
-declare function bootstrapApplication(root: Type<IApp>, rootModule: Type<any>): Promise<IApp>;
+declare function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp>;
 
 declare abstract class ResponseException extends Error {
     abstract readonly status: number;
@@ -248,4 +284,4 @@ declare namespace Logger {
     function debug(...args: any[]): void;
 }
 
-export { Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getModuleMetadata, getRouteMetadata };
+export { Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getModuleMetadata, getRouteMetadata, inject };

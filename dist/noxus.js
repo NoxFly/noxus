@@ -54,6 +54,7 @@ __export(src_exports, {
   NotExtendedException: () => NotExtendedException,
   NotFoundException: () => NotFoundException,
   NotImplementedException: () => NotImplementedException,
+  NoxApp: () => NoxApp,
   Patch: () => Patch,
   PaymentRequiredException: () => PaymentRequiredException,
   Post: () => Post,
@@ -75,7 +76,8 @@ __export(src_exports, {
   getGuardForControllerAction: () => getGuardForControllerAction,
   getInjectableMetadata: () => getInjectableMetadata,
   getModuleMetadata: () => getModuleMetadata,
-  getRouteMetadata: () => getRouteMetadata
+  getRouteMetadata: () => getRouteMetadata,
+  inject: () => inject
 });
 module.exports = __toCommonJS(src_exports);
 
@@ -333,6 +335,10 @@ var AppInjector = (_a = class {
   }
 }, __name(_a, "AppInjector"), _a);
 var RootInjector = new AppInjector("root");
+function inject(t) {
+  return RootInjector.resolve(t);
+}
+__name(inject, "inject");
 
 // src/router.ts
 var import_reflect_metadata2 = require("reflect-metadata");
@@ -858,15 +864,13 @@ Router = _ts_decorate([
   Injectable("singleton")
 ], Router);
 
-// src/bootstrap.ts
-var import_electron = require("electron");
+// src/app.ts
 var import_main = require("electron/main");
 
 // src/request.ts
 var import_reflect_metadata3 = require("reflect-metadata");
 var _Request = class _Request {
-  constructor(app2, event, id, method, path, body) {
-    __publicField(this, "app");
+  constructor(event, id, method, path, body) {
     __publicField(this, "event");
     __publicField(this, "id");
     __publicField(this, "method");
@@ -874,7 +878,6 @@ var _Request = class _Request {
     __publicField(this, "body");
     __publicField(this, "context", RootInjector.createScope());
     __publicField(this, "params", {});
-    this.app = app2;
     this.event = event;
     this.id = id;
     this.method = method;
@@ -886,69 +889,68 @@ var _Request = class _Request {
 __name(_Request, "Request");
 var Request = _Request;
 
-// src/bootstrap.ts
-async function bootstrapApplication(root, rootModule) {
-  if (!getModuleMetadata(rootModule)) {
-    throw new Error(`Root module must be decorated with @Module`);
-  }
-  if (!getInjectableMetadata(root)) {
-    throw new Error(`Root application must be decorated with @Injectable`);
-  }
-  await import_main.app.whenReady();
-  RootInjector.resolve(Router);
-  const noxEngine = new Nox(root, rootModule);
-  const application = await noxEngine.init();
-  return application;
+// src/app.ts
+function _ts_decorate2(decorators, target, key, desc) {
+  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
-__name(bootstrapApplication, "bootstrapApplication");
-var _a3;
-var Nox = (_a3 = class {
-  constructor(root, rootModule) {
-    __publicField(this, "root");
-    __publicField(this, "rootModule");
-    __publicField(this, "messagePort");
-    this.root = root;
-    this.rootModule = rootModule;
+__name(_ts_decorate2, "_ts_decorate");
+function _ts_metadata(k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+}
+__name(_ts_metadata, "_ts_metadata");
+var _NoxApp = class _NoxApp {
+  constructor(router) {
+    __publicField(this, "router");
+    __publicField(this, "messagePorts", /* @__PURE__ */ new Map());
+    __publicField(this, "app");
+    this.router = router;
   }
   /**
    * 
    */
   async init() {
-    const application = RootInjector.resolve(this.root);
-    import_electron.ipcMain.on("gimme-my-port", this.giveTheClientAPort.bind(this, application));
-    import_main.app.once("activate", this.onAppActivated.bind(this, application));
-    import_main.app.once("window-all-closed", this.onAllWindowsClosed.bind(this, application));
-    await application.onReady();
+    import_main.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
+    import_main.app.once("activate", this.onAppActivated.bind(this));
+    import_main.app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
     console.log("");
-    return application;
+    return this;
   }
   /**
    * 
    */
-  giveTheClientAPort(application, event) {
-    if (this.messagePort) {
-      this.messagePort.port1.close();
-      this.messagePort.port2.close();
-      this.messagePort = void 0;
+  giveTheRendererAPort(event) {
+    const senderId = event.sender.id;
+    if (this.messagePorts.has(senderId)) {
+      this.shutdownChannel(senderId);
     }
-    this.messagePort = new import_main.MessageChannelMain();
-    this.messagePort.port1.on("message", (event2) => this.onClientMessage(application, event2));
-    this.messagePort.port1.start();
-    event.sender.postMessage("port", null, [
-      this.messagePort.port2
+    const channel = new import_main.MessageChannelMain();
+    this.messagePorts.set(senderId, channel);
+    channel.port1.on("message", this.onRendererMessage.bind(this));
+    channel.port1.start();
+    event.sender.postMessage("port", {
+      senderId
+    }, [
+      channel.port2
     ]);
   }
   /**
    * Electron specific message handling.
    * Replaces HTTP calls by using Electron's IPC mechanism.
    */
-  async onClientMessage(application, event) {
-    const { requestId, path, method, body } = event.data;
+  async onRendererMessage(event) {
+    const { senderId, requestId, path, method, body } = event.data;
+    const channel = this.messagePorts.get(senderId);
+    if (!channel) {
+      Logger.error(`No message channel found for sender ID: ${senderId}`);
+      return;
+    }
     try {
-      const request = new Request(application, event, requestId, method, path, body);
-      const router = RootInjector.resolve(Router);
-      const response = await router.handle(request);
-      this.messagePort?.port1.postMessage(response);
+      const request = new Request(event, requestId, method, path, body);
+      const response = await this.router.handle(request);
+      channel.port1.postMessage(response);
     } catch (err) {
       const response = {
         requestId,
@@ -956,28 +958,76 @@ var Nox = (_a3 = class {
         body: null,
         error: err.message || "Internal Server Error"
       };
-      this.messagePort?.port1.postMessage(response);
+      channel.port1.postMessage(response);
     }
+  }
+  /**
+   * MacOS specific behavior.
+   */
+  onAppActivated() {
+    if (process.platform === "darwin" && import_main.BrowserWindow.getAllWindows().length === 0) {
+      this.app?.onActivated();
+    }
+  }
+  shutdownChannel(channelSenderId, remove = true) {
+    const channel = this.messagePorts.get(channelSenderId);
+    if (!channel) {
+      Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
+      return;
+    }
+    channel.port1.off("message", this.onRendererMessage.bind(this));
+    channel.port1.close();
+    channel.port2.close();
+    this.messagePorts.delete(channelSenderId);
   }
   /**
    * 
    */
-  onAppActivated(application) {
-    if (import_main.BrowserWindow.getAllWindows().length === 0) {
-      application.onReady();
-    }
-  }
-  /**
-   * 
-   */
-  async onAllWindowsClosed(application) {
-    this.messagePort?.port1.close();
-    await application.dispose();
+  async onAllWindowsClosed() {
+    this.messagePorts.forEach((channel, senderId) => {
+      this.shutdownChannel(senderId, false);
+    });
+    this.messagePorts.clear();
+    this.app?.dispose();
     if (process.platform !== "darwin") {
       import_main.app.quit();
     }
   }
-}, __name(_a3, "Nox"), _a3);
+  // ---
+  configure(app3) {
+    this.app = inject(app3);
+    return this;
+  }
+  /**
+   * Should be called after the bootstrapApplication function is called.
+   */
+  start() {
+    this.app?.onReady();
+    return this;
+  }
+};
+__name(_NoxApp, "NoxApp");
+var NoxApp = _NoxApp;
+NoxApp = _ts_decorate2([
+  Injectable("singleton"),
+  _ts_metadata("design:type", Function),
+  _ts_metadata("design:paramtypes", [
+    typeof Router === "undefined" ? Object : Router
+  ])
+], NoxApp);
+
+// src/bootstrap.ts
+var import_main2 = require("electron/main");
+async function bootstrapApplication(rootModule) {
+  if (!getModuleMetadata(rootModule)) {
+    throw new Error(`Root module must be decorated with @Module`);
+  }
+  await import_main2.app.whenReady();
+  const noxApp = inject(NoxApp);
+  await noxApp.init();
+  return noxApp;
+}
+__name(bootstrapApplication, "bootstrapApplication");
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Authorize,
@@ -1006,6 +1056,7 @@ var Nox = (_a3 = class {
   NotExtendedException,
   NotFoundException,
   NotImplementedException,
+  NoxApp,
   Patch,
   PaymentRequiredException,
   Post,
@@ -1027,7 +1078,8 @@ var Nox = (_a3 = class {
   getGuardForControllerAction,
   getInjectableMetadata,
   getModuleMetadata,
-  getRouteMetadata
+  getRouteMetadata,
+  inject
 });
 /**
  * @copyright 2025 NoxFly

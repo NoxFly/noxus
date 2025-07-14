@@ -5,7 +5,6 @@
  */
 
 import 'reflect-metadata';
-import { IApp } from 'src/app';
 import { HttpMethod } from 'src/decorators/method.decorator';
 import { RootInjector } from 'src/DI/app-injector';
 
@@ -15,7 +14,6 @@ export class Request {
     public readonly params: Record<string, string> = {};
 
     constructor(
-        public readonly app: IApp,
         public readonly event: Electron.MessageEvent,
         public readonly id: string,
         public readonly method: HttpMethod,
@@ -27,6 +25,7 @@ export class Request {
 }
 
 export interface IRequest<T = any> {
+    senderId: number;
     requestId: string;
     path: string;
     method: HttpMethod;

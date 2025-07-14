@@ -84,3 +84,7 @@ class AppInjector {
 }
 
 export const RootInjector = new AppInjector('root');
+
+export function inject<T>(t: Type<T>): T {
+    return RootInjector.resolve(t);
+}

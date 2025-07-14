@@ -62,10 +62,15 @@ However, you can feel free to keep both merged, this won't change anything, but 
 // main/index.ts
 
 import { bootstrapApplication } from '@noxfly/noxus';
+import { AppModule } from './modules/app.module.ts';
 import { Application } from './modules/app.service.ts';
 
-async function main() {
-    const application = await bootstrapApplication(Application, AppModule);
+async function main(): Promise<void> {
+    const noxApp = await bootstrapApplication(AppModule);
+
+    noxApp.configure(Application);
+
+    noxApp.start();
 }
 
 main();
@@ -205,9 +210,9 @@ type fn = (...args: any[]) => void;
 contextBridge.exposeInMainWorld('ipcRenderer', {
     requestPort: () => ipcRenderer.send('gimme-my-port'),
     
-    hereIsMyPort: () => ipcRenderer.once('port', (e) => {
+    hereIsMyPort: () => ipcRenderer.once('port', (e, message) => {
         e.ports[0]?.start();
-        window.postMessage({ type: 'init-port' }, '*', [e.ports[0]!]);
+        window.postMessage({ type: 'init-port', senderId: message.senderId }, '*', [e.ports[0]!]);
     }),
 });
 ```
@@ -240,6 +245,7 @@ class ElectronService {
     private readonly ipcRenderer: any; // if you know how to get a type, tell me
 
     private port: MessagePort | undefined;
+    private senderId: number | undefined;
     private readonly pendingRequests = new Map<string, PendingRequestsHandlers<any>>();
 
     constructor() {
@@ -250,6 +256,7 @@ class ElectronService {
         window.addEventListener('message', (event: MessageEvent) => {
             if(event.data?.type === 'init-port' && event.ports.length > 0) {
                 this.port = event.ports[0]!;
+                this.senderId = event.data.senderId;
                 this.port.onmessage = onResponse;
             }
         });
@@ -297,14 +304,15 @@ class ElectronService {
     /**
      * Initiate a request to the main process
      */
-    public request<T>(request: Omit<IRequest, 'requestId'>): Promise<T> {
+    public request<T>(request: Omit<IRequest, 'requestId' | 'senderId'>): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            if(!this.port) {
+            if(!this.port || !this.senderId) {
                 return reject(new Error("MessagePort is not available"));
             }
         
             const req: IRequest = {
                 requestId: /* Create a random ID with the function of your choice */,
+                senderId: this.senderId,
                 ...request,
             };
         
@@ -378,6 +386,23 @@ throw new UnavailableException();
 | 511         | NetworkAuthenticationRequiredException |
 | 599         | NetworkConnectTimeoutException         |
 
+
+## Advanced
+
+### Injection
+
+You can decide to inject an Injectable without passing by the constructor, as follow :
+
+```ts
+import { inject } from '@noxfly/noxus';
+import { MyClass } from 'src/myclass';
+
+const instance: MyClass = inject(MyClass);
+```
+
+### Middlewares
+
+§ TODO
 
 ## Contributing
 
