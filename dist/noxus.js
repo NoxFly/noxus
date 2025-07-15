@@ -28,6 +28,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
+  AppInjector: () => AppInjector,
   Authorize: () => Authorize,
   BadGatewayException: () => BadGatewayException,
   BadRequestException: () => BadRequestException,
@@ -69,12 +70,15 @@ __export(src_exports, {
   TooManyRequestsException: () => TooManyRequestsException,
   UnauthorizedException: () => UnauthorizedException,
   UpgradeRequiredException: () => UpgradeRequiredException,
+  UseMiddlewares: () => UseMiddlewares,
   VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
   bootstrapApplication: () => bootstrapApplication,
   getControllerMetadata: () => getControllerMetadata,
   getGuardForController: () => getGuardForController,
   getGuardForControllerAction: () => getGuardForControllerAction,
   getInjectableMetadata: () => getInjectableMetadata,
+  getMiddlewaresForController: () => getMiddlewaresForController,
+  getMiddlewaresForControllerAction: () => getMiddlewaresForControllerAction,
   getModuleMetadata: () => getModuleMetadata,
   getRouteMetadata: () => getRouteMetadata,
   inject: () => inject
@@ -86,8 +90,18 @@ var import_reflect_metadata = require("reflect-metadata");
 
 // src/exceptions.ts
 var _ResponseException = class _ResponseException extends Error {
-  constructor(message = "") {
-    super(message);
+  constructor(statusOrMessage, message) {
+    let statusCode;
+    if (typeof statusOrMessage === "number") {
+      statusCode = statusOrMessage;
+    } else if (typeof statusOrMessage === "string") {
+      message = statusOrMessage;
+    }
+    super(message ?? "");
+    __publicField(this, "status", 0);
+    if (statusCode !== void 0) {
+      this.status = statusCode;
+    }
     this.name = this.constructor.name.replace(/([A-Z])/g, " $1");
   }
 };
@@ -279,8 +293,7 @@ __name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
 var NetworkConnectTimeoutException = _NetworkConnectTimeoutException;
 
 // src/DI/app-injector.ts
-var _a;
-var AppInjector = (_a = class {
+var _AppInjector = class _AppInjector {
   constructor(name = null) {
     __publicField(this, "name");
     __publicField(this, "bindings", /* @__PURE__ */ new Map());
@@ -293,7 +306,7 @@ var AppInjector = (_a = class {
    * au niveau "scope" (donc durée de vie d'une requête)
    */
   createScope() {
-    const scope = new _a();
+    const scope = new _AppInjector();
     scope.bindings = this.bindings;
     scope.singletons = this.singletons;
     return scope;
@@ -304,7 +317,8 @@ var AppInjector = (_a = class {
    */
   resolve(target) {
     const binding = this.bindings.get(target);
-    if (!binding) throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${target.name}`);
+    if (!binding) throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${target.name}.
+Did you forget to use @Injectable() decorator ?`);
     switch (binding.lifetime) {
       case "transient":
         return this.instantiate(binding.implementation);
@@ -333,7 +347,9 @@ var AppInjector = (_a = class {
     const params = paramTypes.map((p) => this.resolve(p));
     return new target(...params);
   }
-}, __name(_a, "AppInjector"), _a);
+};
+__name(_AppInjector, "AppInjector");
+var AppInjector = _AppInjector;
 var RootInjector = new AppInjector("root");
 function inject(t) {
   return RootInjector.resolve(t);
@@ -473,7 +489,7 @@ function Authorize(...guardClasses) {
     if (authorizations.has(key)) {
       throw new Error(`Guard(s) already registered for ${key}`);
     }
-    Logger.debug(`Registering guards for ${key}: ${guardClasses.map((c) => c.name).join(", ")}`);
+    Logger.debug(`Registering guard(s) for ${key}: ${guardClasses.map((c) => c.name).join(", ")}`);
     authorizations.set(key, guardClasses);
   };
 }
@@ -636,9 +652,41 @@ function getControllerMetadata(target) {
 }
 __name(getControllerMetadata, "getControllerMetadata");
 
+// src/decorators/middleware.decorator.ts
+var middlewares = /* @__PURE__ */ new Map();
+function UseMiddlewares(mdlw) {
+  return (target, propertyKey) => {
+    let key;
+    if (propertyKey) {
+      const ctrlName = target.constructor.name;
+      const actionName = propertyKey;
+      key = `${ctrlName}.${actionName}`;
+    } else {
+      const ctrlName = target.name;
+      key = `${ctrlName}`;
+    }
+    if (middlewares.has(key)) {
+      throw new Error(`Middlewares(s) already registered for ${key}`);
+    }
+    Logger.debug(`Registering middleware(s) for ${key}: ${mdlw.map((c) => c.name).join(", ")}`);
+    middlewares.set(key, mdlw);
+  };
+}
+__name(UseMiddlewares, "UseMiddlewares");
+function getMiddlewaresForController(controllerName) {
+  const key = `${controllerName}`;
+  return middlewares.get(key) ?? [];
+}
+__name(getMiddlewaresForController, "getMiddlewaresForController");
+function getMiddlewaresForControllerAction(controllerName, actionName) {
+  const key = `${controllerName}.${actionName}`;
+  return middlewares.get(key) ?? [];
+}
+__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
+
 // src/utils/radix-tree.ts
-var _a2;
-var RadixNode = (_a2 = class {
+var _a;
+var RadixNode = (_a = class {
   constructor(segment) {
     __publicField(this, "segment");
     __publicField(this, "children", []);
@@ -663,7 +711,7 @@ var RadixNode = (_a2 = class {
   addChild(node) {
     this.children.push(node);
   }
-}, __name(_a2, "RadixNode"), _a2);
+}, __name(_a, "RadixNode"), _a);
 var _RadixTree = class _RadixTree {
   constructor() {
     __publicField(this, "root", new RadixNode(""));
@@ -750,18 +798,28 @@ __name(_ts_decorate, "_ts_decorate");
 var _Router = class _Router {
   constructor() {
     __publicField(this, "routes", new RadixTree());
+    __publicField(this, "rootMiddlewares", []);
   }
+  /**
+   * 
+   */
   registerController(controllerClass) {
     const controllerMeta = getControllerMetadata(controllerClass);
     const controllerGuards = getGuardForController(controllerClass.name);
+    const controllerMiddlewares = getMiddlewaresForController(controllerClass.name);
     if (!controllerMeta) throw new Error(`Missing @Controller decorator on ${controllerClass.name}`);
     const routeMetadata = getRouteMetadata(controllerClass);
     for (const def of routeMetadata) {
       const fullPath = `${controllerMeta.path}/${def.path}`.replace(/\/+/g, "/");
       const routeGuards = getGuardForControllerAction(controllerClass.name, def.handler);
+      const routeMiddlewares = getMiddlewaresForControllerAction(controllerClass.name, def.handler);
       const guards = /* @__PURE__ */ new Set([
         ...controllerGuards,
         ...routeGuards
+      ]);
+      const middlewares2 = /* @__PURE__ */ new Set([
+        ...controllerMiddlewares,
+        ...routeMiddlewares
       ]);
       const routeDef = {
         method: def.method,
@@ -770,6 +828,9 @@ var _Router = class _Router {
         handler: def.handler,
         guards: [
           ...guards
+        ],
+        middlewares: [
+          ...middlewares2
         ]
       };
       this.routes.insert(fullPath + "/" + def.method, routeDef);
@@ -782,6 +843,17 @@ var _Router = class _Router {
     Logger.log(`Mapped ${controllerClass.name}${controllerGuardsInfo} controller's routes`);
     return this;
   }
+  /**
+   * 
+   */
+  defineRootMiddleware(middleware) {
+    Logger.debug(`Registering root middleware: ${middleware.name}`);
+    this.rootMiddlewares.push(middleware);
+    return this;
+  }
+  /**
+   * 
+   */
   async handle(request) {
     Logger.log(`> Received request: {${request.method} /${request.path}}`);
     const t0 = performance.now();
@@ -793,10 +865,10 @@ var _Router = class _Router {
     };
     try {
       const routeDef = this.findRoute(request);
-      const controllerInstance = await this.resolveController(request, routeDef);
-      const action = controllerInstance[routeDef.handler];
-      this.verifyRequestBody(request, action);
-      response.body = await action.call(controllerInstance, request, response);
+      await this.resolveController(request, response, routeDef);
+      if (response.status > 400) {
+        throw new ResponseException(response.status, response.error);
+      }
     } catch (error) {
       if (error instanceof ResponseException) {
         response.status = error.status;
@@ -820,6 +892,9 @@ var _Router = class _Router {
       return response;
     }
   }
+  /**
+   * 
+   */
   findRoute(request) {
     const matchedRoutes = this.routes.search(request.path);
     if (matchedRoutes?.node === void 0 || matchedRoutes.node.children.length === 0) {
@@ -831,21 +906,68 @@ var _Router = class _Router {
     }
     return routeDef.value;
   }
-  async resolveController(request, routeDef) {
+  /**
+   * 
+   */
+  async resolveController(request, response, routeDef) {
     const controllerInstance = request.context.resolve(routeDef.controller);
     Object.assign(request.params, this.extractParams(request.path, routeDef.path));
-    if (routeDef.guards.length > 0) {
-      for (const guardType of routeDef.guards) {
-        const guard = request.context.resolve(guardType);
-        const allowed = await guard.canActivate(request);
-        if (!allowed) throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+    await this.runRequestPipeline(request, response, routeDef, controllerInstance);
+  }
+  /**
+   * 
+   */
+  async runRequestPipeline(request, response, routeDef, controllerInstance) {
+    const middlewares2 = [
+      .../* @__PURE__ */ new Set([
+        ...this.rootMiddlewares,
+        ...routeDef.middlewares
+      ])
+    ];
+    const middlewareMaxIndex = middlewares2.length - 1;
+    const guardsMaxIndex = middlewareMaxIndex + routeDef.guards.length;
+    let index = -1;
+    const dispatch = /* @__PURE__ */ __name(async (i) => {
+      if (i <= index) throw new Error("next() called multiple times");
+      index = i;
+      if (i <= middlewareMaxIndex) {
+        const nextFn = dispatch.bind(null, i + 1);
+        await this.runMiddleware(request, response, nextFn, middlewares2[i]);
+        if (response.status >= 400) {
+          throw new ResponseException(response.status, response.error);
+        }
+        return;
       }
-    }
-    return controllerInstance;
+      if (i <= guardsMaxIndex) {
+        const guardIndex = i - middlewares2.length;
+        const guardType = routeDef.guards[guardIndex];
+        await this.runGuard(request, guardType);
+        dispatch(i + 1);
+        return;
+      }
+      const action = controllerInstance[routeDef.handler];
+      response.body = await action.call(controllerInstance, request, response);
+    }, "dispatch");
+    await dispatch(0);
   }
-  verifyRequestBody(request, action) {
-    const requiredParams = Reflect.getMetadata("design:paramtypes", action) || [];
+  /**
+   * 
+   */
+  async runMiddleware(request, response, next, middlewareType) {
+    const middleware = request.context.resolve(middlewareType);
+    await middleware.invoke(request, response, next);
   }
+  /**
+   * 
+   */
+  async runGuard(request, guardType) {
+    const guard = request.context.resolve(guardType);
+    const allowed = await guard.canActivate(request);
+    if (!allowed) throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+  }
+  /**
+   * 
+   */
   extractParams(actual, template) {
     const aParts = actual.split("/");
     const tParts = template.split("/");
@@ -998,6 +1120,10 @@ var _NoxApp = class _NoxApp {
     this.app = inject(app3);
     return this;
   }
+  use(middleware) {
+    this.router.defineRootMiddleware(middleware);
+    return this;
+  }
   /**
    * Should be called after the bootstrapApplication function is called.
    */
@@ -1030,6 +1156,7 @@ async function bootstrapApplication(rootModule) {
 __name(bootstrapApplication, "bootstrapApplication");
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  AppInjector,
   Authorize,
   BadGatewayException,
   BadRequestException,
@@ -1071,12 +1198,15 @@ __name(bootstrapApplication, "bootstrapApplication");
   TooManyRequestsException,
   UnauthorizedException,
   UpgradeRequiredException,
+  UseMiddlewares,
   VariantAlsoNegotiatesException,
   bootstrapApplication,
   getControllerMetadata,
   getGuardForController,
   getGuardForControllerAction,
   getInjectableMetadata,
+  getMiddlewaresForController,
+  getMiddlewaresForControllerAction,
   getModuleMetadata,
   getRouteMetadata,
   inject

@@ -6,6 +6,7 @@
 
 import { app, BrowserWindow, ipcMain, MessageChannelMain } from "electron/main";
 import { Injectable } from "src/decorators/injectable.decorator";
+import { IMiddleware } from "src/decorators/middleware.decorator";
 import { inject } from "src/DI/app-injector";
 import { IRequest, IResponse, Request } from "src/request";
 import { Router } from "src/router";
@@ -138,6 +139,11 @@ export class NoxApp {
 
     public configure(app: Type<IApp>): NoxApp {
         this.app = inject(app);
+        return this;
+    }
+
+    public use(middleware: Type<IMiddleware>): NoxApp {
+        this.router.defineRootMiddleware(middleware);
         return this;
     }
 

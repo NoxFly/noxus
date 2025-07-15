@@ -9,6 +9,7 @@ export * from './router';
 export * from './app';
 export * from './bootstrap';
 export * from './exceptions';
+export * from './decorators/middleware.decorator';
 export * from './decorators/guards.decorator';
 export * from './decorators/controller.decorator';
 export * from './decorators/injectable.decorator';

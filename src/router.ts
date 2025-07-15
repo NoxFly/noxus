@@ -9,6 +9,7 @@ import { getControllerMetadata } from 'src/decorators/controller.decorator';
 import { getGuardForController, getGuardForControllerAction, IGuard } from 'src/decorators/guards.decorator';
 import { Injectable } from 'src/decorators/injectable.decorator';
 import { getRouteMetadata } from 'src/decorators/method.decorator';
+import { getMiddlewaresForController, getMiddlewaresForControllerAction, IMiddleware, NextFunction } from 'src/decorators/middleware.decorator';
 import { MethodNotAllowedException, NotFoundException, ResponseException, UnauthorizedException } from 'src/exceptions';
 import { IResponse, Request } from 'src/request';
 import { Logger } from 'src/utils/logger';
@@ -23,6 +24,7 @@ export interface IRouteDefinition {
     controller: Type<any>;
     handler: string;
     guards: Type<IGuard>[];
+    middlewares: Type<IMiddleware>[];
 }
 
 export type ControllerAction = (request: Request, response: IResponse) => any;
@@ -31,11 +33,16 @@ export type ControllerAction = (request: Request, response: IResponse) => any;
 @Injectable('singleton')
 export class Router {
     private readonly routes = new RadixTree<IRouteDefinition>();
+    private readonly rootMiddlewares: Type<IMiddleware>[] = [];
 
+    /**
+     * 
+     */
     public registerController(controllerClass: Type<unknown>): Router {
         const controllerMeta = getControllerMetadata(controllerClass);
 
         const controllerGuards = getGuardForController(controllerClass.name);
+        const controllerMiddlewares = getMiddlewaresForController(controllerClass.name);
         
         if(!controllerMeta)
             throw new Error(`Missing @Controller decorator on ${controllerClass.name}`);
@@ -46,8 +53,10 @@ export class Router {
             const fullPath = `${controllerMeta.path}/${def.path}`.replace(/\/+/g, '/');
 
             const routeGuards = getGuardForControllerAction(controllerClass.name, def.handler);
+            const routeMiddlewares = getMiddlewaresForControllerAction(controllerClass.name, def.handler);
 
             const guards = new Set([...controllerGuards, ...routeGuards]);
+            const middlewares = new Set([...controllerMiddlewares, ...routeMiddlewares]);
 
             const routeDef: IRouteDefinition = {
                 method: def.method,
@@ -55,6 +64,7 @@ export class Router {
                 controller: controllerClass,
                 handler: def.handler,
                 guards: [...guards],
+                middlewares: [...middlewares],
             };
             
             this.routes.insert(fullPath + '/' + def.method, routeDef);
@@ -79,6 +89,18 @@ export class Router {
         return this;
     }
 
+    /**
+     * 
+     */
+    public defineRootMiddleware(middleware: Type<IMiddleware>): Router {
+        Logger.debug(`Registering root middleware: ${middleware.name}`);
+        this.rootMiddlewares.push(middleware);
+        return this;
+    }
+
+    /**
+     * 
+     */
     public async handle(request: Request): Promise<IResponse> {
         Logger.log(`> Received request: {${request.method} /${request.path}}`);
 
@@ -93,13 +115,11 @@ export class Router {
 
         try {
             const routeDef = this.findRoute(request);
-            const controllerInstance = await this.resolveController(request, routeDef);
+            await this.resolveController(request, response, routeDef);
 
-            const action = controllerInstance[routeDef.handler] as ControllerAction;
-
-            this.verifyRequestBody(request, action);
-
-            response.body = await action.call(controllerInstance, request, response);
+            if(response.status > 400) {
+                throw new ResponseException(response.status, response.error);
+            }
         }
         catch(error: unknown) {
             if(error instanceof ResponseException) {
@@ -135,6 +155,9 @@ export class Router {
         }
     }
 
+    /**
+     * 
+     */
     private findRoute(request: Request): IRouteDefinition {
         const matchedRoutes = this.routes.search(request.path);
 
@@ -151,30 +174,85 @@ export class Router {
         return routeDef.value;
     }
 
-    private async resolveController(request: Request, routeDef: IRouteDefinition): Promise<any> {
+    /**
+     * 
+     */
+    private async resolveController(request: Request, response: IResponse, routeDef: IRouteDefinition): Promise<void> {
         const controllerInstance = request.context.resolve(routeDef.controller);
 
         Object.assign(request.params, this.extractParams(request.path, routeDef.path));
 
-        if(routeDef.guards.length > 0) {
-            for(const guardType of routeDef.guards) {
-                const guard = request.context.resolve(guardType);
-                const allowed = await guard.canActivate(request);
+        await this.runRequestPipeline(request, response, routeDef, controllerInstance);
+    }
 
-                if(!allowed)
-                    throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+    /**
+     * 
+     */
+    private async runRequestPipeline(request: Request, response: IResponse, routeDef: IRouteDefinition, controllerInstance: any): Promise<void> {
+        const middlewares = [...new Set([...this.rootMiddlewares, ...routeDef.middlewares])];
+
+        const middlewareMaxIndex = middlewares.length - 1;
+        const guardsMaxIndex = middlewareMaxIndex + routeDef.guards.length;
+
+        let index = -1;
+
+        const dispatch = async (i: number): Promise<void> => {
+            if(i <= index)
+                throw new Error("next() called multiple times");
+            
+            index = i;
+
+            // middlewares
+            if(i <= middlewareMaxIndex) {
+                const nextFn = dispatch.bind(null, i + 1);
+                await this.runMiddleware(request, response, nextFn, middlewares[i]!);
+
+                if(response.status >= 400) {
+                    throw new ResponseException(response.status, response.error);
+                }
+
+                return;
             }
-        }
+            
+            // guards
+            if(i <= guardsMaxIndex) {
+                const guardIndex = i - middlewares.length;
+                const guardType = routeDef.guards[guardIndex]!;
+                await this.runGuard(request, guardType);
+                dispatch(i + 1);
+                return;
+            }
 
-        return controllerInstance;
+            // endpoint action
+            const action = controllerInstance[routeDef.handler] as ControllerAction;
+            response.body = await action.call(controllerInstance, request, response);
+        };
+
+        await dispatch(0);
     }
 
-    private verifyRequestBody(request: Request, action: ControllerAction): void {
-        const requiredParams = Reflect.getMetadata('design:paramtypes', action) || [];
-        // peut être à faire plus tard. problème du TS, c'est qu'en JS pas de typage.
-        // donc il faudrait passer par des décorateurs mais pas sûr que ce soit bien.
+    /**
+     * 
+     */
+    private async runMiddleware(request: Request, response: IResponse, next: NextFunction, middlewareType: Type<IMiddleware>): Promise<void> {
+        const middleware = request.context.resolve(middlewareType);
+        await middleware.invoke(request, response, next);
     }
 
+    /**
+     * 
+     */
+    private async runGuard(request: Request, guardType: Type<IGuard>): Promise<void> {
+        const guard = request.context.resolve(guardType);
+        const allowed = await guard.canActivate(request);
+
+        if(!allowed)
+            throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+    }
+
+    /**
+     * 
+     */
     private extractParams(actual: string, template: string): Record<string, string> {
         const aParts = actual.split('/');
         const tParts = template.split('/');

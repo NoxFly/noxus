@@ -4,8 +4,6 @@
  * @author NoxFly
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-function-type */
-
 import { CONTROLLER_METADATA_KEY } from "src/decorators/controller.decorator";
 import { Injectable, INJECTABLE_METADATA_KEY } from "src/decorators/injectable.decorator";
 import { Type } from "src/utils/types";

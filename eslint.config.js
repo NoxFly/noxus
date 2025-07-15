@@ -49,6 +49,7 @@ module.exports = tseslint.config(
             "@typescript-eslint/no-empty-function": "off",
             "@typescript-eslint/no-unused-vars": "off",
             "@typescript-eslint/no-namespace": "off",
+            "@typescript-eslint/no-unsafe-function-type": "off",
             "@typescript-eslint/prefer-readonly": "warn",
 
             "@stylistic/object-curly-spacing": ["warn", "always"],

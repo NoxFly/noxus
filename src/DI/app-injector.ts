@@ -16,7 +16,7 @@ export interface IBinding {
     instance?: InstanceType<Type<unknown>>;
 }
 
-class AppInjector {
+export class AppInjector {
     public bindings = new Map<Type<unknown>, IBinding>();
     public singletons = new Map<Type<unknown>, InstanceType<Type<unknown>>>();
     public scoped = new Map<Type<unknown>, InstanceType<Type<unknown>>>();
@@ -45,7 +45,10 @@ class AppInjector {
         const binding = this.bindings.get(target);
 
         if(!binding)
-            throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${target.name}`);
+            throw new InternalServerException(
+                `Failed to resolve a dependency injection : No binding for type ${target.name}.\n`
+                + `Did you forget to use @Injectable() decorator ?`
+            );
 
         switch(binding.lifetime) {
             case 'transient':

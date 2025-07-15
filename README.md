@@ -402,7 +402,84 @@ const instance: MyClass = inject(MyClass);
 
 ### Middlewares
 
-§ TODO
+Declare middlewares as follow :
+
+```ts
+// renderer/middlewares.ts
+
+import { IMiddleware, Injectable, Request, IResponse, NextFunction } from '@noxfly/noxus';
+
+@Injectable()
+export class MiddlewareA implements IMiddleware {
+    public async invoke(request: Request, response: IResponse, next: NextFunction): Promise<void> {
+        console.log(`[Middleware A] before next()`);
+        await next();
+        console.log(`[Middleware A] after next()`);
+    }
+}
+
+@Injectable()
+export class MiddlewareB implements IMiddleware {
+    public async invoke(request: Request, response: IResponse, next: NextFunction): Promise<void> {
+        console.log(`[Middleware B] before next()`);
+        await next();
+        console.log(`[Middleware B] after next()`);
+    }
+}
+```
+
+It is highly recommended to `await` the call of the `next` function.
+
+Register these by 3 possible ways :
+
+1. For a root scope. Will be present for each routes.
+
+```ts
+const noxApp = bootstrapApplication(AppModule);
+
+noxApp.configure(Application);
+
+noxApp.use(MiddlewareA);
+noxApp.use(MiddlewareB);
+
+noxApp.start();
+```
+
+2. Or for a controller or action's scope :
+
+```ts
+@Controller('user')
+@UseMiddlewares([MiddlewareA, MiddlewareB])
+export class UserController {
+    @Get('all')
+    @UseMiddlewares([MiddlewareA, MiddlewareB])
+    public getAll(): Promise<void> {
+        // ...
+    }
+}
+```
+
+Note that if, for a given action, it has registered multiples times the same middleware, only the first registration will be saved.
+
+For instance, registering MiddlewareA for root, on the controller and on the action is useless.
+
+The order of declaration of use of middlewares is important.
+
+assume we do this :
+1. Use Middleware A for root
+2. Use Middleware B for root just after MiddlewareA
+3. Use Middleware C for controller
+4. Use Middleware D for action
+5. Use AuthGuard on the controller
+6. Use RoleGuard on the action
+
+Then the executing pipeline will be as follow :
+
+```r
+A -> B -> C -> D -> AuthGuard -> RoleGuard -> [action] -> D -> C -> B -> A.
+```
+
+if a middleware throw any exception or put the response status higher or equal to 400, the pipeline immediatly stops and the response is returned, weither it is done before or after the call to the next function.
 
 ## Contributing
 

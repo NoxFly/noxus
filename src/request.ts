@@ -6,10 +6,10 @@
 
 import 'reflect-metadata';
 import { HttpMethod } from 'src/decorators/method.decorator';
-import { RootInjector } from 'src/DI/app-injector';
+import { AppInjector, RootInjector } from 'src/DI/app-injector';
 
 export class Request {
-    public readonly context: any = RootInjector.createScope();
+    public readonly context: AppInjector = RootInjector.createScope();
 
     public readonly params: Record<string, string> = {};
 

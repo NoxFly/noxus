@@ -62,7 +62,7 @@ declare class Request {
     readonly method: HttpMethod;
     readonly path: string;
     readonly body: any;
-    readonly context: any;
+    readonly context: AppInjector;
     readonly params: Record<string, string>;
     constructor(event: Electron.MessageEvent, id: string, method: HttpMethod, path: string, body: any);
 }
@@ -93,21 +93,62 @@ declare function getGuardForController(controllerName: string): Type<IGuard>[];
 declare function getGuardForControllerAction(controllerName: string, actionName: string): Type<IGuard>[];
 
 
+type NextFunction = () => Promise<void>;
+interface IMiddleware {
+    invoke(request: Request, response: IResponse, next: NextFunction): MaybeAsync<void>;
+}
+declare function UseMiddlewares(mdlw: Type<IMiddleware>[]): ClassDecorator & MethodDecorator;
+declare function getMiddlewaresForController(controllerName: string): Type<IMiddleware>[];
+declare function getMiddlewaresForControllerAction(controllerName: string, actionName: string): Type<IMiddleware>[];
+
+
 interface IRouteDefinition {
     method: string;
     path: string;
     controller: Type<any>;
     handler: string;
     guards: Type<IGuard>[];
+    middlewares: Type<IMiddleware>[];
 }
 type ControllerAction = (request: Request, response: IResponse) => any;
 declare class Router {
     private readonly routes;
+    private readonly rootMiddlewares;
+    /**
+     *
+     */
     registerController(controllerClass: Type<unknown>): Router;
+    /**
+     *
+     */
+    defineRootMiddleware(middleware: Type<IMiddleware>): Router;
+    /**
+     *
+     */
     handle(request: Request): Promise<IResponse>;
+    /**
+     *
+     */
     private findRoute;
+    /**
+     *
+     */
     private resolveController;
-    private verifyRequestBody;
+    /**
+     *
+     */
+    private runRequestPipeline;
+    /**
+     *
+     */
+    private runMiddleware;
+    /**
+     *
+     */
+    private runGuard;
+    /**
+     *
+     */
     private extractParams;
 }
 
@@ -145,6 +186,7 @@ declare class NoxApp {
      */
     private onAllWindowsClosed;
     configure(app: Type<IApp>): NoxApp;
+    use(middleware: Type<IMiddleware>): NoxApp;
     /**
      * Should be called after the bootstrapApplication function is called.
      */
@@ -157,9 +199,10 @@ declare class NoxApp {
  */
 declare function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp>;
 
-declare abstract class ResponseException extends Error {
-    abstract readonly status: number;
+declare class ResponseException extends Error {
+    readonly status: number;
     constructor(message?: string);
+    constructor(statusCode?: number, message?: string);
 }
 declare class BadRequestException extends ResponseException {
     readonly status = 400;
@@ -284,4 +327,4 @@ declare namespace Logger {
     function debug(...args: any[]): void;
 }
 
-export { Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getModuleMetadata, getRouteMetadata, inject };
+export { AppInjector, Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, getRouteMetadata, inject };

@@ -19,7 +19,7 @@ const authorizations = new Map<string, Type<IGuard>[]>();
  * Peut être utilisé sur une classe controleur, ou sur une méthode de contrôleur.
  */
 export function Authorize(...guardClasses: Type<IGuard>[]): MethodDecorator & ClassDecorator {
-    return (target: any, propertyKey?: string | symbol) => {
+    return (target: Function | object, propertyKey?: string | symbol) => {
         let key: string;
 
         // Method decorator
@@ -38,7 +38,7 @@ export function Authorize(...guardClasses: Type<IGuard>[]): MethodDecorator & Cl
             throw new Error(`Guard(s) already registered for ${key}`);
         }
 
-        Logger.debug(`Registering guards for ${key}: ${guardClasses.map(c => c.name).join(', ')}`);
+        Logger.debug(`Registering guard(s) for ${key}: ${guardClasses.map(c => c.name).join(', ')}`);
 
         authorizations.set(key, guardClasses);
     };
