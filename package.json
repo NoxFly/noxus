@@ -29,9 +29,6 @@
   "engines": {
     "node": ">= 20"
   },
-  "dependencies": {
-    "reflect-metadata": "^0.2.2"
-  },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.1.0",
     "@swc/core": "^1.12.14",
@@ -46,5 +43,8 @@
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.36.0"
+  },
+  "peerDependencies": {
+    "reflect-metadata": "^0.2.2"
   }
 }

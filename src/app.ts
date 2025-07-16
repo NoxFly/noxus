@@ -29,7 +29,7 @@ export class NoxApp {
     ) {}
 
     /**
-     * 
+     *
      */
     public async init(): Promise<NoxApp> {
         ipcMain.on('gimme-my-port', this.giveTheRendererAPort.bind(this));
@@ -43,7 +43,7 @@ export class NoxApp {
     }
 
     /**
-     * 
+     *
      */
     private giveTheRendererAPort(event: Electron.IpcMainInvokeEvent): void {
         const senderId = event.sender.id;
@@ -98,7 +98,7 @@ export class NoxApp {
     private onAppActivated(): void {
         if(process.platform === 'darwin' && BrowserWindow.getAllWindows().length === 0) {
             this.app?.onActivated();
-        }   
+        }
     }
 
     private shutdownChannel(channelSenderId: number, remove: boolean = true): void {
@@ -117,7 +117,7 @@ export class NoxApp {
     }
 
     /**
-     * 
+     *
      */
     private async onAllWindowsClosed(): Promise<void> {
         this.messagePorts.forEach((channel, senderId) => {
