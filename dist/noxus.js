@@ -1031,7 +1031,7 @@ var _NoxApp = class _NoxApp {
     this.router = router;
   }
   /**
-   * 
+   *
    */
   async init() {
     import_main.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
@@ -1041,7 +1041,7 @@ var _NoxApp = class _NoxApp {
     return this;
   }
   /**
-   * 
+   *
    */
   giveTheRendererAPort(event) {
     const senderId = event.sender.id;
@@ -1103,7 +1103,7 @@ var _NoxApp = class _NoxApp {
     this.messagePorts.delete(channelSenderId);
   }
   /**
-   * 
+   *
    */
   async onAllWindowsClosed() {
     this.messagePorts.forEach((channel, senderId) => {
