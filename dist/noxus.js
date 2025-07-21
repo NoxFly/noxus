@@ -3,11 +3,1341 @@
  * @license MIT
  * @author NoxFly
  */
-"use strict";var R=Object.defineProperty;var re=Object.getOwnPropertyDescriptor;var oe=Object.getOwnPropertyNames;var ne=Object.prototype.hasOwnProperty;var se=(o,t,e)=>t in o?R(o,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[t]=e;var n=(o,t)=>R(o,"name",{value:t,configurable:!0});var ae=(o,t)=>{for(var e in t)R(o,e,{get:t[e],enumerable:!0})},ie=(o,t,e,r)=>{if(t&&typeof t=="object"||typeof t=="function")for(let s of oe(t))!ne.call(o,s)&&s!==e&&R(o,s,{get:()=>t[s],enumerable:!(r=re(t,s))||r.enumerable});return o};var le=o=>ie(R({},"__esModule",{value:!0}),o);var i=(o,t,e)=>se(o,typeof t!="symbol"?t+"":t,e);var Ae={};ae(Ae,{AppInjector:()=>K,Authorize:()=>ue,BadGatewayException:()=>it,BadRequestException:()=>_,CONTROLLER_METADATA_KEY:()=>Y,ConflictException:()=>ot,Controller:()=>xe,Delete:()=>ge,ForbiddenException:()=>tt,GatewayTimeoutException:()=>ct,Get:()=>fe,HttpVersionNotSupportedException:()=>dt,INJECTABLE_METADATA_KEY:()=>F,Injectable:()=>x,InsufficientStorageException:()=>ft,InternalServerException:()=>P,Logger:()=>d,LoopDetectedException:()=>mt,MODULE_METADATA_KEY:()=>B,MethodNotAllowedException:()=>v,Module:()=>we,NetworkAuthenticationRequiredException:()=>pt,NetworkConnectTimeoutException:()=>gt,NotAcceptableException:()=>et,NotExtendedException:()=>ht,NotFoundException:()=>y,NotImplementedException:()=>at,NoxApp:()=>$,Patch:()=>pe,PaymentRequiredException:()=>q,Post:()=>me,Put:()=>he,ROUTE_METADATA_KEY:()=>U,Request:()=>L,RequestTimeoutException:()=>rt,ResponseException:()=>u,RootInjector:()=>h,Router:()=>g,ServiceUnavailableException:()=>lt,TooManyRequestsException:()=>st,UnauthorizedException:()=>A,UpgradeRequiredException:()=>nt,UseMiddlewares:()=>$e,VariantAlsoNegotiatesException:()=>ut,bootstrapApplication:()=>Re,getControllerMetadata:()=>E,getGuardForController:()=>D,getGuardForControllerAction:()=>G,getInjectableMetadata:()=>Kt,getMiddlewaresForController:()=>kt,getMiddlewaresForControllerAction:()=>Jt,getModuleMetadata:()=>z,getRouteMetadata:()=>N,inject:()=>j});module.exports=le(Ae);var Ce=require("reflect-metadata");var wt=class wt extends Error{constructor(e,r){let s;typeof e=="number"?s=e:typeof e=="string"&&(r=e);super(r??"");i(this,"status",0);s!==void 0&&(this.status=s),this.name=this.constructor.name.replace(/([A-Z])/g," $1")}};n(wt,"ResponseException");var u=wt,xt=class xt extends u{constructor(){super(...arguments);i(this,"status",400)}};n(xt,"BadRequestException");var _=xt,$t=class $t extends u{constructor(){super(...arguments);i(this,"status",401)}};n($t,"UnauthorizedException");var A=$t,Mt=class Mt extends u{constructor(){super(...arguments);i(this,"status",402)}};n(Mt,"PaymentRequiredException");var q=Mt,bt=class bt extends u{constructor(){super(...arguments);i(this,"status",403)}};n(bt,"ForbiddenException");var tt=bt,Rt=class Rt extends u{constructor(){super(...arguments);i(this,"status",404)}};n(Rt,"NotFoundException");var y=Rt,At=class At extends u{constructor(){super(...arguments);i(this,"status",405)}};n(At,"MethodNotAllowedException");var v=At,yt=class yt extends u{constructor(){super(...arguments);i(this,"status",406)}};n(yt,"NotAcceptableException");var et=yt,vt=class vt extends u{constructor(){super(...arguments);i(this,"status",408)}};n(vt,"RequestTimeoutException");var rt=vt,Pt=class Pt extends u{constructor(){super(...arguments);i(this,"status",409)}};n(Pt,"ConflictException");var ot=Pt,jt=class jt extends u{constructor(){super(...arguments);i(this,"status",426)}};n(jt,"UpgradeRequiredException");var nt=jt,Ct=class Ct extends u{constructor(){super(...arguments);i(this,"status",429)}};n(Ct,"TooManyRequestsException");var st=Ct,Tt=class Tt extends u{constructor(){super(...arguments);i(this,"status",500)}};n(Tt,"InternalServerException");var P=Tt,It=class It extends u{constructor(){super(...arguments);i(this,"status",501)}};n(It,"NotImplementedException");var at=It,Ot=class Ot extends u{constructor(){super(...arguments);i(this,"status",502)}};n(Ot,"BadGatewayException");var it=Ot,Dt=class Dt extends u{constructor(){super(...arguments);i(this,"status",503)}};n(Dt,"ServiceUnavailableException");var lt=Dt,Gt=class Gt extends u{constructor(){super(...arguments);i(this,"status",504)}};n(Gt,"GatewayTimeoutException");var ct=Gt,St=class St extends u{constructor(){super(...arguments);i(this,"status",505)}};n(St,"HttpVersionNotSupportedException");var dt=St,Nt=class Nt extends u{constructor(){super(...arguments);i(this,"status",506)}};n(Nt,"VariantAlsoNegotiatesException");var ut=Nt,zt=class zt extends u{constructor(){super(...arguments);i(this,"status",507)}};n(zt,"InsufficientStorageException");var ft=zt,Ft=class Ft extends u{constructor(){super(...arguments);i(this,"status",508)}};n(Ft,"LoopDetectedException");var mt=Ft,Yt=class Yt extends u{constructor(){super(...arguments);i(this,"status",510)}};n(Yt,"NotExtendedException");var ht=Yt,Et=class Et extends u{constructor(){super(...arguments);i(this,"status",511)}};n(Et,"NetworkAuthenticationRequiredException");var pt=Et,Lt=class Lt extends u{constructor(){super(...arguments);i(this,"status",599)}};n(Lt,"NetworkConnectTimeoutException");var gt=Lt;var k=class k{constructor(t=null){i(this,"name");i(this,"bindings",new Map);i(this,"singletons",new Map);i(this,"scoped",new Map);this.name=t}createScope(){let t=new k;return t.bindings=this.bindings,t.singletons=this.singletons,t}resolve(t){let e=this.bindings.get(t);if(!e)throw new P(`Failed to resolve a dependency injection : No binding for type ${t.name}.
-Did you forget to use @Injectable() decorator ?`);switch(e.lifetime){case"transient":return this.instantiate(e.implementation);case"scope":{if(this.scoped.has(t))return this.scoped.get(t);let r=this.instantiate(e.implementation);return this.scoped.set(t,r),r}case"singleton":return e.instance===void 0&&this.name==="root"&&(e.instance=this.instantiate(e.implementation),this.singletons.set(t,e.instance)),e.instance}}instantiate(t){let r=(Reflect.getMetadata("design:paramtypes",t)||[]).map(s=>this.resolve(s));return new t(...r)}};n(k,"AppInjector");var K=k;function j(o){return h.resolve(o)}n(j,"inject");var h=new K("root");var ur=require("reflect-metadata");function ce(){let o=new Date;return`${o.getDate().toString().padStart(2,"0")}/${(o.getMonth()+1).toString().padStart(2,"0")}/${o.getFullYear()} ${o.getHours().toString().padStart(2,"0")}:${o.getMinutes().toString().padStart(2,"0")}:${o.getSeconds().toString().padStart(2,"0")}`}n(ce,"getPrettyTimestamp");function C(o,t,e){let r=ce(),s=" ".repeat(10-t.length);return`${e}[APP] ${process.pid} - ${d.colors.initial}${r}${s}${e}${t.toUpperCase()}${d.colors.initial} ${d.colors.yellow}[${o}]${d.colors.initial}`}n(C,"getLogPrefix");function de(o,t){return JSON.stringify(t,null,2).split(`
-`).map((s,a)=>a===0?`${d.colors.darkGrey}${s}`:`${o} ${d.colors.grey}${s}`).join(`
-`)+d.colors.initial}n(de,"formatObject");function T(o,t,e){return t.map(r=>typeof r=="string"?`${e}${r}${d.colors.initial}`:typeof r=="object"?de(o,r):r)}n(T,"formattedArgs");function I(){return(new Error().stack?.split(`
-`)??[])[3]?.trim().match(/at (.+?)(?:\..+)? .+$/)?.[1]?.replace("Object","")||"App"}n(I,"getCallee");function O(o){return Qt[o]>=Qt[Xt]}n(O,"canLog");var Xt="log",Qt={debug:0,log:1,info:2,warn:3,error:4};(function(o){function t(c){Xt=c}n(t,"setLogLevel"),o.setLogLevel=t;function e(...c){if(!O("log"))return;let m=I(),f=C(m,"log",o.colors.green);console.log(f,...T(f,c,o.colors.green))}n(e,"log"),o.log=e;function r(...c){if(!O("info"))return;let m=I(),f=C(m,"info",o.colors.blue);console.info(f,...T(f,c,o.colors.blue))}n(r,"info"),o.info=r;function s(...c){if(!O("warn"))return;let m=I(),f=C(m,"warn",o.colors.brown);console.warn(f,...T(f,c,o.colors.brown))}n(s,"warn"),o.warn=s;function a(...c){if(!O("error"))return;let m=I(),f=C(m,"error",o.colors.red);console.error(f,...T(f,c,o.colors.red))}n(a,"error"),o.error=a;function l(...c){if(!O("debug"))return;let m=I(),f=C(m,"debug",o.colors.purple);console.debug(f,...T(f,c,o.colors.purple))}n(l,"debug"),o.debug=l,o.colors={black:"\x1B[0;30m",grey:"\x1B[0;37m",red:"\x1B[0;31m",green:"\x1B[0;32m",brown:"\x1B[0;33m",blue:"\x1B[0;34m",purple:"\x1B[0;35m",darkGrey:"\x1B[1;30m",lightRed:"\x1B[1;31m",lightGreen:"\x1B[1;32m",yellow:"\x1B[1;33m",lightBlue:"\x1B[1;34m",magenta:"\x1B[1;35m",cyan:"\x1B[1;36m",white:"\x1B[1;37m",initial:"\x1B[0m"}})(d||(d={}));var d;function ue(...o){return(t,e)=>{let r;if(e?r=`${t.constructor.name}.${e}`:r=`${t.name}`,J.has(r))throw new Error(`Guard(s) already registered for ${r}`);d.debug(`Registering guard(s) for ${r}: ${o.map(s=>s.name).join(", ")}`),J.set(r,o)}}n(ue,"Authorize");function D(o){let t=`${o}`;return J.get(t)??[]}n(D,"getGuardForController");function G(o,t){let e=`${o}.${t}`;return J.get(e)??[]}n(G,"getGuardForControllerAction");var J=new Map;function S(o){return t=>(e,r)=>{let s=Reflect.getMetadata(U,e.constructor)||[],a={method:o,path:t.trim().replace(/^\/|\/$/g,""),handler:r,guards:G(e.constructor.__controllerName,r)};s.push(a),Reflect.defineMetadata(U,s,e.constructor)}}n(S,"createRouteDecorator");function N(o){return Reflect.getMetadata(U,o)||[]}n(N,"getRouteMetadata");var fe=S("GET"),me=S("POST"),he=S("PUT"),pe=S("PATCH"),ge=S("DELETE"),U=Symbol("ROUTE_METADATA_KEY");function we(o){return t=>{let e=n((a,l)=>{if(a){for(let c of a)if(!Reflect.getMetadata(B,c))throw new Error(`Class ${c.name} in ${l} must be decorated with @Module`)}},"checkModule"),r=n(a=>{if(a){for(let l of a)if(!Reflect.getMetadata(F,l))throw new Error(`Class ${l.name} in providers must be decorated with @Injectable`)}},"checkInjectable"),s=n(a=>{if(a){for(let l of a)if(!Reflect.getMetadata(Y,l))throw new Error(`Class ${l.name} in controllers must be decorated with @Controller`)}},"checkController");e(o.imports,"imports"),e(o.exports,"exports"),r(o.providers),s(o.controllers),Reflect.defineMetadata(B,o,t),x("singleton")(t)}}n(we,"Module");function z(o){return Reflect.getMetadata(B,o)}n(z,"getModuleMetadata");var B=Symbol("MODULE_METADATA_KEY");var Wt=class Wt{static register(t,e){return d.debug(`Registering ${t.name} as ${e}`),h.bindings.has(t)?h:(h.bindings.set(t,{implementation:t,lifetime:e}),e==="singleton"&&h.resolve(t),z(t)?(d.log(`${t.name} dependencies initialized`),h):E(t)?(h.resolve(g)?.registerController(t),h):N(t)?h:Kt(t)?(d.log(`Registered ${t.name} as ${e}`),h):h)}};n(Wt,"InjectorExplorer");var Z=Wt;function x(o="scope"){return t=>{if(typeof t!="function"||!t.prototype)throw new Error(`@Injectable can only be used on classes, not on ${typeof t}`);Reflect.defineMetadata(F,o,t),Z.register(t,o)}}n(x,"Injectable");function Kt(o){return Reflect.getMetadata(F,o)}n(Kt,"getInjectableMetadata");var F=Symbol("INJECTABLE_METADATA_KEY");function xe(o){return t=>{let e={path:o,guards:D(t.name)};Reflect.defineMetadata(Y,e,t),x("scope")(t)}}n(xe,"Controller");function E(o){return Reflect.getMetadata(Y,o)}n(E,"getControllerMetadata");var Y=Symbol("CONTROLLER_METADATA_KEY");function $e(o){return(t,e)=>{let r;if(e?r=`${t.constructor.name}.${e}`:r=`${t.name}`,H.has(r))throw new Error(`Middlewares(s) already registered for ${r}`);d.debug(`Registering middleware(s) for ${r}: ${o.map(s=>s.name).join(", ")}`),H.set(r,o)}}n($e,"UseMiddlewares");function kt(o){let t=`${o}`;return H.get(t)??[]}n(kt,"getMiddlewaresForController");function Jt(o,t){let e=`${o}.${t}`;return H.get(e)??[]}n(Jt,"getMiddlewaresForControllerAction");var H=new Map;var M,Vt=(M=class{constructor(t){i(this,"segment");i(this,"children",[]);i(this,"value");i(this,"isParam");i(this,"paramName");this.segment=t,this.isParam=t.startsWith(":"),this.isParam&&(this.paramName=t.slice(1))}matchChild(t){for(let e of this.children)if(e.isParam||t.startsWith(e.segment))return e}findExactChild(t){return this.children.find(e=>e.segment===t)}addChild(t){this.children.push(t)}},n(M,"RadixNode"),M),Ut=class Ut{constructor(){i(this,"root",new Vt(""))}insert(t,e){let r=this.normalize(t);this.insertRecursive(this.root,r,e)}insertRecursive(t,e,r){if(e.length===0){t.value=r;return}let s=e[0]??"",a=t.children.find(l=>l.isParam===s.startsWith(":")&&(l.isParam||l.segment===s));a||(a=new Vt(s),t.addChild(a)),this.insertRecursive(a,e.slice(1),r)}search(t){let e=this.normalize(t);return this.searchRecursive(this.root,e,{})}searchRecursive(t,e,r){if(e.length===0)return t.value!==void 0?{node:t,params:r}:void 0;let[s,...a]=e;for(let l of t.children)if(l.isParam){let c=l.paramName,m={...r,[c]:s??""};if(a.length===0)return{node:l,params:m};let f=this.searchRecursive(l,a,m);if(f)return f}else if(s===l.segment){if(a.length===0)return{node:l,params:r};let c=this.searchRecursive(l,a,r);if(c)return c}}normalize(t){return["",...t.replace(/^\/+|\/+$/g,"").split("/").filter(Boolean)]}};n(Ut,"RadixTree");var Q=Ut;function Me(o,t,e,r){var s=arguments.length,a=s<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,e):r,l;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")a=Reflect.decorate(o,t,e,r);else for(var c=o.length-1;c>=0;c--)(l=o[c])&&(a=(s<3?l(a):s>3?l(t,e,a):l(t,e))||a);return s>3&&a&&Object.defineProperty(t,e,a),a}n(Me,"_ts_decorate");var Bt=class Bt{constructor(){i(this,"routes",new Q);i(this,"rootMiddlewares",[])}registerController(t){let e=E(t),r=D(t.name),s=kt(t.name);if(!e)throw new Error(`Missing @Controller decorator on ${t.name}`);let a=N(t);for(let m of a){let f=`${e.path}/${m.path}`.replace(/\/+/g,"/"),p=G(t.name,m.handler),X=Jt(t.name,m.handler),b=new Set([...r,...p]),V=new Set([...s,...X]),W={method:m.method,path:f,controller:t,handler:m.handler,guards:[...b],middlewares:[...V]};this.routes.insert(f+"/"+m.method,W);let te=W.guards.length>0?"<"+W.guards.map(ee=>ee.name).join("|")+">":"";d.log(`Mapped {${W.method} /${f}}${te} route`)}let c=e.guards.length>0?"<"+e.guards.map(m=>m.name).join("|")+">":"";return d.log(`Mapped ${t.name}${c} controller's routes`),this}defineRootMiddleware(t){return d.debug(`Registering root middleware: ${t.name}`),this.rootMiddlewares.push(t),this}async handle(t){d.log(`> Received request: {${t.method} /${t.path}}`);let e=performance.now(),r={requestId:t.id,status:200,body:null,error:void 0};try{let s=this.findRoute(t);if(await this.resolveController(t,r,s),r.status>400)throw new u(r.status,r.error)}catch(s){s instanceof u?(r.status=s.status,r.error=s.message):s instanceof Error?(r.status=500,r.error=s.message||"Internal Server Error"):(r.status=500,r.error="Unknown error occurred")}finally{let s=performance.now(),a=`< ${r.status} ${t.method} /${t.path} ${d.colors.yellow}${Math.round(s-e)}ms${d.colors.initial}`;return r.status<400?d.log(a):r.status<500?d.warn(a):d.error(a),r.error!==void 0&&d.error(r.error),r}}findRoute(t){let e=this.routes.search(t.path);if(e?.node===void 0||e.node.children.length===0)throw new y(`No route matches ${t.method} ${t.path}`);let r=e.node.findExactChild(t.method);if(r?.value===void 0)throw new v(`Method Not Allowed for ${t.method} ${t.path}`);return r.value}async resolveController(t,e,r){let s=t.context.resolve(r.controller);Object.assign(t.params,this.extractParams(t.path,r.path)),await this.runRequestPipeline(t,e,r,s)}async runRequestPipeline(t,e,r,s){let a=[...new Set([...this.rootMiddlewares,...r.middlewares])],l=a.length-1,c=l+r.guards.length,m=-1,f=n(async p=>{if(p<=m)throw new Error("next() called multiple times");if(m=p,p<=l){let b=f.bind(null,p+1);if(await this.runMiddleware(t,e,b,a[p]),e.status>=400)throw new u(e.status,e.error);return}if(p<=c){let b=p-a.length,V=r.guards[b];await this.runGuard(t,V),f(p+1);return}let X=s[r.handler];e.body=await X.call(s,t,e)},"dispatch");await f(0)}async runMiddleware(t,e,r,s){await t.context.resolve(s).invoke(t,e,r)}async runGuard(t,e){if(!await t.context.resolve(e).canActivate(t))throw new A(`Unauthorized for ${t.method} ${t.path}`)}extractParams(t,e){let r=t.split("/"),s=e.split("/"),a={};return s.forEach((l,c)=>{l.startsWith(":")&&(a[l.slice(1)]=r[c]??"")}),a}};n(Bt,"Router");var g=Bt;g=Me([x("singleton")],g);var w=require("electron/main");var Rr=require("reflect-metadata");var Zt=class Zt{constructor(t,e,r,s,a){i(this,"event");i(this,"id");i(this,"method");i(this,"path");i(this,"body");i(this,"context",h.createScope());i(this,"params",{});this.event=t,this.id=e,this.method=r,this.path=s,this.body=a,this.path=s.replace(/^\/|\/$/g,"")}};n(Zt,"Request");var L=Zt;function be(o,t,e,r){var s=arguments.length,a=s<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,e):r,l;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")a=Reflect.decorate(o,t,e,r);else for(var c=o.length-1;c>=0;c--)(l=o[c])&&(a=(s<3?l(a):s>3?l(t,e,a):l(t,e))||a);return s>3&&a&&Object.defineProperty(t,e,a),a}n(be,"_ts_decorate");function _t(o,t){if(typeof Reflect=="object"&&typeof Reflect.metadata=="function")return Reflect.metadata(o,t)}n(_t,"_ts_metadata");var Ht=class Ht{constructor(t){i(this,"router");i(this,"messagePorts",new Map);i(this,"app");this.router=t}async init(){return w.ipcMain.on("gimme-my-port",this.giveTheRendererAPort.bind(this)),w.app.once("activate",this.onAppActivated.bind(this)),w.app.once("window-all-closed",this.onAllWindowsClosed.bind(this)),console.log(""),this}giveTheRendererAPort(t){let e=t.sender.id;this.messagePorts.has(e)&&this.shutdownChannel(e);let r=new w.MessageChannelMain;this.messagePorts.set(e,r),r.port1.on("message",this.onRendererMessage.bind(this)),r.port1.start(),t.sender.postMessage("port",{senderId:e},[r.port2])}async onRendererMessage(t){let{senderId:e,requestId:r,path:s,method:a,body:l}=t.data,c=this.messagePorts.get(e);if(!c){d.error(`No message channel found for sender ID: ${e}`);return}try{let m=new L(t,r,a,s,l),f=await this.router.handle(m);c.port1.postMessage(f)}catch(m){let f={requestId:r,status:500,body:null,error:m.message||"Internal Server Error"};c.port1.postMessage(f)}}onAppActivated(){process.platform==="darwin"&&w.BrowserWindow.getAllWindows().length===0&&this.app?.onActivated()}shutdownChannel(t){let e=this.messagePorts.get(t);if(!e){d.warn(`No message channel found for sender ID: ${t}`);return}e.port1.off("message",this.onRendererMessage.bind(this)),e.port1.close(),e.port2.close(),this.messagePorts.delete(t)}async onAllWindowsClosed(){this.messagePorts.forEach((t,e)=>{this.shutdownChannel(e)}),this.messagePorts.clear(),this.app?.dispose(),process.platform!=="darwin"&&w.app.quit()}configure(t){return this.app=j(t),this}use(t){return this.router.defineRootMiddleware(t),this}start(){return this.app?.onReady(),this}};n(Ht,"NoxApp");var $=Ht;$=be([x("singleton"),_t("design:type",Function),_t("design:paramtypes",[typeof g>"u"?Object:g])],$);var qt=require("electron/main");async function Re(o){if(!z(o))throw new Error("Root module must be decorated with @Module");await qt.app.whenReady();let t=j($);return await t.init(),t}n(Re,"bootstrapApplication");0&&(module.exports={AppInjector,Authorize,BadGatewayException,BadRequestException,CONTROLLER_METADATA_KEY,ConflictException,Controller,Delete,ForbiddenException,GatewayTimeoutException,Get,HttpVersionNotSupportedException,INJECTABLE_METADATA_KEY,Injectable,InsufficientStorageException,InternalServerException,Logger,LoopDetectedException,MODULE_METADATA_KEY,MethodNotAllowedException,Module,NetworkAuthenticationRequiredException,NetworkConnectTimeoutException,NotAcceptableException,NotExtendedException,NotFoundException,NotImplementedException,NoxApp,Patch,PaymentRequiredException,Post,Put,ROUTE_METADATA_KEY,Request,RequestTimeoutException,ResponseException,RootInjector,Router,ServiceUnavailableException,TooManyRequestsException,UnauthorizedException,UpgradeRequiredException,UseMiddlewares,VariantAlsoNegotiatesException,bootstrapApplication,getControllerMetadata,getGuardForController,getGuardForControllerAction,getInjectableMetadata,getMiddlewaresForController,getMiddlewaresForControllerAction,getModuleMetadata,getRouteMetadata,inject});
+"use strict";
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+// src/index.ts
+var src_exports = {};
+__export(src_exports, {
+  AppInjector: () => AppInjector,
+  Authorize: () => Authorize,
+  BadGatewayException: () => BadGatewayException,
+  BadRequestException: () => BadRequestException,
+  CONTROLLER_METADATA_KEY: () => CONTROLLER_METADATA_KEY,
+  ConflictException: () => ConflictException,
+  Controller: () => Controller,
+  Delete: () => Delete,
+  ForbiddenException: () => ForbiddenException,
+  GatewayTimeoutException: () => GatewayTimeoutException,
+  Get: () => Get,
+  HttpVersionNotSupportedException: () => HttpVersionNotSupportedException,
+  INJECTABLE_METADATA_KEY: () => INJECTABLE_METADATA_KEY,
+  Injectable: () => Injectable,
+  InsufficientStorageException: () => InsufficientStorageException,
+  InternalServerException: () => InternalServerException,
+  Logger: () => Logger,
+  LoopDetectedException: () => LoopDetectedException,
+  MODULE_METADATA_KEY: () => MODULE_METADATA_KEY,
+  MethodNotAllowedException: () => MethodNotAllowedException,
+  Module: () => Module,
+  NetworkAuthenticationRequiredException: () => NetworkAuthenticationRequiredException,
+  NetworkConnectTimeoutException: () => NetworkConnectTimeoutException,
+  NotAcceptableException: () => NotAcceptableException,
+  NotExtendedException: () => NotExtendedException,
+  NotFoundException: () => NotFoundException,
+  NotImplementedException: () => NotImplementedException,
+  NoxApp: () => NoxApp,
+  Patch: () => Patch,
+  PaymentRequiredException: () => PaymentRequiredException,
+  Post: () => Post,
+  Put: () => Put,
+  ROUTE_METADATA_KEY: () => ROUTE_METADATA_KEY,
+  Request: () => Request,
+  RequestTimeoutException: () => RequestTimeoutException,
+  ResponseException: () => ResponseException,
+  RootInjector: () => RootInjector,
+  Router: () => Router,
+  ServiceUnavailableException: () => ServiceUnavailableException,
+  TooManyRequestsException: () => TooManyRequestsException,
+  UnauthorizedException: () => UnauthorizedException,
+  UpgradeRequiredException: () => UpgradeRequiredException,
+  UseMiddlewares: () => UseMiddlewares,
+  VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
+  bootstrapApplication: () => bootstrapApplication,
+  getControllerMetadata: () => getControllerMetadata,
+  getGuardForController: () => getGuardForController,
+  getGuardForControllerAction: () => getGuardForControllerAction,
+  getInjectableMetadata: () => getInjectableMetadata,
+  getMiddlewaresForController: () => getMiddlewaresForController,
+  getMiddlewaresForControllerAction: () => getMiddlewaresForControllerAction,
+  getModuleMetadata: () => getModuleMetadata,
+  getRouteMetadata: () => getRouteMetadata,
+  inject: () => inject
+});
+module.exports = __toCommonJS(src_exports);
+
+// src/DI/app-injector.ts
+var import_reflect_metadata = require("reflect-metadata");
+
+// src/exceptions.ts
+var _ResponseException = class _ResponseException extends Error {
+  constructor(statusOrMessage, message) {
+    let statusCode;
+    if (typeof statusOrMessage === "number") {
+      statusCode = statusOrMessage;
+    } else if (typeof statusOrMessage === "string") {
+      message = statusOrMessage;
+    }
+    super(message ?? "");
+    __publicField(this, "status", 0);
+    if (statusCode !== void 0) {
+      this.status = statusCode;
+    }
+    this.name = this.constructor.name.replace(/([A-Z])/g, " $1");
+  }
+};
+__name(_ResponseException, "ResponseException");
+var ResponseException = _ResponseException;
+var _BadRequestException = class _BadRequestException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 400);
+  }
+};
+__name(_BadRequestException, "BadRequestException");
+var BadRequestException = _BadRequestException;
+var _UnauthorizedException = class _UnauthorizedException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 401);
+  }
+};
+__name(_UnauthorizedException, "UnauthorizedException");
+var UnauthorizedException = _UnauthorizedException;
+var _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 402);
+  }
+};
+__name(_PaymentRequiredException, "PaymentRequiredException");
+var PaymentRequiredException = _PaymentRequiredException;
+var _ForbiddenException = class _ForbiddenException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 403);
+  }
+};
+__name(_ForbiddenException, "ForbiddenException");
+var ForbiddenException = _ForbiddenException;
+var _NotFoundException = class _NotFoundException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 404);
+  }
+};
+__name(_NotFoundException, "NotFoundException");
+var NotFoundException = _NotFoundException;
+var _MethodNotAllowedException = class _MethodNotAllowedException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 405);
+  }
+};
+__name(_MethodNotAllowedException, "MethodNotAllowedException");
+var MethodNotAllowedException = _MethodNotAllowedException;
+var _NotAcceptableException = class _NotAcceptableException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 406);
+  }
+};
+__name(_NotAcceptableException, "NotAcceptableException");
+var NotAcceptableException = _NotAcceptableException;
+var _RequestTimeoutException = class _RequestTimeoutException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 408);
+  }
+};
+__name(_RequestTimeoutException, "RequestTimeoutException");
+var RequestTimeoutException = _RequestTimeoutException;
+var _ConflictException = class _ConflictException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 409);
+  }
+};
+__name(_ConflictException, "ConflictException");
+var ConflictException = _ConflictException;
+var _UpgradeRequiredException = class _UpgradeRequiredException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 426);
+  }
+};
+__name(_UpgradeRequiredException, "UpgradeRequiredException");
+var UpgradeRequiredException = _UpgradeRequiredException;
+var _TooManyRequestsException = class _TooManyRequestsException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 429);
+  }
+};
+__name(_TooManyRequestsException, "TooManyRequestsException");
+var TooManyRequestsException = _TooManyRequestsException;
+var _InternalServerException = class _InternalServerException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 500);
+  }
+};
+__name(_InternalServerException, "InternalServerException");
+var InternalServerException = _InternalServerException;
+var _NotImplementedException = class _NotImplementedException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 501);
+  }
+};
+__name(_NotImplementedException, "NotImplementedException");
+var NotImplementedException = _NotImplementedException;
+var _BadGatewayException = class _BadGatewayException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 502);
+  }
+};
+__name(_BadGatewayException, "BadGatewayException");
+var BadGatewayException = _BadGatewayException;
+var _ServiceUnavailableException = class _ServiceUnavailableException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 503);
+  }
+};
+__name(_ServiceUnavailableException, "ServiceUnavailableException");
+var ServiceUnavailableException = _ServiceUnavailableException;
+var _GatewayTimeoutException = class _GatewayTimeoutException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 504);
+  }
+};
+__name(_GatewayTimeoutException, "GatewayTimeoutException");
+var GatewayTimeoutException = _GatewayTimeoutException;
+var _HttpVersionNotSupportedException = class _HttpVersionNotSupportedException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 505);
+  }
+};
+__name(_HttpVersionNotSupportedException, "HttpVersionNotSupportedException");
+var HttpVersionNotSupportedException = _HttpVersionNotSupportedException;
+var _VariantAlsoNegotiatesException = class _VariantAlsoNegotiatesException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 506);
+  }
+};
+__name(_VariantAlsoNegotiatesException, "VariantAlsoNegotiatesException");
+var VariantAlsoNegotiatesException = _VariantAlsoNegotiatesException;
+var _InsufficientStorageException = class _InsufficientStorageException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 507);
+  }
+};
+__name(_InsufficientStorageException, "InsufficientStorageException");
+var InsufficientStorageException = _InsufficientStorageException;
+var _LoopDetectedException = class _LoopDetectedException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 508);
+  }
+};
+__name(_LoopDetectedException, "LoopDetectedException");
+var LoopDetectedException = _LoopDetectedException;
+var _NotExtendedException = class _NotExtendedException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 510);
+  }
+};
+__name(_NotExtendedException, "NotExtendedException");
+var NotExtendedException = _NotExtendedException;
+var _NetworkAuthenticationRequiredException = class _NetworkAuthenticationRequiredException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 511);
+  }
+};
+__name(_NetworkAuthenticationRequiredException, "NetworkAuthenticationRequiredException");
+var NetworkAuthenticationRequiredException = _NetworkAuthenticationRequiredException;
+var _NetworkConnectTimeoutException = class _NetworkConnectTimeoutException extends ResponseException {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "status", 599);
+  }
+};
+__name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
+var NetworkConnectTimeoutException = _NetworkConnectTimeoutException;
+
+// src/DI/app-injector.ts
+var _AppInjector = class _AppInjector {
+  constructor(name = null) {
+    __publicField(this, "name");
+    __publicField(this, "bindings", /* @__PURE__ */ new Map());
+    __publicField(this, "singletons", /* @__PURE__ */ new Map());
+    __publicField(this, "scoped", /* @__PURE__ */ new Map());
+    this.name = name;
+  }
+  /**
+   * Typically used to create a dependency injection scope
+   * at the "scope" level (i.e., per-request lifetime).
+   *
+   * SHOULD NOT BE USED by anything else than the framework itself.
+   */
+  createScope() {
+    const scope = new _AppInjector();
+    scope.bindings = this.bindings;
+    scope.singletons = this.singletons;
+    return scope;
+  }
+  /**
+   * Called when resolving a dependency,
+   * i.e., retrieving the instance of a given class.
+   */
+  resolve(target) {
+    const binding = this.bindings.get(target);
+    if (!binding) throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${target.name}.
+Did you forget to use @Injectable() decorator ?`);
+    switch (binding.lifetime) {
+      case "transient":
+        return this.instantiate(binding.implementation);
+      case "scope": {
+        if (this.scoped.has(target)) {
+          return this.scoped.get(target);
+        }
+        const instance = this.instantiate(binding.implementation);
+        this.scoped.set(target, instance);
+        return instance;
+      }
+      case "singleton": {
+        if (binding.instance === void 0 && this.name === "root") {
+          binding.instance = this.instantiate(binding.implementation);
+          this.singletons.set(target, binding.instance);
+        }
+        return binding.instance;
+      }
+    }
+  }
+  /**
+   *
+   */
+  instantiate(target) {
+    const paramTypes = Reflect.getMetadata("design:paramtypes", target) || [];
+    const params = paramTypes.map((p) => this.resolve(p));
+    return new target(...params);
+  }
+};
+__name(_AppInjector, "AppInjector");
+var AppInjector = _AppInjector;
+function inject(t) {
+  return RootInjector.resolve(t);
+}
+__name(inject, "inject");
+var RootInjector = new AppInjector("root");
+
+// src/router.ts
+var import_reflect_metadata2 = require("reflect-metadata");
+
+// src/utils/logger.ts
+function getPrettyTimestamp() {
+  const now = /* @__PURE__ */ new Date();
+  return `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+}
+__name(getPrettyTimestamp, "getPrettyTimestamp");
+function getLogPrefix(callee, messageType, color) {
+  const timestamp = getPrettyTimestamp();
+  const spaces = " ".repeat(10 - messageType.length);
+  return `${color}[APP] ${process.pid} - ${Logger.colors.initial}${timestamp}${spaces}${color}${messageType.toUpperCase()}${Logger.colors.initial} ${Logger.colors.yellow}[${callee}]${Logger.colors.initial}`;
+}
+__name(getLogPrefix, "getLogPrefix");
+function formatObject(prefix, arg) {
+  const json = JSON.stringify(arg, null, 2);
+  const prefixedJson = json.split("\n").map((line, idx) => idx === 0 ? `${Logger.colors.darkGrey}${line}` : `${prefix} ${Logger.colors.grey}${line}`).join("\n") + Logger.colors.initial;
+  return prefixedJson;
+}
+__name(formatObject, "formatObject");
+function formattedArgs(prefix, args, color) {
+  return args.map((arg) => {
+    if (typeof arg === "string") {
+      return `${color}${arg}${Logger.colors.initial}`;
+    } else if (typeof arg === "object") {
+      return formatObject(prefix, arg);
+    }
+    return arg;
+  });
+}
+__name(formattedArgs, "formattedArgs");
+function getCallee() {
+  const stack = new Error().stack?.split("\n") ?? [];
+  const caller = stack[3]?.trim().match(/at (.+?)(?:\..+)? .+$/)?.[1]?.replace("Object", "") || "App";
+  return caller;
+}
+__name(getCallee, "getCallee");
+function canLog(level) {
+  return logLevelRank[level] >= logLevelRank[logLevel];
+}
+__name(canLog, "canLog");
+var logLevel = "log";
+var logLevelRank = {
+  debug: 0,
+  log: 1,
+  info: 2,
+  warn: 3,
+  error: 4
+};
+(function(Logger2) {
+  function setLogLevel(level) {
+    logLevel = level;
+  }
+  __name(setLogLevel, "setLogLevel");
+  Logger2.setLogLevel = setLogLevel;
+  function log(...args) {
+    if (!canLog("log")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "log", Logger2.colors.green);
+    console.log(prefix, ...formattedArgs(prefix, args, Logger2.colors.green));
+  }
+  __name(log, "log");
+  Logger2.log = log;
+  function info(...args) {
+    if (!canLog("info")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "info", Logger2.colors.blue);
+    console.info(prefix, ...formattedArgs(prefix, args, Logger2.colors.blue));
+  }
+  __name(info, "info");
+  Logger2.info = info;
+  function warn(...args) {
+    if (!canLog("warn")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "warn", Logger2.colors.brown);
+    console.warn(prefix, ...formattedArgs(prefix, args, Logger2.colors.brown));
+  }
+  __name(warn, "warn");
+  Logger2.warn = warn;
+  function error(...args) {
+    if (!canLog("error")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "error", Logger2.colors.red);
+    console.error(prefix, ...formattedArgs(prefix, args, Logger2.colors.red));
+  }
+  __name(error, "error");
+  Logger2.error = error;
+  function debug(...args) {
+    if (!canLog("debug")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "debug", Logger2.colors.purple);
+    console.debug(prefix, ...formattedArgs(prefix, args, Logger2.colors.purple));
+  }
+  __name(debug, "debug");
+  Logger2.debug = debug;
+  Logger2.colors = {
+    black: "\x1B[0;30m",
+    grey: "\x1B[0;37m",
+    red: "\x1B[0;31m",
+    green: "\x1B[0;32m",
+    brown: "\x1B[0;33m",
+    blue: "\x1B[0;34m",
+    purple: "\x1B[0;35m",
+    darkGrey: "\x1B[1;30m",
+    lightRed: "\x1B[1;31m",
+    lightGreen: "\x1B[1;32m",
+    yellow: "\x1B[1;33m",
+    lightBlue: "\x1B[1;34m",
+    magenta: "\x1B[1;35m",
+    cyan: "\x1B[1;36m",
+    white: "\x1B[1;37m",
+    initial: "\x1B[0m"
+  };
+})(Logger || (Logger = {}));
+var Logger;
+
+// src/decorators/guards.decorator.ts
+function Authorize(...guardClasses) {
+  return (target, propertyKey) => {
+    let key;
+    if (propertyKey) {
+      const ctrlName = target.constructor.name;
+      const actionName = propertyKey;
+      key = `${ctrlName}.${actionName}`;
+    } else {
+      const ctrlName = target.name;
+      key = `${ctrlName}`;
+    }
+    if (authorizations.has(key)) {
+      throw new Error(`Guard(s) already registered for ${key}`);
+    }
+    Logger.debug(`Registering guard(s) for ${key}: ${guardClasses.map((c) => c.name).join(", ")}`);
+    authorizations.set(key, guardClasses);
+  };
+}
+__name(Authorize, "Authorize");
+function getGuardForController(controllerName) {
+  const key = `${controllerName}`;
+  return authorizations.get(key) ?? [];
+}
+__name(getGuardForController, "getGuardForController");
+function getGuardForControllerAction(controllerName, actionName) {
+  const key = `${controllerName}.${actionName}`;
+  return authorizations.get(key) ?? [];
+}
+__name(getGuardForControllerAction, "getGuardForControllerAction");
+var authorizations = /* @__PURE__ */ new Map();
+
+// src/decorators/method.decorator.ts
+function createRouteDecorator(verb) {
+  return (path) => {
+    return (target, propertyKey) => {
+      const existingRoutes = Reflect.getMetadata(ROUTE_METADATA_KEY, target.constructor) || [];
+      const metadata = {
+        method: verb,
+        path: path.trim().replace(/^\/|\/$/g, ""),
+        handler: propertyKey,
+        guards: getGuardForControllerAction(target.constructor.__controllerName, propertyKey)
+      };
+      existingRoutes.push(metadata);
+      Reflect.defineMetadata(ROUTE_METADATA_KEY, existingRoutes, target.constructor);
+    };
+  };
+}
+__name(createRouteDecorator, "createRouteDecorator");
+function getRouteMetadata(target) {
+  return Reflect.getMetadata(ROUTE_METADATA_KEY, target) || [];
+}
+__name(getRouteMetadata, "getRouteMetadata");
+var Get = createRouteDecorator("GET");
+var Post = createRouteDecorator("POST");
+var Put = createRouteDecorator("PUT");
+var Patch = createRouteDecorator("PATCH");
+var Delete = createRouteDecorator("DELETE");
+var ROUTE_METADATA_KEY = Symbol("ROUTE_METADATA_KEY");
+
+// src/decorators/module.decorator.ts
+function Module(metadata) {
+  return (target) => {
+    const checkModule = /* @__PURE__ */ __name((arr, arrName) => {
+      if (!arr) return;
+      for (const clazz of arr) {
+        if (!Reflect.getMetadata(MODULE_METADATA_KEY, clazz)) {
+          throw new Error(`Class ${clazz.name} in ${arrName} must be decorated with @Module`);
+        }
+      }
+    }, "checkModule");
+    const checkInjectable = /* @__PURE__ */ __name((arr) => {
+      if (!arr) return;
+      for (const clazz of arr) {
+        if (!Reflect.getMetadata(INJECTABLE_METADATA_KEY, clazz)) {
+          throw new Error(`Class ${clazz.name} in providers must be decorated with @Injectable`);
+        }
+      }
+    }, "checkInjectable");
+    const checkController = /* @__PURE__ */ __name((arr) => {
+      if (!arr) return;
+      for (const clazz of arr) {
+        if (!Reflect.getMetadata(CONTROLLER_METADATA_KEY, clazz)) {
+          throw new Error(`Class ${clazz.name} in controllers must be decorated with @Controller`);
+        }
+      }
+    }, "checkController");
+    checkModule(metadata.imports, "imports");
+    checkModule(metadata.exports, "exports");
+    checkInjectable(metadata.providers);
+    checkController(metadata.controllers);
+    Reflect.defineMetadata(MODULE_METADATA_KEY, metadata, target);
+    Injectable("singleton")(target);
+  };
+}
+__name(Module, "Module");
+function getModuleMetadata(target) {
+  return Reflect.getMetadata(MODULE_METADATA_KEY, target);
+}
+__name(getModuleMetadata, "getModuleMetadata");
+var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
+
+// src/DI/injector-explorer.ts
+var _InjectorExplorer = class _InjectorExplorer {
+  /**
+   * Registers the class as injectable.
+   * When a class is instantiated, if it has dependencies and those dependencies
+   * are listed using this method, they will be injected into the class constructor.
+   */
+  static register(target, lifetime) {
+    Logger.debug(`Registering ${target.name} as ${lifetime}`);
+    if (RootInjector.bindings.has(target)) return RootInjector;
+    RootInjector.bindings.set(target, {
+      implementation: target,
+      lifetime
+    });
+    if (lifetime === "singleton") {
+      RootInjector.resolve(target);
+    }
+    if (getModuleMetadata(target)) {
+      Logger.log(`${target.name} dependencies initialized`);
+      return RootInjector;
+    }
+    const controllerMeta = getControllerMetadata(target);
+    if (controllerMeta) {
+      const router = RootInjector.resolve(Router);
+      router?.registerController(target);
+      return RootInjector;
+    }
+    const routeMeta = getRouteMetadata(target);
+    if (routeMeta) {
+      return RootInjector;
+    }
+    if (getInjectableMetadata(target)) {
+      Logger.log(`Registered ${target.name} as ${lifetime}`);
+      return RootInjector;
+    }
+    return RootInjector;
+  }
+};
+__name(_InjectorExplorer, "InjectorExplorer");
+var InjectorExplorer = _InjectorExplorer;
+
+// src/decorators/injectable.decorator.ts
+function Injectable(lifetime = "scope") {
+  return (target) => {
+    if (typeof target !== "function" || !target.prototype) {
+      throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
+    }
+    Reflect.defineMetadata(INJECTABLE_METADATA_KEY, lifetime, target);
+    InjectorExplorer.register(target, lifetime);
+  };
+}
+__name(Injectable, "Injectable");
+function getInjectableMetadata(target) {
+  return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target);
+}
+__name(getInjectableMetadata, "getInjectableMetadata");
+var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
+
+// src/decorators/controller.decorator.ts
+function Controller(path) {
+  return (target) => {
+    const data = {
+      path,
+      guards: getGuardForController(target.name)
+    };
+    Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
+    Injectable("scope")(target);
+  };
+}
+__name(Controller, "Controller");
+function getControllerMetadata(target) {
+  return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
+}
+__name(getControllerMetadata, "getControllerMetadata");
+var CONTROLLER_METADATA_KEY = Symbol("CONTROLLER_METADATA_KEY");
+
+// src/decorators/middleware.decorator.ts
+function UseMiddlewares(mdlw) {
+  return (target, propertyKey) => {
+    let key;
+    if (propertyKey) {
+      const ctrlName = target.constructor.name;
+      const actionName = propertyKey;
+      key = `${ctrlName}.${actionName}`;
+    } else {
+      const ctrlName = target.name;
+      key = `${ctrlName}`;
+    }
+    if (middlewares.has(key)) {
+      throw new Error(`Middlewares(s) already registered for ${key}`);
+    }
+    Logger.debug(`Registering middleware(s) for ${key}: ${mdlw.map((c) => c.name).join(", ")}`);
+    middlewares.set(key, mdlw);
+  };
+}
+__name(UseMiddlewares, "UseMiddlewares");
+function getMiddlewaresForController(controllerName) {
+  const key = `${controllerName}`;
+  return middlewares.get(key) ?? [];
+}
+__name(getMiddlewaresForController, "getMiddlewaresForController");
+function getMiddlewaresForControllerAction(controllerName, actionName) {
+  const key = `${controllerName}.${actionName}`;
+  return middlewares.get(key) ?? [];
+}
+__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
+var middlewares = /* @__PURE__ */ new Map();
+
+// src/utils/radix-tree.ts
+var _a;
+var RadixNode = (_a = class {
+  /**
+   * Creates a new RadixNode.
+   * @param segment - The segment of the path this node represents.
+   */
+  constructor(segment) {
+    __publicField(this, "segment");
+    __publicField(this, "children", []);
+    __publicField(this, "value");
+    __publicField(this, "isParam");
+    __publicField(this, "paramName");
+    this.segment = segment;
+    this.isParam = segment.startsWith(":");
+    if (this.isParam) {
+      this.paramName = segment.slice(1);
+    }
+  }
+  /**
+   * Matches a child node against a given segment.
+   * This method checks if the segment matches any of the children nodes.
+   * @param segment - The segment to match against the children of this node.
+   * @returns A child node that matches the segment, or undefined if no match is found.
+   */
+  matchChild(segment) {
+    for (const child of this.children) {
+      if (child.isParam || segment.startsWith(child.segment)) return child;
+    }
+    return void 0;
+  }
+  /**
+   * Finds a child node that matches the segment exactly.
+   * This method checks if there is a child node that matches the segment exactly.
+   * @param segment - The segment to find an exact match for among the children of this node.
+   * @returns A child node that matches the segment exactly, or undefined if no match is found.
+   */
+  findExactChild(segment) {
+    return this.children.find((c) => c.segment === segment);
+  }
+  /**
+   * Adds a child node to this node's children.
+   * This method adds a new child node to the list of children for this node.
+   * @param node - The child node to add to this node's children.
+   */
+  addChild(node) {
+    this.children.push(node);
+  }
+}, __name(_a, "RadixNode"), _a);
+var _RadixTree = class _RadixTree {
+  constructor() {
+    __publicField(this, "root", new RadixNode(""));
+  }
+  /**
+   * Inserts a path and its associated value into the Radix Tree.
+   * This method normalizes the path and inserts it into the tree, associating it with
+   * @param path - The path to insert into the tree.
+   * @param value - The value to associate with the path.
+   */
+  insert(path, value) {
+    const segments = this.normalize(path);
+    this.insertRecursive(this.root, segments, value);
+  }
+  /**
+   * Recursively inserts a path into the Radix Tree.
+   * This method traverses the tree and inserts the segments of the path, creating new nodes
+   * @param node - The node to start inserting from.
+   * @param segments - The segments of the path to insert.
+   * @param value - The value to associate with the path.
+   */
+  insertRecursive(node, segments, value) {
+    if (segments.length === 0) {
+      node.value = value;
+      return;
+    }
+    const segment = segments[0] ?? "";
+    let child = node.children.find((c) => c.isParam === segment.startsWith(":") && (c.isParam || c.segment === segment));
+    if (!child) {
+      child = new RadixNode(segment);
+      node.addChild(child);
+    }
+    this.insertRecursive(child, segments.slice(1), value);
+  }
+  /**
+   * Searches for a path in the Radix Tree.
+   * This method normalizes the path and searches for it in the tree, returning the node
+   * @param path - The path to search for in the Radix Tree.
+   * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
+   */
+  search(path) {
+    const segments = this.normalize(path);
+    return this.searchRecursive(this.root, segments, {});
+  }
+  /**
+   * Recursively searches for a path in the Radix Tree.
+   * This method traverses the tree and searches for the segments of the path, collecting parameters
+   * @param node - The node to start searching from.
+   * @param segments - The segments of the path to search for.
+   * @param params - The parameters collected during the search.
+   * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
+   */
+  searchRecursive(node, segments, params) {
+    if (segments.length === 0) {
+      if (node.value !== void 0) {
+        return {
+          node,
+          params
+        };
+      }
+      return void 0;
+    }
+    const [segment, ...rest] = segments;
+    for (const child of node.children) {
+      if (child.isParam) {
+        const paramName = child.paramName;
+        const childParams = {
+          ...params,
+          [paramName]: segment ?? ""
+        };
+        if (rest.length === 0) {
+          return {
+            node: child,
+            params: childParams
+          };
+        }
+        const result = this.searchRecursive(child, rest, childParams);
+        if (result) return result;
+      } else if (segment === child.segment) {
+        if (rest.length === 0) {
+          return {
+            node: child,
+            params
+          };
+        }
+        const result = this.searchRecursive(child, rest, params);
+        if (result) return result;
+      }
+    }
+    return void 0;
+  }
+  /**
+   * Normalizes a path into an array of segments.
+   * This method removes leading and trailing slashes, splits the path by slashes, and
+   * @param path - The path to normalize.
+   * @returns An array of normalized path segments.
+   */
+  normalize(path) {
+    const segments = path.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+    return [
+      "",
+      ...segments
+    ];
+  }
+};
+__name(_RadixTree, "RadixTree");
+var RadixTree = _RadixTree;
+
+// src/router.ts
+function _ts_decorate(decorators, target, key, desc) {
+  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+__name(_ts_decorate, "_ts_decorate");
+var _Router = class _Router {
+  constructor() {
+    __publicField(this, "routes", new RadixTree());
+    __publicField(this, "rootMiddlewares", []);
+  }
+  /**
+   * Registers a controller class with the router.
+   * This method extracts the route metadata from the controller class and registers it in the routing tree.
+   * It also handles the guards and middlewares associated with the controller.
+   * @param controllerClass - The controller class to register.
+   */
+  registerController(controllerClass) {
+    const controllerMeta = getControllerMetadata(controllerClass);
+    const controllerGuards = getGuardForController(controllerClass.name);
+    const controllerMiddlewares = getMiddlewaresForController(controllerClass.name);
+    if (!controllerMeta) throw new Error(`Missing @Controller decorator on ${controllerClass.name}`);
+    const routeMetadata = getRouteMetadata(controllerClass);
+    for (const def of routeMetadata) {
+      const fullPath = `${controllerMeta.path}/${def.path}`.replace(/\/+/g, "/");
+      const routeGuards = getGuardForControllerAction(controllerClass.name, def.handler);
+      const routeMiddlewares = getMiddlewaresForControllerAction(controllerClass.name, def.handler);
+      const guards = /* @__PURE__ */ new Set([
+        ...controllerGuards,
+        ...routeGuards
+      ]);
+      const middlewares2 = /* @__PURE__ */ new Set([
+        ...controllerMiddlewares,
+        ...routeMiddlewares
+      ]);
+      const routeDef = {
+        method: def.method,
+        path: fullPath,
+        controller: controllerClass,
+        handler: def.handler,
+        guards: [
+          ...guards
+        ],
+        middlewares: [
+          ...middlewares2
+        ]
+      };
+      this.routes.insert(fullPath + "/" + def.method, routeDef);
+      const hasActionGuards = routeDef.guards.length > 0;
+      const actionGuardsInfo = hasActionGuards ? "<" + routeDef.guards.map((g) => g.name).join("|") + ">" : "";
+      Logger.log(`Mapped {${routeDef.method} /${fullPath}}${actionGuardsInfo} route`);
+    }
+    const hasCtrlGuards = controllerMeta.guards.length > 0;
+    const controllerGuardsInfo = hasCtrlGuards ? "<" + controllerMeta.guards.map((g) => g.name).join("|") + ">" : "";
+    Logger.log(`Mapped ${controllerClass.name}${controllerGuardsInfo} controller's routes`);
+    return this;
+  }
+  /**
+   * Defines a middleware for the root of the application.
+   * This method allows you to register a middleware that will be applied to all requests
+   * to the application, regardless of the controller or action.
+   * @param middleware - The middleware class to register.
+   */
+  defineRootMiddleware(middleware) {
+    Logger.debug(`Registering root middleware: ${middleware.name}`);
+    this.rootMiddlewares.push(middleware);
+    return this;
+  }
+  /**
+   * Shuts down the message channel for a specific sender ID.
+   * This method closes the IPC channel for the specified sender ID and
+   * removes it from the messagePorts map.
+   * @param channelSenderId - The ID of the sender channel to shut down.
+   */
+  async handle(request) {
+    Logger.log(`> Received request: {${request.method} /${request.path}}`);
+    const t0 = performance.now();
+    const response = {
+      requestId: request.id,
+      status: 200,
+      body: null,
+      error: void 0
+    };
+    try {
+      const routeDef = this.findRoute(request);
+      await this.resolveController(request, response, routeDef);
+      if (response.status > 400) {
+        throw new ResponseException(response.status, response.error);
+      }
+    } catch (error) {
+      if (error instanceof ResponseException) {
+        response.status = error.status;
+        response.error = error.message;
+      } else if (error instanceof Error) {
+        response.status = 500;
+        response.error = error.message || "Internal Server Error";
+      } else {
+        response.status = 500;
+        response.error = "Unknown error occurred";
+      }
+    } finally {
+      const t1 = performance.now();
+      const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
+      if (response.status < 400) Logger.log(message);
+      else if (response.status < 500) Logger.warn(message);
+      else Logger.error(message);
+      if (response.error !== void 0) {
+        Logger.error(response.error);
+      }
+      return response;
+    }
+  }
+  /**
+   * Finds the route definition for a given request.
+   * This method searches the routing tree for a matching route based on the request's path and method.
+   * If no matching route is found, it throws a NotFoundException.
+   * @param request - The Request object containing the method and path to search for.
+   * @returns The IRouteDefinition for the matched route.
+   */
+  findRoute(request) {
+    const matchedRoutes = this.routes.search(request.path);
+    if (matchedRoutes?.node === void 0 || matchedRoutes.node.children.length === 0) {
+      throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+    }
+    const routeDef = matchedRoutes.node.findExactChild(request.method);
+    if (routeDef?.value === void 0) {
+      throw new MethodNotAllowedException(`Method Not Allowed for ${request.method} ${request.path}`);
+    }
+    return routeDef.value;
+  }
+  /**
+   * Resolves the controller for a given route definition.
+   * This method creates an instance of the controller class and prepares the request parameters.
+   * It also runs the request pipeline, which includes executing middlewares and guards.
+   * @param request - The Request object containing the request data.
+   * @param response - The IResponse object to populate with the response data.
+   * @param routeDef - The IRouteDefinition for the matched route.
+   * @return A Promise that resolves when the controller action has been executed.
+   * @throws UnauthorizedException if the request is not authorized by the guards.
+   */
+  async resolveController(request, response, routeDef) {
+    const controllerInstance = request.context.resolve(routeDef.controller);
+    Object.assign(request.params, this.extractParams(request.path, routeDef.path));
+    await this.runRequestPipeline(request, response, routeDef, controllerInstance);
+  }
+  /**
+   * Runs the request pipeline for a given request.
+   * This method executes the middlewares and guards associated with the route,
+   * and finally calls the controller action.
+   * @param request - The Request object containing the request data.
+   * @param response - The IResponse object to populate with the response data.
+   * @param routeDef - The IRouteDefinition for the matched route.
+   * @param controllerInstance - The instance of the controller class.
+   * @return A Promise that resolves when the request pipeline has been executed.
+   * @throws ResponseException if the response status is not successful.
+   */
+  async runRequestPipeline(request, response, routeDef, controllerInstance) {
+    const middlewares2 = [
+      .../* @__PURE__ */ new Set([
+        ...this.rootMiddlewares,
+        ...routeDef.middlewares
+      ])
+    ];
+    const middlewareMaxIndex = middlewares2.length - 1;
+    const guardsMaxIndex = middlewareMaxIndex + routeDef.guards.length;
+    let index = -1;
+    const dispatch = /* @__PURE__ */ __name(async (i) => {
+      if (i <= index) throw new Error("next() called multiple times");
+      index = i;
+      if (i <= middlewareMaxIndex) {
+        const nextFn = dispatch.bind(null, i + 1);
+        await this.runMiddleware(request, response, nextFn, middlewares2[i]);
+        if (response.status >= 400) {
+          throw new ResponseException(response.status, response.error);
+        }
+        return;
+      }
+      if (i <= guardsMaxIndex) {
+        const guardIndex = i - middlewares2.length;
+        const guardType = routeDef.guards[guardIndex];
+        await this.runGuard(request, guardType);
+        dispatch(i + 1);
+        return;
+      }
+      const action = controllerInstance[routeDef.handler];
+      response.body = await action.call(controllerInstance, request, response);
+    }, "dispatch");
+    await dispatch(0);
+  }
+  /**
+   * Runs a middleware function in the request pipeline.
+   * This method creates an instance of the middleware and invokes its `invoke` method,
+   * passing the request, response, and next function.
+   * @param request - The Request object containing the request data.
+   * @param response - The IResponse object to populate with the response data.
+   * @param next - The NextFunction to call to continue the middleware chain.
+   * @param middlewareType - The type of the middleware to run.
+   * @return A Promise that resolves when the middleware has been executed.
+   */
+  async runMiddleware(request, response, next, middlewareType) {
+    const middleware = request.context.resolve(middlewareType);
+    await middleware.invoke(request, response, next);
+  }
+  /**
+   * Runs a guard to check if the request is authorized.
+   * This method creates an instance of the guard and calls its `canActivate` method.
+   * If the guard returns false, it throws an UnauthorizedException.
+   * @param request - The Request object containing the request data.
+   * @param guardType - The type of the guard to run.
+   * @return A Promise that resolves if the guard allows the request, or throws an UnauthorizedException if not.
+   * @throws UnauthorizedException if the guard denies access to the request.
+   */
+  async runGuard(request, guardType) {
+    const guard = request.context.resolve(guardType);
+    const allowed = await guard.canActivate(request);
+    if (!allowed) throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+  }
+  /**
+   * Extracts parameters from the actual request path based on the template path.
+   * This method splits the actual path and the template path into segments,
+   * then maps the segments to parameters based on the template.
+   * @param actual - The actual request path.
+   * @param template - The template path to extract parameters from.
+   * @returns An object containing the extracted parameters.
+   */
+  extractParams(actual, template) {
+    const aParts = actual.split("/");
+    const tParts = template.split("/");
+    const params = {};
+    tParts.forEach((part, i) => {
+      if (part.startsWith(":")) {
+        params[part.slice(1)] = aParts[i] ?? "";
+      }
+    });
+    return params;
+  }
+};
+__name(_Router, "Router");
+var Router = _Router;
+Router = _ts_decorate([
+  Injectable("singleton")
+], Router);
+
+// src/app.ts
+var import_main = require("electron/main");
+
+// src/request.ts
+var import_reflect_metadata3 = require("reflect-metadata");
+var _Request = class _Request {
+  constructor(event, id, method, path, body) {
+    __publicField(this, "event");
+    __publicField(this, "id");
+    __publicField(this, "method");
+    __publicField(this, "path");
+    __publicField(this, "body");
+    __publicField(this, "context", RootInjector.createScope());
+    __publicField(this, "params", {});
+    this.event = event;
+    this.id = id;
+    this.method = method;
+    this.path = path;
+    this.body = body;
+    this.path = path.replace(/^\/|\/$/g, "");
+  }
+};
+__name(_Request, "Request");
+var Request = _Request;
+
+// src/app.ts
+function _ts_decorate2(decorators, target, key, desc) {
+  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+__name(_ts_decorate2, "_ts_decorate");
+function _ts_metadata(k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+}
+__name(_ts_metadata, "_ts_metadata");
+var _NoxApp = class _NoxApp {
+  constructor(router) {
+    __publicField(this, "router");
+    __publicField(this, "messagePorts", /* @__PURE__ */ new Map());
+    __publicField(this, "app");
+    this.router = router;
+  }
+  /**
+   * Initializes the NoxApp instance.
+   * This method sets up the IPC communication, registers event listeners,
+   * and prepares the application for use.
+   */
+  async init() {
+    import_main.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
+    import_main.app.once("activate", this.onAppActivated.bind(this));
+    import_main.app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
+    console.log("");
+    return this;
+  }
+  /**
+   * Handles the request from the renderer process.
+   * This method creates a Request object from the IPC event data,
+   * processes it through the Router, and sends the response back
+   * to the renderer process using the MessageChannel.
+   */
+  giveTheRendererAPort(event) {
+    const senderId = event.sender.id;
+    if (this.messagePorts.has(senderId)) {
+      this.shutdownChannel(senderId);
+    }
+    const channel = new import_main.MessageChannelMain();
+    this.messagePorts.set(senderId, channel);
+    channel.port1.on("message", this.onRendererMessage.bind(this));
+    channel.port1.start();
+    event.sender.postMessage("port", {
+      senderId
+    }, [
+      channel.port2
+    ]);
+  }
+  /**
+   * Electron specific message handling.
+   * Replaces HTTP calls by using Electron's IPC mechanism.
+   */
+  async onRendererMessage(event) {
+    const { senderId, requestId, path, method, body } = event.data;
+    const channel = this.messagePorts.get(senderId);
+    if (!channel) {
+      Logger.error(`No message channel found for sender ID: ${senderId}`);
+      return;
+    }
+    try {
+      const request = new Request(event, requestId, method, path, body);
+      const response = await this.router.handle(request);
+      channel.port1.postMessage(response);
+    } catch (err) {
+      const response = {
+        requestId,
+        status: 500,
+        body: null,
+        error: err.message || "Internal Server Error"
+      };
+      channel.port1.postMessage(response);
+    }
+  }
+  /**
+   * MacOS specific behavior.
+   */
+  onAppActivated() {
+    if (process.platform === "darwin" && import_main.BrowserWindow.getAllWindows().length === 0) {
+      this.app?.onActivated();
+    }
+  }
+  /**
+   * Shuts down the message channel for a specific sender ID.
+   * This method closes the IPC channel for the specified sender ID and
+   * removes it from the messagePorts map.
+   * @param channelSenderId - The ID of the sender channel to shut down.
+   * @param remove - Whether to remove the channel from the messagePorts map.
+   */
+  shutdownChannel(channelSenderId) {
+    const channel = this.messagePorts.get(channelSenderId);
+    if (!channel) {
+      Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
+      return;
+    }
+    channel.port1.off("message", this.onRendererMessage.bind(this));
+    channel.port1.close();
+    channel.port2.close();
+    this.messagePorts.delete(channelSenderId);
+  }
+  /**
+   * Handles the application shutdown process.
+   * This method is called when all windows are closed, and it cleans up the message channels
+   */
+  async onAllWindowsClosed() {
+    this.messagePorts.forEach((channel, senderId) => {
+      this.shutdownChannel(senderId);
+    });
+    this.messagePorts.clear();
+    this.app?.dispose();
+    if (process.platform !== "darwin") {
+      import_main.app.quit();
+    }
+  }
+  // ---
+  /**
+   * Configures the NoxApp instance with the provided application class.
+   * This method allows you to set the application class that will handle lifecycle events.
+   * @param app - The application class to configure.
+   * @returns NoxApp instance for method chaining.
+   */
+  configure(app3) {
+    this.app = inject(app3);
+    return this;
+  }
+  /**
+   * Registers a middleware for the root of the application.
+   * This method allows you to define a middleware that will be applied to all requests
+   * @param middleware - The middleware class to register.
+   * @returns NoxApp instance for method chaining.
+   */
+  use(middleware) {
+    this.router.defineRootMiddleware(middleware);
+    return this;
+  }
+  /**
+   * Should be called after the bootstrapApplication function is called.
+   * @returns NoxApp instance for method chaining.
+   */
+  start() {
+    this.app?.onReady();
+    return this;
+  }
+};
+__name(_NoxApp, "NoxApp");
+var NoxApp = _NoxApp;
+NoxApp = _ts_decorate2([
+  Injectable("singleton"),
+  _ts_metadata("design:type", Function),
+  _ts_metadata("design:paramtypes", [
+    typeof Router === "undefined" ? Object : Router
+  ])
+], NoxApp);
+
+// src/bootstrap.ts
+var import_main2 = require("electron/main");
+async function bootstrapApplication(rootModule) {
+  if (!getModuleMetadata(rootModule)) {
+    throw new Error(`Root module must be decorated with @Module`);
+  }
+  await import_main2.app.whenReady();
+  const noxApp = inject(NoxApp);
+  await noxApp.init();
+  return noxApp;
+}
+__name(bootstrapApplication, "bootstrapApplication");
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  AppInjector,
+  Authorize,
+  BadGatewayException,
+  BadRequestException,
+  CONTROLLER_METADATA_KEY,
+  ConflictException,
+  Controller,
+  Delete,
+  ForbiddenException,
+  GatewayTimeoutException,
+  Get,
+  HttpVersionNotSupportedException,
+  INJECTABLE_METADATA_KEY,
+  Injectable,
+  InsufficientStorageException,
+  InternalServerException,
+  Logger,
+  LoopDetectedException,
+  MODULE_METADATA_KEY,
+  MethodNotAllowedException,
+  Module,
+  NetworkAuthenticationRequiredException,
+  NetworkConnectTimeoutException,
+  NotAcceptableException,
+  NotExtendedException,
+  NotFoundException,
+  NotImplementedException,
+  NoxApp,
+  Patch,
+  PaymentRequiredException,
+  Post,
+  Put,
+  ROUTE_METADATA_KEY,
+  Request,
+  RequestTimeoutException,
+  ResponseException,
+  RootInjector,
+  Router,
+  ServiceUnavailableException,
+  TooManyRequestsException,
+  UnauthorizedException,
+  UpgradeRequiredException,
+  UseMiddlewares,
+  VariantAlsoNegotiatesException,
+  bootstrapApplication,
+  getControllerMetadata,
+  getGuardForController,
+  getGuardForControllerAction,
+  getInjectableMetadata,
+  getMiddlewaresForController,
+  getMiddlewaresForControllerAction,
+  getModuleMetadata,
+  getRouteMetadata,
+  inject
+});
 /**
  * @copyright 2025 NoxFly
  * @license MIT
