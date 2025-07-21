@@ -8,14 +8,32 @@ import 'reflect-metadata';
 import { InternalServerException } from 'src/exceptions';
 import { Type } from 'src/utils/types';
 
+/**
+ * Represents a lifetime of a binding in the dependency injection system.
+ * It can be one of the following:
+ * - 'singleton': The instance is created once and shared across the application.
+ * - 'scope': The instance is created once per scope (e.g., per request).
+ * - 'transient': A new instance is created every time it is requested.
+ */
 export type Lifetime = 'singleton' | 'scope' | 'transient';
 
+/**
+ * Represents a binding in the dependency injection system.
+ * It contains the lifetime of the binding, the implementation type, and optionally an instance.
+ */
 export interface IBinding {
     lifetime: Lifetime;
     implementation: Type<unknown>;
     instance?: InstanceType<Type<unknown>>;
 }
 
+/**
+ * AppInjector is the root dependency injection container.
+ * It is used to register and resolve dependencies in the application.
+ * It supports different lifetimes for dependencies:
+ * This should not be manually instantiated, outside of the framework.
+ * Use the `RootInjector` instance instead.
+ */
 export class AppInjector {
     public bindings = new Map<Type<unknown>, IBinding>();
     public singletons = new Map<Type<unknown>, InstanceType<Type<unknown>>>();
@@ -26,20 +44,22 @@ export class AppInjector {
     ) {}
 
     /**
-     * Utilisé généralement pour créer un scope d'injection de dépendances
-     * au niveau "scope" (donc durée de vie d'une requête)
+     * Typically used to create a dependency injection scope
+     * at the "scope" level (i.e., per-request lifetime).
+     *
+     * SHOULD NOT BE USED by anything else than the framework itself.
      */
     public createScope(): AppInjector {
         const scope = new AppInjector();
-        scope.bindings = this.bindings; // transmet les déclarations d'injectables
-        scope.singletons = this.singletons; // on passe les singletons du parent à l'enfant pour éviter de les recréer
-        // on ne garde pas les scoped du parent
+        scope.bindings = this.bindings; // pass injectable declarations
+        scope.singletons = this.singletons; // share parent's singletons to avoid recreating them
+        // do not keep parent's scoped instances
         return scope;
     }
 
     /**
-     * Appelé lorsqu'on souhaite résoudre une dépendance,
-     * c'est-à-dire récupérer l'instance d'une classe donnée.
+     * Called when resolving a dependency,
+     * i.e., retrieving the instance of a given class.
      */
     public resolve<T extends Type<unknown>>(target: T): InstanceType<T> {
         const binding = this.bindings.get(target);
@@ -77,7 +97,7 @@ export class AppInjector {
     }
 
     /**
-     * 
+     *
      */
     private instantiate<T extends Type<unknown>>(target: T): InstanceType<T> {
         const paramTypes = Reflect.getMetadata('design:paramtypes', target) || [];
@@ -86,8 +106,16 @@ export class AppInjector {
     }
 }
 
-export const RootInjector = new AppInjector('root');
-
+/**
+ * Injects a type from the dependency injection system.
+ * This function is used to retrieve an instance of a type that has been registered in the dependency injection system.
+ * It is typically used in the constructor of a class to inject dependencies.
+ * @param t - The type to inject.
+ * @returns An instance of the type.
+ * @throws If the type is not registered in the dependency injection system.
+ */
 export function inject<T>(t: Type<T>): T {
     return RootInjector.resolve(t);
 }
+
+export const RootInjector = new AppInjector('root');

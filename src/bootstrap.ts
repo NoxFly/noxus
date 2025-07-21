@@ -11,7 +11,12 @@ import { inject } from "src/DI/app-injector";
 import { Type } from "src/utils/types";
 
 /**
- * 
+ * Bootstraps the Noxus application.
+ * This function initializes the application by creating an instance of NoxApp,
+ * registering the root module, and starting the application.
+ * @param rootModule - The root module of the application, decorated with @Module.
+ * @return A promise that resolves to the NoxApp instance.
+ * @throws Error if the root module is not decorated with @Module, or if the electron process could not start.
  */
 export async function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp> {
     if(!getModuleMetadata(rootModule)) {

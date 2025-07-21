@@ -13,12 +13,14 @@ import { Router } from "src/router";
 import { Logger } from "src/utils/logger";
 import { Type } from "src/utils/types";
 
+/**
+ * InjectorExplorer is a utility class that explores the dependency injection system at the startup.
+ */
 export class InjectorExplorer {
     /**
-     * Enregistre la classe comme étant injectable.
-     * Lorsqu'une classe sera instanciée, si elle a des dépendances, et que celles-ci
-     * figurent dans la liste grâce à cette méthode, elles seront injectées dans le
-     * constructeur de la classe.
+     * Registers the class as injectable.
+     * When a class is instantiated, if it has dependencies and those dependencies
+     * are listed using this method, they will be injected into the class constructor.
      */
     public static register(target: Type<unknown>, lifetime: Lifetime): typeof RootInjector {
         Logger.debug(`Registering ${target.name} as ${lifetime}`);
@@ -40,7 +42,7 @@ export class InjectorExplorer {
         }
 
         const controllerMeta = getControllerMetadata(target);
-        
+
         if(controllerMeta) {
             const router = RootInjector.resolve(Router);
             router?.registerController(target);
@@ -48,7 +50,7 @@ export class InjectorExplorer {
         }
 
         const routeMeta = getRouteMetadata(target);
-        
+
         if(routeMeta) {
             return RootInjector;
         }

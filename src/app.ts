@@ -13,12 +13,21 @@ import { Router } from "src/router";
 import { Logger } from "src/utils/logger";
 import { Type } from "src/utils/types";
 
+/**
+ * The application service should implement this interface, as
+ * the NoxApp class instance will use it to notify the given service
+ * about application lifecycle events.
+ */
 export interface IApp {
     dispose(): Promise<void>;
     onReady(): Promise<void>;
     onActivated(): Promise<void>;
 }
 
+/**
+ * NoxApp is the main application class that manages the application lifecycle,
+ * handles IPC communication, and integrates with the Router.
+ */
 @Injectable('singleton')
 export class NoxApp {
     private readonly messagePorts = new Map<number, Electron.MessageChannelMain>();
@@ -29,7 +38,9 @@ export class NoxApp {
     ) {}
 
     /**
-     *
+     * Initializes the NoxApp instance.
+     * This method sets up the IPC communication, registers event listeners,
+     * and prepares the application for use.
      */
     public async init(): Promise<NoxApp> {
         ipcMain.on('gimme-my-port', this.giveTheRendererAPort.bind(this));
@@ -43,7 +54,10 @@ export class NoxApp {
     }
 
     /**
-     *
+     * Handles the request from the renderer process.
+     * This method creates a Request object from the IPC event data,
+     * processes it through the Router, and sends the response back
+     * to the renderer process using the MessageChannel.
      */
     private giveTheRendererAPort(event: Electron.IpcMainInvokeEvent): void {
         const senderId = event.sender.id;
@@ -74,7 +88,6 @@ export class NoxApp {
             Logger.error(`No message channel found for sender ID: ${senderId}`);
             return;
         }
-
         try {
             const request = new Request(event, requestId, method, path, body);
             const response = await this.router.handle(request);
@@ -101,7 +114,14 @@ export class NoxApp {
         }
     }
 
-    private shutdownChannel(channelSenderId: number, remove: boolean = true): void {
+    /**
+     * Shuts down the message channel for a specific sender ID.
+     * This method closes the IPC channel for the specified sender ID and
+     * removes it from the messagePorts map.
+     * @param channelSenderId - The ID of the sender channel to shut down.
+     * @param remove - Whether to remove the channel from the messagePorts map.
+     */
+    private shutdownChannel(channelSenderId: number): void {
         const channel = this.messagePorts.get(channelSenderId);
 
         if(!channel) {
@@ -117,11 +137,12 @@ export class NoxApp {
     }
 
     /**
-     *
+     * Handles the application shutdown process.
+     * This method is called when all windows are closed, and it cleans up the message channels
      */
     private async onAllWindowsClosed(): Promise<void> {
         this.messagePorts.forEach((channel, senderId) => {
-            this.shutdownChannel(senderId, false);
+            this.shutdownChannel(senderId);
         });
 
         this.messagePorts.clear();
@@ -136,12 +157,23 @@ export class NoxApp {
 
     // ---
 
-
+    /**
+     * Configures the NoxApp instance with the provided application class.
+     * This method allows you to set the application class that will handle lifecycle events.
+     * @param app - The application class to configure.
+     * @returns NoxApp instance for method chaining.
+     */
     public configure(app: Type<IApp>): NoxApp {
         this.app = inject(app);
         return this;
     }
 
+    /**
+     * Registers a middleware for the root of the application.
+     * This method allows you to define a middleware that will be applied to all requests
+     * @param middleware - The middleware class to register.
+     * @returns NoxApp instance for method chaining.
+     */
     public use(middleware: Type<IMiddleware>): NoxApp {
         this.router.defineRootMiddleware(middleware);
         return this;
@@ -149,6 +181,7 @@ export class NoxApp {
 
     /**
      * Should be called after the bootstrapApplication function is called.
+     * @returns NoxApp instance for method chaining.
      */
     public start(): NoxApp {
         this.app?.onReady();

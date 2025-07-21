@@ -8,13 +8,26 @@ import { CONTROLLER_METADATA_KEY } from "src/decorators/controller.decorator";
 import { Injectable, INJECTABLE_METADATA_KEY } from "src/decorators/injectable.decorator";
 import { Type } from "src/utils/types";
 
+export interface IModuleMetadata {
+    imports?: Type<unknown>[];
+    exports?: Type<unknown>[];
+    providers?: Type<unknown>[];
+    controllers?: Type<unknown>[];
+}
+
+/**
+ * Module decorator is used to define a module in the application.
+ * It is a kind of node in the routing tree, that can contains controllers, services, and other modules.
+ *
+ * @param metadata - The metadata for the module.
+ */
 export function Module(metadata: IModuleMetadata): ClassDecorator {
     return (target: Function) => {
         // Validate imports and exports: must be decorated with @Module
         const checkModule = (arr?: Type<unknown>[], arrName?: string): void => {
             if(!arr)
                 return;
-            
+
             for(const clazz of arr) {
                 if(!Reflect.getMetadata(MODULE_METADATA_KEY, clazz)) {
                     throw new Error(`Class ${clazz.name} in ${arrName} must be decorated with @Module`);
@@ -55,15 +68,8 @@ export function Module(metadata: IModuleMetadata): ClassDecorator {
     };
 }
 
-export const MODULE_METADATA_KEY = Symbol('MODULE_METADATA_KEY');
-
-export interface IModuleMetadata {
-    imports?: Type<unknown>[];
-    exports?: Type<unknown>[];
-    providers?: Type<unknown>[];
-    controllers?: Type<unknown>[];
-}
-
 export function getModuleMetadata(target: Function): IModuleMetadata | undefined {
     return Reflect.getMetadata(MODULE_METADATA_KEY, target);
 }
+
+export const MODULE_METADATA_KEY = Symbol('MODULE_METADATA_KEY');

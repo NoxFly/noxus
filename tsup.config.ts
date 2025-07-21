@@ -21,7 +21,7 @@ export default defineConfig({
     outDir: "dist",
     external: ["electron"],
     target: "es2020",
-    minify: false,
+    minify: true,
     splitting: false,
     shims: false,
     treeshake: false,
