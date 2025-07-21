@@ -13,6 +13,7 @@ export default defineConfig({
         noxus: "src/index.ts"
     },
     keepNames: true,
+    minifyIdentifiers: false,
     name: "noxus",
     format: ["cjs", "esm"],
     dts: true,
@@ -21,7 +22,7 @@ export default defineConfig({
     outDir: "dist",
     external: ["electron"],
     target: "es2020",
-    minify: true,
+    minify: false,
     splitting: false,
     shims: false,
     treeshake: false,
