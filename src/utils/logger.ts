@@ -7,7 +7,7 @@
 /**
  * Logger is a utility class for logging messages to the console.
  */
-export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
+export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'comment';
 
 /**
  * Returns a formatted timestamp for logging.
@@ -84,7 +84,13 @@ function formattedArgs(prefix: string, args: any[], color: string): any[] {
  */
 function getCallee(): string {
     const stack = new Error().stack?.split('\n') ?? [];
-    const caller = stack[3]?.trim().match(/at (.+?)(?:\..+)? .+$/)?.[1]?.replace('Object', '') || "App";
+    const caller = stack[3]
+        ?.trim()
+        .match(/at (.+?)(?:\..+)? .+$/)
+        ?.[1]
+        ?.replace('Object', '')
+        .replace(/^_/, '')
+        || "App";
     return caller;
 }
 
@@ -99,14 +105,15 @@ function canLog(level: LogLevel): boolean {
 }
 
 
-let logLevel: LogLevel = 'log';
+let logLevel: LogLevel = 'debug';
 
 const logLevelRank: Record<LogLevel, number> = {
     debug: 0,
-    log: 1,
-    info: 2,
-    warn: 3,
-    error: 4,
+    comment: 1,
+    log: 2,
+    info: 3,
+    warn: 4,
+    error: 5,
 };
 
 export namespace Logger {
@@ -194,6 +201,21 @@ export namespace Logger {
         const callee = getCallee();
         const prefix = getLogPrefix(callee, "debug", colors.purple);
         console.debug(prefix, ...formattedArgs(prefix, args, colors.purple));
+    }
+
+    /**
+     * Logs a message to the console with log level COMMENT.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    export function comment(...args: any[]): void {
+        if(!canLog('comment'))
+            return;
+
+        const callee = getCallee();
+        const prefix = getLogPrefix(callee, "comment", colors.grey);
+        console.debug(prefix, ...formattedArgs(prefix, args, colors.grey));
     }
 
 

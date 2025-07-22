@@ -23,7 +23,6 @@ export class InjectorExplorer {
      * are listed using this method, they will be injected into the class constructor.
      */
     public static register(target: Type<unknown>, lifetime: Lifetime): typeof RootInjector {
-        Logger.debug(`Registering ${target.name} as ${lifetime}`);
         if(RootInjector.bindings.has(target)) // already registered
             return RootInjector;
 

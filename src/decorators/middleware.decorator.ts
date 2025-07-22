@@ -50,8 +50,6 @@ export function UseMiddlewares(mdlw: Type<IMiddleware>[]): ClassDecorator & Meth
             throw new Error(`Middlewares(s) already registered for ${key}`);
         }
 
-        Logger.debug(`Registering middleware(s) for ${key}: ${mdlw.map(c => c.name).join(', ')}`);
-
         middlewares.set(key, mdlw);
     };
 }

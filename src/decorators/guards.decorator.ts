@@ -46,8 +46,6 @@ export function Authorize(...guardClasses: Type<IGuard>[]): MethodDecorator & Cl
             throw new Error(`Guard(s) already registered for ${key}`);
         }
 
-        Logger.debug(`Registering guard(s) for ${key}: ${guardClasses.map(c => c.name).join(', ')}`);
-
         authorizations.set(key, guardClasses);
     };
 }

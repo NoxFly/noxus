@@ -361,120 +361,6 @@ var RootInjector = new AppInjector("root");
 // src/router.ts
 var import_reflect_metadata2 = require("reflect-metadata");
 
-// src/utils/logger.ts
-function getPrettyTimestamp() {
-  const now = /* @__PURE__ */ new Date();
-  return `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
-}
-__name(getPrettyTimestamp, "getPrettyTimestamp");
-function getLogPrefix(callee, messageType, color) {
-  const timestamp = getPrettyTimestamp();
-  const spaces = " ".repeat(10 - messageType.length);
-  return `${color}[APP] ${process.pid} - ${Logger.colors.initial}${timestamp}${spaces}${color}${messageType.toUpperCase()}${Logger.colors.initial} ${Logger.colors.yellow}[${callee}]${Logger.colors.initial}`;
-}
-__name(getLogPrefix, "getLogPrefix");
-function formatObject(prefix, arg) {
-  const json = JSON.stringify(arg, null, 2);
-  const prefixedJson = json.split("\n").map((line, idx) => idx === 0 ? `${Logger.colors.darkGrey}${line}` : `${prefix} ${Logger.colors.grey}${line}`).join("\n") + Logger.colors.initial;
-  return prefixedJson;
-}
-__name(formatObject, "formatObject");
-function formattedArgs(prefix, args, color) {
-  return args.map((arg) => {
-    if (typeof arg === "string") {
-      return `${color}${arg}${Logger.colors.initial}`;
-    } else if (typeof arg === "object") {
-      return formatObject(prefix, arg);
-    }
-    return arg;
-  });
-}
-__name(formattedArgs, "formattedArgs");
-function getCallee() {
-  const stack = new Error().stack?.split("\n") ?? [];
-  const caller = stack[3]?.trim().match(/at (.+?)(?:\..+)? .+$/)?.[1]?.replace("Object", "") || "App";
-  return caller;
-}
-__name(getCallee, "getCallee");
-function canLog(level) {
-  return logLevelRank[level] >= logLevelRank[logLevel];
-}
-__name(canLog, "canLog");
-var logLevel = "log";
-var logLevelRank = {
-  debug: 0,
-  log: 1,
-  info: 2,
-  warn: 3,
-  error: 4
-};
-(function(Logger2) {
-  function setLogLevel(level) {
-    logLevel = level;
-  }
-  __name(setLogLevel, "setLogLevel");
-  Logger2.setLogLevel = setLogLevel;
-  function log(...args) {
-    if (!canLog("log")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "log", Logger2.colors.green);
-    console.log(prefix, ...formattedArgs(prefix, args, Logger2.colors.green));
-  }
-  __name(log, "log");
-  Logger2.log = log;
-  function info(...args) {
-    if (!canLog("info")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "info", Logger2.colors.blue);
-    console.info(prefix, ...formattedArgs(prefix, args, Logger2.colors.blue));
-  }
-  __name(info, "info");
-  Logger2.info = info;
-  function warn(...args) {
-    if (!canLog("warn")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "warn", Logger2.colors.brown);
-    console.warn(prefix, ...formattedArgs(prefix, args, Logger2.colors.brown));
-  }
-  __name(warn, "warn");
-  Logger2.warn = warn;
-  function error(...args) {
-    if (!canLog("error")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "error", Logger2.colors.red);
-    console.error(prefix, ...formattedArgs(prefix, args, Logger2.colors.red));
-  }
-  __name(error, "error");
-  Logger2.error = error;
-  function debug(...args) {
-    if (!canLog("debug")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "debug", Logger2.colors.purple);
-    console.debug(prefix, ...formattedArgs(prefix, args, Logger2.colors.purple));
-  }
-  __name(debug, "debug");
-  Logger2.debug = debug;
-  Logger2.colors = {
-    black: "\x1B[0;30m",
-    grey: "\x1B[0;37m",
-    red: "\x1B[0;31m",
-    green: "\x1B[0;32m",
-    brown: "\x1B[0;33m",
-    blue: "\x1B[0;34m",
-    purple: "\x1B[0;35m",
-    darkGrey: "\x1B[1;30m",
-    lightRed: "\x1B[1;31m",
-    lightGreen: "\x1B[1;32m",
-    yellow: "\x1B[1;33m",
-    lightBlue: "\x1B[1;34m",
-    magenta: "\x1B[1;35m",
-    cyan: "\x1B[1;36m",
-    white: "\x1B[1;37m",
-    initial: "\x1B[0m"
-  };
-})(Logger || (Logger = {}));
-var Logger;
-
 // src/decorators/guards.decorator.ts
 function Authorize(...guardClasses) {
   return (target, propertyKey) => {
@@ -490,7 +376,6 @@ function Authorize(...guardClasses) {
     if (authorizations.has(key)) {
       throw new Error(`Guard(s) already registered for ${key}`);
     }
-    Logger.debug(`Registering guard(s) for ${key}: ${guardClasses.map((c) => c.name).join(", ")}`);
     authorizations.set(key, guardClasses);
   };
 }
@@ -577,6 +462,129 @@ function getModuleMetadata(target) {
 __name(getModuleMetadata, "getModuleMetadata");
 var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
 
+// src/utils/logger.ts
+function getPrettyTimestamp() {
+  const now = /* @__PURE__ */ new Date();
+  return `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+}
+__name(getPrettyTimestamp, "getPrettyTimestamp");
+function getLogPrefix(callee, messageType, color) {
+  const timestamp = getPrettyTimestamp();
+  const spaces = " ".repeat(10 - messageType.length);
+  return `${color}[APP] ${process.pid} - ${Logger.colors.initial}${timestamp}${spaces}${color}${messageType.toUpperCase()}${Logger.colors.initial} ${Logger.colors.yellow}[${callee}]${Logger.colors.initial}`;
+}
+__name(getLogPrefix, "getLogPrefix");
+function formatObject(prefix, arg) {
+  const json = JSON.stringify(arg, null, 2);
+  const prefixedJson = json.split("\n").map((line, idx) => idx === 0 ? `${Logger.colors.darkGrey}${line}` : `${prefix} ${Logger.colors.grey}${line}`).join("\n") + Logger.colors.initial;
+  return prefixedJson;
+}
+__name(formatObject, "formatObject");
+function formattedArgs(prefix, args, color) {
+  return args.map((arg) => {
+    if (typeof arg === "string") {
+      return `${color}${arg}${Logger.colors.initial}`;
+    } else if (typeof arg === "object") {
+      return formatObject(prefix, arg);
+    }
+    return arg;
+  });
+}
+__name(formattedArgs, "formattedArgs");
+function getCallee() {
+  const stack = new Error().stack?.split("\n") ?? [];
+  const caller = stack[3]?.trim().match(/at (.+?)(?:\..+)? .+$/)?.[1]?.replace("Object", "").replace(/^_/, "") || "App";
+  return caller;
+}
+__name(getCallee, "getCallee");
+function canLog(level) {
+  return logLevelRank[level] >= logLevelRank[logLevel];
+}
+__name(canLog, "canLog");
+var logLevel = "debug";
+var logLevelRank = {
+  debug: 0,
+  comment: 1,
+  log: 2,
+  info: 3,
+  warn: 4,
+  error: 5
+};
+(function(Logger2) {
+  function setLogLevel(level) {
+    logLevel = level;
+  }
+  __name(setLogLevel, "setLogLevel");
+  Logger2.setLogLevel = setLogLevel;
+  function log(...args) {
+    if (!canLog("log")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "log", Logger2.colors.green);
+    console.log(prefix, ...formattedArgs(prefix, args, Logger2.colors.green));
+  }
+  __name(log, "log");
+  Logger2.log = log;
+  function info(...args) {
+    if (!canLog("info")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "info", Logger2.colors.blue);
+    console.info(prefix, ...formattedArgs(prefix, args, Logger2.colors.blue));
+  }
+  __name(info, "info");
+  Logger2.info = info;
+  function warn(...args) {
+    if (!canLog("warn")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "warn", Logger2.colors.brown);
+    console.warn(prefix, ...formattedArgs(prefix, args, Logger2.colors.brown));
+  }
+  __name(warn, "warn");
+  Logger2.warn = warn;
+  function error(...args) {
+    if (!canLog("error")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "error", Logger2.colors.red);
+    console.error(prefix, ...formattedArgs(prefix, args, Logger2.colors.red));
+  }
+  __name(error, "error");
+  Logger2.error = error;
+  function debug(...args) {
+    if (!canLog("debug")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "debug", Logger2.colors.purple);
+    console.debug(prefix, ...formattedArgs(prefix, args, Logger2.colors.purple));
+  }
+  __name(debug, "debug");
+  Logger2.debug = debug;
+  function comment(...args) {
+    if (!canLog("comment")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "comment", Logger2.colors.grey);
+    console.debug(prefix, ...formattedArgs(prefix, args, Logger2.colors.grey));
+  }
+  __name(comment, "comment");
+  Logger2.comment = comment;
+  Logger2.colors = {
+    black: "\x1B[0;30m",
+    grey: "\x1B[0;37m",
+    red: "\x1B[0;31m",
+    green: "\x1B[0;32m",
+    brown: "\x1B[0;33m",
+    blue: "\x1B[0;34m",
+    purple: "\x1B[0;35m",
+    darkGrey: "\x1B[1;30m",
+    lightRed: "\x1B[1;31m",
+    lightGreen: "\x1B[1;32m",
+    yellow: "\x1B[1;33m",
+    lightBlue: "\x1B[1;34m",
+    magenta: "\x1B[1;35m",
+    cyan: "\x1B[1;36m",
+    white: "\x1B[1;37m",
+    initial: "\x1B[0m"
+  };
+})(Logger || (Logger = {}));
+var Logger;
+
 // src/DI/injector-explorer.ts
 var _InjectorExplorer = class _InjectorExplorer {
   /**
@@ -585,7 +593,6 @@ var _InjectorExplorer = class _InjectorExplorer {
    * are listed using this method, they will be injected into the class constructor.
    */
   static register(target, lifetime) {
-    Logger.debug(`Registering ${target.name} as ${lifetime}`);
     if (RootInjector.bindings.has(target)) return RootInjector;
     RootInjector.bindings.set(target, {
       implementation: target,
@@ -668,7 +675,6 @@ function UseMiddlewares(mdlw) {
     if (middlewares.has(key)) {
       throw new Error(`Middlewares(s) already registered for ${key}`);
     }
-    Logger.debug(`Registering middleware(s) for ${key}: ${mdlw.map((c) => c.name).join(", ")}`);
     middlewares.set(key, mdlw);
   };
 }
@@ -908,7 +914,6 @@ var _Router = class _Router {
    * @param middleware - The middleware class to register.
    */
   defineRootMiddleware(middleware) {
-    Logger.debug(`Registering root middleware: ${middleware.name}`);
     this.rootMiddlewares.push(middleware);
     return this;
   }
@@ -919,7 +924,7 @@ var _Router = class _Router {
    * @param channelSenderId - The ID of the sender channel to shut down.
    */
   async handle(request) {
-    Logger.log(`> Received request: {${request.method} /${request.path}}`);
+    Logger.comment(`>     ${request.method} /${request.path}`);
     const t0 = performance.now();
     const response = {
       requestId: request.id,

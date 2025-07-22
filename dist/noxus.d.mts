@@ -577,7 +577,7 @@ declare const MODULE_METADATA_KEY: unique symbol;
 /**
  * Logger is a utility class for logging messages to the console.
  */
-type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
+type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'comment';
 declare namespace Logger {
     /**
      * Sets the log level for the logger.
@@ -621,6 +621,13 @@ declare namespace Logger {
      * @param args The arguments to log.
      */
     function debug(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level COMMENT.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function comment(...args: any[]): void;
     const colors: {
         black: string;
         grey: string;

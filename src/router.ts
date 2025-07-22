@@ -110,7 +110,6 @@ export class Router {
      * @param middleware - The middleware class to register.
      */
     public defineRootMiddleware(middleware: Type<IMiddleware>): Router {
-        Logger.debug(`Registering root middleware: ${middleware.name}`);
         this.rootMiddlewares.push(middleware);
         return this;
     }
@@ -122,7 +121,7 @@ export class Router {
      * @param channelSenderId - The ID of the sender channel to shut down.
      */
     public async handle(request: Request): Promise<IResponse> {
-        Logger.log(`> Received request: {${request.method} /${request.path}}`);
+        Logger.comment(`>     ${request.method} /${request.path}`);
 
         const t0 = performance.now();
 
