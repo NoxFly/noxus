@@ -147,7 +147,8 @@ export class NoxApp {
 
         this.messagePorts.clear();
 
-        this.app?.dispose();
+        Logger.info('All windows closed, shutting down application...');
+        await this.app?.dispose();
 
         if(process.platform !== 'darwin') {
             app.quit();
