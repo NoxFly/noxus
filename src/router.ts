@@ -264,6 +264,11 @@ export class Router {
             // endpoint action
             const action = controllerInstance[routeDef.handler] as ControllerAction;
             response.body = await action.call(controllerInstance, request, response);
+
+            // avoid parsing error on the renderer if the action just does treatment without returning anything
+            if(response.body === undefined) {
+                response.body = {};
+            }
         };
 
         await dispatch(0);

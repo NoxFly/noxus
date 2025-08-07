@@ -958,6 +958,9 @@ var _Router = class _Router {
       }
       const action = controllerInstance[routeDef.handler];
       response.body = await action.call(controllerInstance, request, response);
+      if (response.body === void 0) {
+        response.body = {};
+      }
     }, "dispatch");
     await dispatch(0);
   }
