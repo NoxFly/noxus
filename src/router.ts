@@ -257,7 +257,7 @@ export class Router {
                 const guardIndex = i - middlewares.length;
                 const guardType = routeDef.guards[guardIndex]!;
                 await this.runGuard(request, guardType);
-                dispatch(i + 1);
+                await dispatch(i + 1);
                 return;
             }
 

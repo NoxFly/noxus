@@ -953,7 +953,7 @@ var _Router = class _Router {
         const guardIndex = i - middlewares2.length;
         const guardType = routeDef.guards[guardIndex];
         await this.runGuard(request, guardType);
-        dispatch(i + 1);
+        await dispatch(i + 1);
         return;
       }
       const action = controllerInstance[routeDef.handler];
