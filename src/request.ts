@@ -51,4 +51,5 @@ export interface IResponse<T = any> {
     status: number;
     body?: T;
     error?: string;
+    stack?: string;
 }

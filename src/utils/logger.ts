@@ -188,6 +188,15 @@ export namespace Logger {
         console.error(prefix, ...formattedArgs(prefix, args, colors.red));
     }
 
+    export function errorStack(...args: any[]): void {
+        if(!canLog('error'))
+            return;
+
+        const callee = getCallee();
+        const prefix = getLogPrefix(callee, "error", colors.grey);
+        console.error(prefix, ...formattedArgs(prefix, args, colors.grey));
+    }
+
     /**
      * Logs a message to the console with log level DEBUG.
      * This function formats the message with a timestamp, process ID, and the name of the caller function or class.

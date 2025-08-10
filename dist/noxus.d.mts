@@ -168,6 +168,7 @@ interface IResponse<T = any> {
     status: number;
     body?: T;
     error?: string;
+    stack?: string;
 }
 
 
@@ -614,6 +615,7 @@ declare namespace Logger {
      * @param args The arguments to log.
      */
     function error(...args: any[]): void;
+    function errorStack(...args: any[]): void;
     /**
      * Logs a message to the console with log level DEBUG.
      * This function formats the message with a timestamp, process ID, and the name of the caller function or class.

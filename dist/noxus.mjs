@@ -471,6 +471,14 @@ var logLevelRank = {
   }
   __name(error, "error");
   Logger2.error = error;
+  function errorStack(...args) {
+    if (!canLog("error")) return;
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, "error", Logger2.colors.grey);
+    console.error(prefix, ...formattedArgs(prefix, args, Logger2.colors.grey));
+  }
+  __name(errorStack, "errorStack");
+  Logger2.errorStack = errorStack;
   function debug(...args) {
     if (!canLog("debug")) return;
     const callee = getCallee();
@@ -852,8 +860,7 @@ var _Router = class _Router {
     const response = {
       requestId: request.id,
       status: 200,
-      body: null,
-      error: void 0
+      body: null
     };
     try {
       const routeDef = this.findRoute(request);
@@ -862,15 +869,19 @@ var _Router = class _Router {
         throw new ResponseException(response.status, response.error);
       }
     } catch (error) {
+      response.body = void 0;
       if (error instanceof ResponseException) {
         response.status = error.status;
         response.error = error.message;
+        response.stack = error.stack;
       } else if (error instanceof Error) {
         response.status = 500;
         response.error = error.message || "Internal Server Error";
+        response.stack = error.stack || "No stack trace available";
       } else {
         response.status = 500;
         response.error = "Unknown error occurred";
+        response.stack = "No stack trace available";
       }
     } finally {
       const t1 = performance.now();
@@ -880,6 +891,9 @@ var _Router = class _Router {
       else Logger.error(message);
       if (response.error !== void 0) {
         Logger.error(response.error);
+        if (response.stack !== void 0) {
+          Logger.errorStack(response.stack);
+        }
       }
       return response;
     }

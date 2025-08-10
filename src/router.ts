@@ -129,7 +129,6 @@ export class Router {
             requestId: request.id,
             status: 200,
             body: null,
-            error: undefined,
         };
 
         try {
@@ -141,17 +140,22 @@ export class Router {
             }
         }
         catch(error: unknown) {
+            response.body = undefined;
+
             if(error instanceof ResponseException) {
                 response.status = error.status;
                 response.error = error.message;
+                response.stack = error.stack;
             }
             else if(error instanceof Error) {
                 response.status = 500;
                 response.error = error.message || 'Internal Server Error';
+                response.stack = error.stack || 'No stack trace available';
             }
             else {
                 response.status = 500;
                 response.error = 'Unknown error occurred';
+                response.stack = 'No stack trace available';
             }
         }
         finally {
@@ -168,6 +172,10 @@ export class Router {
 
             if(response.error !== undefined) {
                 Logger.error(response.error);
+
+                if(response.stack !== undefined) {
+                    Logger.errorStack(response.stack);
+                }
             }
 
             return response;
