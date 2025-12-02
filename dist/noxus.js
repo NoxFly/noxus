@@ -359,7 +359,7 @@ __name(inject, "inject");
 var RootInjector = new AppInjector("root");
 
 // src/router.ts
-var import_reflect_metadata2 = require("reflect-metadata");
+var import_reflect_metadata3 = require("reflect-metadata");
 
 // src/decorators/guards.decorator.ts
 function Authorize(...guardClasses) {
@@ -699,6 +699,28 @@ function getMiddlewaresForControllerAction(controllerName, actionName) {
 __name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
 var middlewares = /* @__PURE__ */ new Map();
 
+// src/request.ts
+var import_reflect_metadata2 = require("reflect-metadata");
+var _Request = class _Request {
+  constructor(event, id, method, path, body) {
+    __publicField(this, "event");
+    __publicField(this, "id");
+    __publicField(this, "method");
+    __publicField(this, "path");
+    __publicField(this, "body");
+    __publicField(this, "context", RootInjector.createScope());
+    __publicField(this, "params", {});
+    this.event = event;
+    this.id = id;
+    this.method = method;
+    this.path = path;
+    this.body = body;
+    this.path = path.replace(/^\/|\/$/g, "");
+  }
+};
+__name(_Request, "Request");
+var Request = _Request;
+
 // src/utils/radix-tree.ts
 var _a;
 var RadixNode = (_a = class {
@@ -864,6 +886,17 @@ function _ts_decorate(decorators, target, key, desc) {
   return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 __name(_ts_decorate, "_ts_decorate");
+var ATOMIC_HTTP_METHODS = /* @__PURE__ */ new Set([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE"
+]);
+function isAtomicHttpMethod(method) {
+  return typeof method === "string" && ATOMIC_HTTP_METHODS.has(method);
+}
+__name(isAtomicHttpMethod, "isAtomicHttpMethod");
 var _Router = class _Router {
   constructor() {
     __publicField(this, "routes", new RadixTree());
@@ -932,6 +965,12 @@ var _Router = class _Router {
    * @param channelSenderId - The ID of the sender channel to shut down.
    */
   async handle(request) {
+    if (request.method === "BATCH") {
+      return this.handleBatch(request);
+    }
+    return this.handleAtomic(request);
+  }
+  async handleAtomic(request) {
     Logger.comment(`>     ${request.method} /${request.path}`);
     const t0 = performance.now();
     const response = {
@@ -974,6 +1013,94 @@ var _Router = class _Router {
       }
       return response;
     }
+  }
+  async handleBatch(request) {
+    Logger.comment(`>     ${request.method} /${request.path}`);
+    const t0 = performance.now();
+    const response = {
+      requestId: request.id,
+      status: 200,
+      body: {
+        responses: []
+      }
+    };
+    try {
+      const payload = this.normalizeBatchPayload(request.body);
+      const batchResponses = [];
+      for (const [index, item] of payload.requests.entries()) {
+        const subRequestId = item.requestId ?? `${request.id}:${index}`;
+        const atomicRequest = new Request(request.event, subRequestId, item.method, item.path, item.body);
+        batchResponses.push(await this.handleAtomic(atomicRequest));
+      }
+      response.body.responses = batchResponses;
+    } catch (error) {
+      response.body = void 0;
+      if (error instanceof ResponseException) {
+        response.status = error.status;
+        response.error = error.message;
+        response.stack = error.stack;
+      } else if (error instanceof Error) {
+        response.status = 500;
+        response.error = error.message || "Internal Server Error";
+        response.stack = error.stack || "No stack trace available";
+      } else {
+        response.status = 500;
+        response.error = "Unknown error occurred";
+        response.stack = "No stack trace available";
+      }
+    } finally {
+      const t1 = performance.now();
+      const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
+      if (response.status < 400) Logger.log(message);
+      else if (response.status < 500) Logger.warn(message);
+      else Logger.error(message);
+      if (response.error !== void 0) {
+        Logger.error(response.error);
+        if (response.stack !== void 0) {
+          Logger.errorStack(response.stack);
+        }
+      }
+      return response;
+    }
+  }
+  normalizeBatchPayload(body) {
+    if (body === null || typeof body !== "object") {
+      throw new BadRequestException("Batch payload must be an object containing a requests array.");
+    }
+    const possiblePayload = body;
+    const { requests } = possiblePayload;
+    if (!Array.isArray(requests)) {
+      throw new BadRequestException("Batch payload must define a requests array.");
+    }
+    const normalizedRequests = requests.map((entry, index) => this.normalizeBatchItem(entry, index));
+    return {
+      requests: normalizedRequests
+    };
+  }
+  normalizeBatchItem(entry, index) {
+    if (entry === null || typeof entry !== "object") {
+      throw new BadRequestException(`Batch request at index ${index} must be an object.`);
+    }
+    const { requestId, path, method, body } = entry;
+    if (requestId !== void 0 && typeof requestId !== "string") {
+      throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
+    }
+    if (typeof path !== "string" || path.length === 0) {
+      throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
+    }
+    if (typeof method !== "string") {
+      throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
+    }
+    const normalizedMethod = method.toUpperCase();
+    if (!isAtomicHttpMethod(normalizedMethod)) {
+      throw new BadRequestException(`Batch request at index ${index} uses the unsupported method ${method}.`);
+    }
+    return {
+      requestId,
+      path,
+      method: normalizedMethod,
+      body
+    };
   }
   /**
    * Finds the route definition for a given request.
@@ -1111,30 +1238,6 @@ Router = _ts_decorate([
 
 // src/app.ts
 var import_main = require("electron/main");
-
-// src/request.ts
-var import_reflect_metadata3 = require("reflect-metadata");
-var _Request = class _Request {
-  constructor(event, id, method, path, body) {
-    __publicField(this, "event");
-    __publicField(this, "id");
-    __publicField(this, "method");
-    __publicField(this, "path");
-    __publicField(this, "body");
-    __publicField(this, "context", RootInjector.createScope());
-    __publicField(this, "params", {});
-    this.event = event;
-    this.id = id;
-    this.method = method;
-    this.path = path;
-    this.body = body;
-    this.path = path.replace(/^\/|\/$/g, "");
-  }
-};
-__name(_Request, "Request");
-var Request = _Request;
-
-// src/app.ts
 function _ts_decorate2(decorators, target, key, desc) {
   var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
   if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);

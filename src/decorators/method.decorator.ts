@@ -23,7 +23,12 @@ export interface IRouteMetadata {
 /**
  * The different HTTP methods that can be used in the application.
  */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'BATCH';
+
+/**
+ * Atomic HTTP verbs supported by controllers. BATCH is handled at the router level only.
+ */
+export type AtomicHttpMethod = Exclude<HttpMethod, 'BATCH'>;
 
 /**
  * The configuration that waits a route's decorator.

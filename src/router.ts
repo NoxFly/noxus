@@ -8,13 +8,19 @@ import 'reflect-metadata';
 import { getControllerMetadata } from 'src/decorators/controller.decorator';
 import { getGuardForController, getGuardForControllerAction, IGuard } from 'src/decorators/guards.decorator';
 import { Injectable } from 'src/decorators/injectable.decorator';
-import { getRouteMetadata } from 'src/decorators/method.decorator';
+import { AtomicHttpMethod, getRouteMetadata } from 'src/decorators/method.decorator';
 import { getMiddlewaresForController, getMiddlewaresForControllerAction, IMiddleware, NextFunction } from 'src/decorators/middleware.decorator';
-import { MethodNotAllowedException, NotFoundException, ResponseException, UnauthorizedException } from 'src/exceptions';
-import { IResponse, Request } from 'src/request';
+import { BadRequestException, MethodNotAllowedException, NotFoundException, ResponseException, UnauthorizedException } from 'src/exceptions';
+import { IBatchRequestItem, IBatchRequestPayload, IBatchResponsePayload, IResponse, Request } from 'src/request';
 import { Logger } from 'src/utils/logger';
 import { RadixTree } from 'src/utils/radix-tree';
 import { Type } from 'src/utils/types';
+
+const ATOMIC_HTTP_METHODS: ReadonlySet<AtomicHttpMethod> = new Set<AtomicHttpMethod>(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+
+function isAtomicHttpMethod(method: unknown): method is AtomicHttpMethod {
+    return typeof method === 'string' && ATOMIC_HTTP_METHODS.has(method as AtomicHttpMethod);
+}
 
 /**
  * IRouteDefinition interface defines the structure of a route in the application.
@@ -121,6 +127,14 @@ export class Router {
      * @param channelSenderId - The ID of the sender channel to shut down.
      */
     public async handle(request: Request): Promise<IResponse> {
+        if(request.method === 'BATCH') {
+            return this.handleBatch(request);
+        }
+
+        return this.handleAtomic(request);
+    }
+
+    private async handleAtomic(request: Request): Promise<IResponse> {
         Logger.comment(`>     ${request.method} /${request.path}`);
 
         const t0 = performance.now();
@@ -180,6 +194,122 @@ export class Router {
 
             return response;
         }
+    }
+
+    private async handleBatch(request: Request): Promise<IResponse> {
+        Logger.comment(`>     ${request.method} /${request.path}`);
+
+        const t0 = performance.now();
+
+        const response: IResponse<IBatchResponsePayload> = {
+            requestId: request.id,
+            status: 200,
+            body: { responses: [] },
+        };
+
+        try {
+            const payload = this.normalizeBatchPayload(request.body);
+            const batchResponses: IResponse[] = [];
+
+            for(const [index, item] of payload.requests.entries()) {
+                const subRequestId = item.requestId ?? `${request.id}:${index}`;
+                const atomicRequest = new Request(request.event, subRequestId, item.method, item.path, item.body);
+                batchResponses.push(await this.handleAtomic(atomicRequest));
+            }
+
+            response.body!.responses = batchResponses;
+        }
+        catch(error: unknown) {
+            response.body = undefined;
+
+            if(error instanceof ResponseException) {
+                response.status = error.status;
+                response.error = error.message;
+                response.stack = error.stack;
+            }
+            else if(error instanceof Error) {
+                response.status = 500;
+                response.error = error.message || 'Internal Server Error';
+                response.stack = error.stack || 'No stack trace available';
+            }
+            else {
+                response.status = 500;
+                response.error = 'Unknown error occurred';
+                response.stack = 'No stack trace available';
+            }
+        }
+        finally {
+            const t1 = performance.now();
+
+            const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
+
+            if(response.status < 400)
+                Logger.log(message);
+            else if(response.status < 500)
+                Logger.warn(message);
+            else
+                Logger.error(message);
+
+            if(response.error !== undefined) {
+                Logger.error(response.error);
+
+                if(response.stack !== undefined) {
+                    Logger.errorStack(response.stack);
+                }
+            }
+
+            return response;
+        }
+    }
+
+    private normalizeBatchPayload(body: unknown): IBatchRequestPayload {
+        if(body === null || typeof body !== 'object') {
+            throw new BadRequestException('Batch payload must be an object containing a requests array.');
+        }
+
+        const possiblePayload = body as Partial<IBatchRequestPayload>;
+        const { requests } = possiblePayload;
+
+        if(!Array.isArray(requests)) {
+            throw new BadRequestException('Batch payload must define a requests array.');
+        }
+
+        const normalizedRequests = requests.map((entry, index) => this.normalizeBatchItem(entry, index));
+
+        return { requests: normalizedRequests };
+    }
+
+    private normalizeBatchItem(entry: unknown, index: number): IBatchRequestItem {
+        if(entry === null || typeof entry !== 'object') {
+            throw new BadRequestException(`Batch request at index ${index} must be an object.`);
+        }
+
+        const { requestId, path, method, body } = entry as Partial<IBatchRequestItem> & { method?: unknown };
+
+        if(requestId !== undefined && typeof requestId !== 'string') {
+            throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
+        }
+
+        if(typeof path !== 'string' || path.length === 0) {
+            throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
+        }
+
+        if(typeof method !== 'string') {
+            throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
+        }
+
+        const normalizedMethod = method.toUpperCase();
+
+        if(!isAtomicHttpMethod(normalizedMethod)) {
+            throw new BadRequestException(`Batch request at index ${index} uses the unsupported method ${method}.`);
+        }
+
+        return {
+            requestId,
+            path,
+            method: normalizedMethod as AtomicHttpMethod,
+            body,
+        };
     }
 
     /**

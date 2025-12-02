@@ -5,7 +5,7 @@
  */
 
 import 'reflect-metadata';
-import { HttpMethod } from 'src/decorators/method.decorator';
+import { AtomicHttpMethod, HttpMethod } from 'src/decorators/method.decorator';
 import { AppInjector, RootInjector } from 'src/DI/app-injector';
 
 /**
@@ -34,22 +34,37 @@ export class Request {
  * It includes properties for the sender ID, request ID, path, method, and an optional body.
  * This interface is used to standardize the request data across the application.
  */
-export interface IRequest<T = any> {
+export interface IRequest<TBody = unknown> {
     senderId: number;
     requestId: string;
     path: string;
     method: HttpMethod;
-    body?: T;
+    body?: TBody;
+}
+
+export interface IBatchRequestItem<TBody = unknown> {
+    requestId?: string;
+    path: string;
+    method: AtomicHttpMethod;
+    body?: TBody;
+}
+
+export interface IBatchRequestPayload {
+    requests: IBatchRequestItem[];
 }
 
 /**
  * Creates a Request object from the IPC event data.
  * This function extracts the necessary information from the IPC event and constructs a Request instance.
  */
-export interface IResponse<T = any> {
+export interface IResponse<TBody = unknown> {
     requestId: string;
     status: number;
-    body?: T;
+    body?: TBody;
     error?: string;
     stack?: string;
+}
+
+export interface IBatchResponsePayload {
+    responses: IResponse[];
 }

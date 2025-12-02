@@ -86,7 +86,11 @@ interface IRouteMetadata {
 /**
  * The different HTTP methods that can be used in the application.
  */
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'BATCH';
+/**
+ * Atomic HTTP verbs supported by controllers. BATCH is handled at the router level only.
+ */
+type AtomicHttpMethod = Exclude<HttpMethod, 'BATCH'>;
 /**
  * Gets the route metadata for a given target class.
  * This metadata includes the HTTP method, path, handler, and guards defined by the route decorators.
@@ -152,23 +156,35 @@ declare class Request {
  * It includes properties for the sender ID, request ID, path, method, and an optional body.
  * This interface is used to standardize the request data across the application.
  */
-interface IRequest<T = any> {
+interface IRequest<TBody = unknown> {
     senderId: number;
     requestId: string;
     path: string;
     method: HttpMethod;
-    body?: T;
+    body?: TBody;
+}
+interface IBatchRequestItem<TBody = unknown> {
+    requestId?: string;
+    path: string;
+    method: AtomicHttpMethod;
+    body?: TBody;
+}
+interface IBatchRequestPayload {
+    requests: IBatchRequestItem[];
 }
 /**
  * Creates a Request object from the IPC event data.
  * This function extracts the necessary information from the IPC event and constructs a Request instance.
  */
-interface IResponse<T = any> {
+interface IResponse<TBody = unknown> {
     requestId: string;
     status: number;
-    body?: T;
+    body?: TBody;
     error?: string;
     stack?: string;
+}
+interface IBatchResponsePayload {
+    responses: IResponse[];
 }
 
 
@@ -291,6 +307,10 @@ declare class Router {
      * @param channelSenderId - The ID of the sender channel to shut down.
      */
     handle(request: Request): Promise<IResponse>;
+    private handleAtomic;
+    private handleBatch;
+    private normalizeBatchPayload;
+    private normalizeBatchItem;
     /**
      * Finds the route definition for a given request.
      * This method searches the routing tree for a matching route based on the request's path and method.
@@ -650,4 +670,4 @@ declare namespace Logger {
     };
 }
 
-export { AppInjector, Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBinding, type IControllerMetadata, type IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, getRouteMetadata, inject };
+export { AppInjector, type AtomicHttpMethod, Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, getRouteMetadata, inject };
