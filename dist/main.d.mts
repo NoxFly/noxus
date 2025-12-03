@@ -1,225 +1,11 @@
+import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime } from './index-5OkVPHfI.mjs';
+export { A as AppInjector, h as AtomicHttpMethod, d as Authorize, D as Delete, G as Get, H as HttpMethod, o as IBatchRequestItem, p as IBatchRequestPayload, q as IBatchResponsePayload, b as IBinding, s as IRendererEventMessage, n as IRequest, f as IRouteMetadata, l as Patch, P as Post, k as Put, r as RENDERER_EVENT_TYPE, m as ROUTE_METADATA_KEY, v as RendererEventHandler, x as RendererEventRegistry, w as RendererEventSubscription, c as RootInjector, t as createRendererEventMessage, g as getGuardForController, e as getGuardForControllerAction, j as getRouteMetadata, i as inject, u as isRendererEventMessage } from './index-5OkVPHfI.mjs';
+
 /**
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
  */
-interface Type<T> extends Function {
-    new (...args: any[]): T;
-}
-/**
- * Represents a generic type that can be either a value or a promise resolving to that value.
- */
-type MaybeAsync<T> = T | Promise<T>;
-
-
-/**
- * Represents a lifetime of a binding in the dependency injection system.
- * It can be one of the following:
- * - 'singleton': The instance is created once and shared across the application.
- * - 'scope': The instance is created once per scope (e.g., per request).
- * - 'transient': A new instance is created every time it is requested.
- */
-type Lifetime = 'singleton' | 'scope' | 'transient';
-/**
- * Represents a binding in the dependency injection system.
- * It contains the lifetime of the binding, the implementation type, and optionally an instance.
- */
-interface IBinding {
-    lifetime: Lifetime;
-    implementation: Type<unknown>;
-    instance?: InstanceType<Type<unknown>>;
-}
-/**
- * AppInjector is the root dependency injection container.
- * It is used to register and resolve dependencies in the application.
- * It supports different lifetimes for dependencies:
- * This should not be manually instantiated, outside of the framework.
- * Use the `RootInjector` instance instead.
- */
-declare class AppInjector {
-    readonly name: string | null;
-    bindings: Map<Type<unknown>, IBinding>;
-    singletons: Map<Type<unknown>, unknown>;
-    scoped: Map<Type<unknown>, unknown>;
-    constructor(name?: string | null);
-    /**
-     * Typically used to create a dependency injection scope
-     * at the "scope" level (i.e., per-request lifetime).
-     *
-     * SHOULD NOT BE USED by anything else than the framework itself.
-     */
-    createScope(): AppInjector;
-    /**
-     * Called when resolving a dependency,
-     * i.e., retrieving the instance of a given class.
-     */
-    resolve<T extends Type<unknown>>(target: T): InstanceType<T>;
-    /**
-     *
-     */
-    private instantiate;
-}
-/**
- * Injects a type from the dependency injection system.
- * This function is used to retrieve an instance of a type that has been registered in the dependency injection system.
- * It is typically used in the constructor of a class to inject dependencies.
- * @param t - The type to inject.
- * @returns An instance of the type.
- * @throws If the type is not registered in the dependency injection system.
- */
-declare function inject<T>(t: Type<T>): T;
-declare const RootInjector: AppInjector;
-
-
-/**
- * IRouteMetadata interface defines the metadata for a route.
- * It includes the HTTP method, path, handler name, and guards associated with the route.
- * This metadata is used to register the route in the application.
- * This is the configuration that waits a route's decorator.
- */
-interface IRouteMetadata {
-    method: HttpMethod;
-    path: string;
-    handler: string;
-    guards: Type<IGuard>[];
-}
-/**
- * The different HTTP methods that can be used in the application.
- */
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'BATCH';
-/**
- * Atomic HTTP verbs supported by controllers. BATCH is handled at the router level only.
- */
-type AtomicHttpMethod = Exclude<HttpMethod, 'BATCH'>;
-/**
- * Gets the route metadata for a given target class.
- * This metadata includes the HTTP method, path, handler, and guards defined by the route decorators.
- * @see Get
- * @see Post
- * @see Put
- * @see Patch
- * @see Delete
- * @param target The target class to get the route metadata from.
- * @returns An array of route metadata if it exists, otherwise an empty array.
- */
-declare function getRouteMetadata(target: Type<unknown>): IRouteMetadata[];
-/**
- * Route decorator that defines a leaf in the routing tree, attaching it to a controller method
- * that will be called when the route is matched.
- * This route will have to be called with the GET method.
- */
-declare const Get: (path: string) => MethodDecorator;
-/**
- * Route decorator that defines a leaf in the routing tree, attaching it to a controller method
- * that will be called when the route is matched.
- * This route will have to be called with the POST method.
- */
-declare const Post: (path: string) => MethodDecorator;
-/**
- * Route decorator that defines a leaf in the routing tree, attaching it to a controller method
- * that will be called when the route is matched.
- * This route will have to be called with the PUT method.
- */
-declare const Put: (path: string) => MethodDecorator;
-/**
- * Route decorator that defines a leaf in the routing tree, attaching it to a controller method
- * that will be called when the route is matched.
- * This route will have to be called with the PATCH method.
- */
-declare const Patch: (path: string) => MethodDecorator;
-/**
- * Route decorator that defines a leaf in the routing tree, attaching it to a controller method
- * that will be called when the route is matched.
- * This route will have to be called with the DELETE method.
- */
-declare const Delete: (path: string) => MethodDecorator;
-declare const ROUTE_METADATA_KEY: unique symbol;
-
-
-/**
- * The Request class represents an HTTP request in the Noxus framework.
- * It encapsulates the request data, including the event, ID, method, path, and body.
- * It also provides a context for dependency injection through the AppInjector.
- */
-declare class Request {
-    readonly event: Electron.MessageEvent;
-    readonly id: string;
-    readonly method: HttpMethod;
-    readonly path: string;
-    readonly body: any;
-    readonly context: AppInjector;
-    readonly params: Record<string, string>;
-    constructor(event: Electron.MessageEvent, id: string, method: HttpMethod, path: string, body: any);
-}
-/**
- * The IRequest interface defines the structure of a request object.
- * It includes properties for the sender ID, request ID, path, method, and an optional body.
- * This interface is used to standardize the request data across the application.
- */
-interface IRequest<TBody = unknown> {
-    senderId: number;
-    requestId: string;
-    path: string;
-    method: HttpMethod;
-    body?: TBody;
-}
-interface IBatchRequestItem<TBody = unknown> {
-    requestId?: string;
-    path: string;
-    method: AtomicHttpMethod;
-    body?: TBody;
-}
-interface IBatchRequestPayload {
-    requests: IBatchRequestItem[];
-}
-/**
- * Creates a Request object from the IPC event data.
- * This function extracts the necessary information from the IPC event and constructs a Request instance.
- */
-interface IResponse<TBody = unknown> {
-    requestId: string;
-    status: number;
-    body?: TBody;
-    error?: string;
-    stack?: string;
-}
-interface IBatchResponsePayload {
-    responses: IResponse[];
-}
-
-
-/**
- * IGuard interface defines a guard that can be used to protect routes.
- * It has a `canActivate` method that takes a request and returns a MaybeAsync boolean.
- * The `canActivate` method can return either a value or a Promise.
- * Use it on a class that should be registered as a guard in the application.
- * Guards can be used to protect routes or controller actions.
- * For example, you can use guards to check if the user is authenticated or has the right permissions.
- * You can use the `Authorize` decorator to register guards for a controller or a controller action.
- * @see Authorize
- */
-interface IGuard {
-    canActivate(request: Request): MaybeAsync<boolean>;
-}
-/**
- * Can be used to protect the routes of a controller.
- * Can be used on a controller class or on a controller method.
- */
-declare function Authorize(...guardClasses: Type<IGuard>[]): MethodDecorator & ClassDecorator;
-/**
- * Gets the guards for a controller or a controller action.
- * @param controllerName The name of the controller to get the guards for.
- * @returns An array of guards for the controller.
- */
-declare function getGuardForController(controllerName: string): Type<IGuard>[];
-/**
- * Gets the guards for a controller action.
- * @param controllerName The name of the controller to get the guards for.
- * @param actionName The name of the action to get the guards for.
- * @returns An array of guards for the controller action.
- */
-declare function getGuardForControllerAction(controllerName: string, actionName: string): Type<IGuard>[];
-
 
 /**
  * NextFunction is a function that is called to continue the middleware chain.
@@ -374,6 +160,16 @@ declare class Router {
     private extractParams;
 }
 
+declare class NoxSocket {
+    private readonly messagePorts;
+    register(senderId: number, channel: Electron.MessageChannelMain): void;
+    get(senderId: number): Electron.MessageChannelMain | undefined;
+    unregister(senderId: number): void;
+    getSenderIds(): number[];
+    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number;
+    emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
+}
+
 
 /**
  * The application service should implement this interface, as
@@ -391,9 +187,10 @@ interface IApp {
  */
 declare class NoxApp {
     private readonly router;
-    private readonly messagePorts;
+    private readonly socket;
     private app;
-    constructor(router: Router);
+    private readonly onRendererMessage;
+    constructor(router: Router, socket: NoxSocket);
     /**
      * Initializes the NoxApp instance.
      * This method sets up the IPC communication, registers event listeners,
@@ -407,11 +204,6 @@ declare class NoxApp {
      * to the renderer process using the MessageChannel.
      */
     private giveTheRendererAPort;
-    /**
-     * Electron specific message handling.
-     * Replaces HTTP calls by using Electron's IPC mechanism.
-     */
-    private onRendererMessage;
     /**
      * MacOS specific behavior.
      */
@@ -670,4 +462,4 @@ declare namespace Logger {
     };
 }
 
-export { AppInjector, type AtomicHttpMethod, Authorize, BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, Delete, ForbiddenException, GatewayTimeoutException, Get, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, Injectable, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, type MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, Patch, PaymentRequiredException, Post, Put, ROUTE_METADATA_KEY, Request, RequestTimeoutException, ResponseException, RootInjector, Router, ServiceUnavailableException, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getGuardForController, getGuardForControllerAction, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, getRouteMetadata, inject };
+export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, IResponse, type IRouteDefinition, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };

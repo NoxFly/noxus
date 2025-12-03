@@ -68,3 +68,29 @@ export interface IResponse<TBody = unknown> {
 export interface IBatchResponsePayload {
     responses: IResponse[];
 }
+
+export const RENDERER_EVENT_TYPE = 'noxus:event';
+
+export interface IRendererEventMessage<TPayload = unknown> {
+    type: typeof RENDERER_EVENT_TYPE;
+    event: string;
+    payload?: TPayload;
+}
+
+export function createRendererEventMessage<TPayload = unknown>(event: string, payload?: TPayload): IRendererEventMessage<TPayload> {
+    return {
+        type: RENDERER_EVENT_TYPE,
+        event,
+        payload,
+    };
+}
+
+export function isRendererEventMessage(value: unknown): value is IRendererEventMessage {
+    if(value === null || typeof value !== 'object') {
+        return false;
+    }
+
+    const possibleMessage = value as Partial<IRendererEventMessage>;
+
+    return possibleMessage.type === RENDERER_EVENT_TYPE && typeof possibleMessage.event === 'string';
+}

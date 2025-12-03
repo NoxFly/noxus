@@ -10,7 +10,8 @@ const copyrights = `
 
 export default defineConfig({
     entry: {
-        noxus: "src/index.ts"
+        renderer: "src/index.ts",
+        main: "src/main.ts",
     },
     keepNames: true,
     minifyIdentifiers: false,

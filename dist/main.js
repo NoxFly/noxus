@@ -3,13 +3,95 @@
  * @license MIT
  * @author NoxFly
  */
+"use strict";
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
+// src/main.ts
+var main_exports = {};
+__export(main_exports, {
+  AppInjector: () => AppInjector,
+  Authorize: () => Authorize,
+  BadGatewayException: () => BadGatewayException,
+  BadRequestException: () => BadRequestException,
+  CONTROLLER_METADATA_KEY: () => CONTROLLER_METADATA_KEY,
+  ConflictException: () => ConflictException,
+  Controller: () => Controller,
+  Delete: () => Delete,
+  ForbiddenException: () => ForbiddenException,
+  GatewayTimeoutException: () => GatewayTimeoutException,
+  Get: () => Get,
+  HttpVersionNotSupportedException: () => HttpVersionNotSupportedException,
+  INJECTABLE_METADATA_KEY: () => INJECTABLE_METADATA_KEY,
+  Injectable: () => Injectable,
+  InsufficientStorageException: () => InsufficientStorageException,
+  InternalServerException: () => InternalServerException,
+  Logger: () => Logger,
+  LoopDetectedException: () => LoopDetectedException,
+  MODULE_METADATA_KEY: () => MODULE_METADATA_KEY,
+  MethodNotAllowedException: () => MethodNotAllowedException,
+  Module: () => Module,
+  NetworkAuthenticationRequiredException: () => NetworkAuthenticationRequiredException,
+  NetworkConnectTimeoutException: () => NetworkConnectTimeoutException,
+  NotAcceptableException: () => NotAcceptableException,
+  NotExtendedException: () => NotExtendedException,
+  NotFoundException: () => NotFoundException,
+  NotImplementedException: () => NotImplementedException,
+  NoxApp: () => NoxApp,
+  NoxSocket: () => NoxSocket,
+  Patch: () => Patch,
+  PaymentRequiredException: () => PaymentRequiredException,
+  Post: () => Post,
+  Put: () => Put,
+  RENDERER_EVENT_TYPE: () => RENDERER_EVENT_TYPE,
+  ROUTE_METADATA_KEY: () => ROUTE_METADATA_KEY,
+  RendererEventRegistry: () => RendererEventRegistry,
+  Request: () => Request,
+  RequestTimeoutException: () => RequestTimeoutException,
+  ResponseException: () => ResponseException,
+  RootInjector: () => RootInjector,
+  Router: () => Router,
+  ServiceUnavailableException: () => ServiceUnavailableException,
+  TooManyRequestsException: () => TooManyRequestsException,
+  UnauthorizedException: () => UnauthorizedException,
+  UpgradeRequiredException: () => UpgradeRequiredException,
+  UseMiddlewares: () => UseMiddlewares,
+  VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
+  bootstrapApplication: () => bootstrapApplication,
+  createRendererEventMessage: () => createRendererEventMessage,
+  getControllerMetadata: () => getControllerMetadata,
+  getGuardForController: () => getGuardForController,
+  getGuardForControllerAction: () => getGuardForControllerAction,
+  getInjectableMetadata: () => getInjectableMetadata,
+  getMiddlewaresForController: () => getMiddlewaresForController,
+  getMiddlewaresForControllerAction: () => getMiddlewaresForControllerAction,
+  getModuleMetadata: () => getModuleMetadata,
+  getRouteMetadata: () => getRouteMetadata,
+  inject: () => inject,
+  isRendererEventMessage: () => isRendererEventMessage
+});
+module.exports = __toCommonJS(main_exports);
+
 // src/DI/app-injector.ts
-import "reflect-metadata";
+var import_reflect_metadata = require("reflect-metadata");
 
 // src/exceptions.ts
 var _ResponseException = class _ResponseException extends Error {
@@ -282,7 +364,7 @@ __name(inject, "inject");
 var RootInjector = new AppInjector("root");
 
 // src/router.ts
-import "reflect-metadata";
+var import_reflect_metadata3 = require("reflect-metadata");
 
 // src/decorators/guards.decorator.ts
 function Authorize(...guardClasses) {
@@ -623,7 +705,7 @@ __name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
 var middlewares = /* @__PURE__ */ new Map();
 
 // src/request.ts
-import "reflect-metadata";
+var import_reflect_metadata2 = require("reflect-metadata");
 var _Request = class _Request {
   constructor(event, id, method, path, body) {
     __publicField(this, "event");
@@ -643,6 +725,23 @@ var _Request = class _Request {
 };
 __name(_Request, "Request");
 var Request = _Request;
+var RENDERER_EVENT_TYPE = "noxus:event";
+function createRendererEventMessage(event, payload) {
+  return {
+    type: RENDERER_EVENT_TYPE,
+    event,
+    payload
+  };
+}
+__name(createRendererEventMessage, "createRendererEventMessage");
+function isRendererEventMessage(value) {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const possibleMessage = value;
+  return possibleMessage.type === RENDERER_EVENT_TYPE && typeof possibleMessage.event === "string";
+}
+__name(isRendererEventMessage, "isRendererEventMessage");
 
 // src/utils/radix-tree.ts
 var _a;
@@ -1160,7 +1259,9 @@ Router = _ts_decorate([
 ], Router);
 
 // src/app.ts
-import { app, BrowserWindow, ipcMain, MessageChannelMain } from "electron/main";
+var import_main = require("electron/main");
+
+// src/socket.ts
 function _ts_decorate2(decorators, target, key, desc) {
   var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
   if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -1168,16 +1269,98 @@ function _ts_decorate2(decorators, target, key, desc) {
   return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 __name(_ts_decorate2, "_ts_decorate");
+var _NoxSocket = class _NoxSocket {
+  constructor() {
+    __publicField(this, "messagePorts", /* @__PURE__ */ new Map());
+  }
+  register(senderId, channel) {
+    this.messagePorts.set(senderId, channel);
+  }
+  get(senderId) {
+    return this.messagePorts.get(senderId);
+  }
+  unregister(senderId) {
+    this.messagePorts.delete(senderId);
+  }
+  getSenderIds() {
+    return [
+      ...this.messagePorts.keys()
+    ];
+  }
+  emit(eventName, payload, targetSenderIds) {
+    const normalizedEvent = eventName.trim();
+    if (normalizedEvent.length === 0) {
+      throw new Error("Renderer event name must be a non-empty string.");
+    }
+    const recipients = targetSenderIds ?? this.getSenderIds();
+    let delivered = 0;
+    for (const senderId of recipients) {
+      const channel = this.messagePorts.get(senderId);
+      if (!channel) {
+        Logger.warn(`No message channel found for sender ID: ${senderId} while emitting "${normalizedEvent}".`);
+        continue;
+      }
+      try {
+        channel.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
+        delivered++;
+      } catch (error) {
+        Logger.error(`[Noxus] Failed to emit "${normalizedEvent}" to sender ${senderId}.`, error);
+      }
+    }
+    return delivered;
+  }
+  emitToRenderer(senderId, eventName, payload) {
+    return this.emit(eventName, payload, [
+      senderId
+    ]) > 0;
+  }
+};
+__name(_NoxSocket, "NoxSocket");
+var NoxSocket = _NoxSocket;
+NoxSocket = _ts_decorate2([
+  Injectable("singleton")
+], NoxSocket);
+
+// src/app.ts
+function _ts_decorate3(decorators, target, key, desc) {
+  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+__name(_ts_decorate3, "_ts_decorate");
 function _ts_metadata(k, v) {
   if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 }
 __name(_ts_metadata, "_ts_metadata");
 var _NoxApp = class _NoxApp {
-  constructor(router) {
+  constructor(router, socket) {
     __publicField(this, "router");
-    __publicField(this, "messagePorts", /* @__PURE__ */ new Map());
+    __publicField(this, "socket");
     __publicField(this, "app");
+    __publicField(this, "onRendererMessage", /* @__PURE__ */ __name(async (event) => {
+      const { senderId, requestId, path, method, body } = event.data;
+      const channel = this.socket.get(senderId);
+      if (!channel) {
+        Logger.error(`No message channel found for sender ID: ${senderId}`);
+        return;
+      }
+      try {
+        const request = new Request(event, requestId, method, path, body);
+        const response = await this.router.handle(request);
+        channel.port1.postMessage(response);
+      } catch (err) {
+        const response = {
+          requestId,
+          status: 500,
+          body: null,
+          error: err.message || "Internal Server Error"
+        };
+        channel.port1.postMessage(response);
+      }
+    }, "onRendererMessage"));
     this.router = router;
+    this.socket = socket;
   }
   /**
    * Initializes the NoxApp instance.
@@ -1185,9 +1368,9 @@ var _NoxApp = class _NoxApp {
    * and prepares the application for use.
    */
   async init() {
-    ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
-    app.once("activate", this.onAppActivated.bind(this));
-    app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
+    import_main.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
+    import_main.app.once("activate", this.onAppActivated.bind(this));
+    import_main.app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
     console.log("");
     return this;
   }
@@ -1199,13 +1382,13 @@ var _NoxApp = class _NoxApp {
    */
   giveTheRendererAPort(event) {
     const senderId = event.sender.id;
-    if (this.messagePorts.has(senderId)) {
+    if (this.socket.get(senderId)) {
       this.shutdownChannel(senderId);
     }
-    const channel = new MessageChannelMain();
-    this.messagePorts.set(senderId, channel);
-    channel.port1.on("message", this.onRendererMessage.bind(this));
+    const channel = new import_main.MessageChannelMain();
+    channel.port1.on("message", this.onRendererMessage);
     channel.port1.start();
+    this.socket.register(senderId, channel);
     event.sender.postMessage("port", {
       senderId
     }, [
@@ -1213,35 +1396,10 @@ var _NoxApp = class _NoxApp {
     ]);
   }
   /**
-   * Electron specific message handling.
-   * Replaces HTTP calls by using Electron's IPC mechanism.
-   */
-  async onRendererMessage(event) {
-    const { senderId, requestId, path, method, body } = event.data;
-    const channel = this.messagePorts.get(senderId);
-    if (!channel) {
-      Logger.error(`No message channel found for sender ID: ${senderId}`);
-      return;
-    }
-    try {
-      const request = new Request(event, requestId, method, path, body);
-      const response = await this.router.handle(request);
-      channel.port1.postMessage(response);
-    } catch (err) {
-      const response = {
-        requestId,
-        status: 500,
-        body: null,
-        error: err.message || "Internal Server Error"
-      };
-      channel.port1.postMessage(response);
-    }
-  }
-  /**
    * MacOS specific behavior.
    */
   onAppActivated() {
-    if (process.platform === "darwin" && BrowserWindow.getAllWindows().length === 0) {
+    if (process.platform === "darwin" && import_main.BrowserWindow.getAllWindows().length === 0) {
       this.app?.onActivated();
     }
   }
@@ -1253,29 +1411,28 @@ var _NoxApp = class _NoxApp {
    * @param remove - Whether to remove the channel from the messagePorts map.
    */
   shutdownChannel(channelSenderId) {
-    const channel = this.messagePorts.get(channelSenderId);
+    const channel = this.socket.get(channelSenderId);
     if (!channel) {
       Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
       return;
     }
-    channel.port1.off("message", this.onRendererMessage.bind(this));
+    channel.port1.off("message", this.onRendererMessage);
     channel.port1.close();
     channel.port2.close();
-    this.messagePorts.delete(channelSenderId);
+    this.socket.unregister(channelSenderId);
   }
   /**
    * Handles the application shutdown process.
    * This method is called when all windows are closed, and it cleans up the message channels
    */
   async onAllWindowsClosed() {
-    this.messagePorts.forEach((channel, senderId) => {
+    for (const senderId of this.socket.getSenderIds()) {
       this.shutdownChannel(senderId);
-    });
-    this.messagePorts.clear();
+    }
     Logger.info("All windows closed, shutting down application...");
     await this.app?.dispose();
     if (process.platform !== "darwin") {
-      app.quit();
+      import_main.app.quit();
     }
   }
   // ---
@@ -1310,27 +1467,109 @@ var _NoxApp = class _NoxApp {
 };
 __name(_NoxApp, "NoxApp");
 var NoxApp = _NoxApp;
-NoxApp = _ts_decorate2([
+NoxApp = _ts_decorate3([
   Injectable("singleton"),
   _ts_metadata("design:type", Function),
   _ts_metadata("design:paramtypes", [
-    typeof Router === "undefined" ? Object : Router
+    typeof Router === "undefined" ? Object : Router,
+    typeof NoxSocket === "undefined" ? Object : NoxSocket
   ])
 ], NoxApp);
 
 // src/bootstrap.ts
-import { app as app2 } from "electron/main";
+var import_main2 = require("electron/main");
 async function bootstrapApplication(rootModule) {
   if (!getModuleMetadata(rootModule)) {
     throw new Error(`Root module must be decorated with @Module`);
   }
-  await app2.whenReady();
+  await import_main2.app.whenReady();
   const noxApp = inject(NoxApp);
   await noxApp.init();
   return noxApp;
 }
 __name(bootstrapApplication, "bootstrapApplication");
-export {
+
+// src/renderer-events.ts
+var _RendererEventRegistry = class _RendererEventRegistry {
+  constructor() {
+    __publicField(this, "listeners", /* @__PURE__ */ new Map());
+  }
+  /**
+   *
+   */
+  subscribe(eventName, handler) {
+    const normalizedEventName = eventName.trim();
+    if (normalizedEventName.length === 0) {
+      throw new Error("Renderer event name must be a non-empty string.");
+    }
+    const handlers = this.listeners.get(normalizedEventName) ?? /* @__PURE__ */ new Set();
+    handlers.add(handler);
+    this.listeners.set(normalizedEventName, handlers);
+    return {
+      unsubscribe: /* @__PURE__ */ __name(() => this.unsubscribe(normalizedEventName, handler), "unsubscribe")
+    };
+  }
+  /**
+   *
+   */
+  unsubscribe(eventName, handler) {
+    const handlers = this.listeners.get(eventName);
+    if (!handlers) {
+      return;
+    }
+    handlers.delete(handler);
+    if (handlers.size === 0) {
+      this.listeners.delete(eventName);
+    }
+  }
+  /**
+   *
+   */
+  clear(eventName) {
+    if (eventName) {
+      this.listeners.delete(eventName);
+      return;
+    }
+    this.listeners.clear();
+  }
+  /**
+   *
+   */
+  dispatch(message) {
+    const handlers = this.listeners.get(message.event);
+    if (!handlers || handlers.size === 0) {
+      return;
+    }
+    handlers.forEach((handler) => {
+      try {
+        handler(message.payload);
+      } catch (error) {
+        console.error(`[Noxus] Renderer event handler for "${message.event}" threw an error.`, error);
+      }
+    });
+  }
+  /**
+   *
+   */
+  tryDispatchFromMessageEvent(event) {
+    if (!isRendererEventMessage(event.data)) {
+      return false;
+    }
+    this.dispatch(event.data);
+    return true;
+  }
+  /**
+   *
+   */
+  hasHandlers(eventName) {
+    const handlers = this.listeners.get(eventName);
+    return !!handlers && handlers.size > 0;
+  }
+};
+__name(_RendererEventRegistry, "RendererEventRegistry");
+var RendererEventRegistry = _RendererEventRegistry;
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
   AppInjector,
   Authorize,
   BadGatewayException,
@@ -1359,11 +1598,14 @@ export {
   NotFoundException,
   NotImplementedException,
   NoxApp,
+  NoxSocket,
   Patch,
   PaymentRequiredException,
   Post,
   Put,
+  RENDERER_EVENT_TYPE,
   ROUTE_METADATA_KEY,
+  RendererEventRegistry,
   Request,
   RequestTimeoutException,
   ResponseException,
@@ -1376,6 +1618,7 @@ export {
   UseMiddlewares,
   VariantAlsoNegotiatesException,
   bootstrapApplication,
+  createRendererEventMessage,
   getControllerMetadata,
   getGuardForController,
   getGuardForControllerAction,
@@ -1384,11 +1627,12 @@ export {
   getMiddlewaresForControllerAction,
   getModuleMetadata,
   getRouteMetadata,
-  inject
-};
+  inject,
+  isRendererEventMessage
+});
 /**
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
  */
-//# sourceMappingURL=noxus.mjs.map
+//# sourceMappingURL=main.js.map

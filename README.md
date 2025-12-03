@@ -48,6 +48,8 @@ npm i -D @noxfly/noxus
 
 Because you only need types during development, using the `-D` argument will make this package a `devDependency`, thus won't be present on your build.
 
+> ⚠️ The default entry (`@noxfly/noxus`) only exposes renderer-friendly helpers and types. Import Electron main-process APIs from `@noxfly/noxus/main`.
+
 ## Basic use
 
 When employing "main", we consider this is the electron side of your application.
@@ -61,7 +63,7 @@ However, you can feel free to keep both merged, this won't change anything, but 
 ```ts
 // main/index.ts
 
-import { bootstrapApplication } from '@noxfly/noxus';
+import { bootstrapApplication } from '@noxfly/noxus/main';
 import { AppModule } from './modules/app.module.ts';
 import { Application } from './modules/app.service.ts';
 
@@ -81,7 +83,7 @@ main();
 ```ts
 // main/modules/app.service.ts
 
-import { IApp, Injectable, Logger } from '@noxfly/noxus';
+import { IApp, Injectable, Logger } from '@noxfly/noxus/main';
 
 @Injectable('singleton')
 export class Application implements IApp {
@@ -101,7 +103,7 @@ export class Application implements IApp {
 ```ts
 // main/modules/app.module.ts
 
-import { Module } from '@noxfly/noxus';
+import { Module } from '@noxfly/noxus/main';
 
 @Module({
     imports: [UsersModule], // import modules to be found here
@@ -116,7 +118,7 @@ export class AppModule {}
 ```ts
 // main/modules/users/users.module.ts
 
-import { Module } from '@noxfly/noxus';
+import { Module } from '@noxfly/noxus/main';
 
 @Module({
     providers: [UsersService],
@@ -128,7 +130,7 @@ export class UsersModule {}
 ```ts
 // main/modules/users/users.service.ts
 
-import { Injectable } from '@noxfly/noxus';
+import { Injectable } from '@noxfly/noxus/main';
 
 @Injectable()
 export class UsersService {
@@ -147,7 +149,7 @@ export class UsersService {
 ```ts
 // main/modules/users/users.controller.ts
 
-import { Controller, Get } from '@noxfly/noxus';
+import { Controller, Get } from '@noxfly/noxus/main';
 import { UsersService } from './users.service.ts';
 
 @Controller('users')
@@ -174,7 +176,7 @@ Further upgrades might include new decorators like `@Param()`, `@Body()` etc... 
 ```ts
 // main/guards/auth.guard.ts
 
-import { IGuard, Injectable, MaybeAsync, Request } from '@noxfly/noxus';
+import { IGuard, Injectable, MaybeAsync, Request } from '@noxfly/noxus/main';
 
 @Injectable()
 export class AuthGuard implements IGuard {
@@ -394,7 +396,7 @@ throw new UnavailableException();
 You can decide to inject an Injectable without passing by the constructor, as follow :
 
 ```ts
-import { inject } from '@noxfly/noxus';
+import { inject } from '@noxfly/noxus/main';
 import { MyClass } from 'src/myclass';
 
 const instance: MyClass = inject(MyClass);
@@ -407,7 +409,7 @@ Declare middlewares as follow :
 ```ts
 // renderer/middlewares.ts
 
-import { IMiddleware, Injectable, Request, IResponse, NextFunction } from '@noxfly/noxus';
+import { IMiddleware, Injectable, Request, IResponse, NextFunction } from '@noxfly/noxus/main';
 
 @Injectable()
 export class MiddlewareA implements IMiddleware {
@@ -480,6 +482,64 @@ A -> B -> C -> D -> AuthGuard -> RoleGuard -> [action] -> D -> C -> B -> A.
 ```
 
 if a middleware throw any exception or put the response status higher or equal to 400, the pipeline immediatly stops and the response is returned, weither it is done before or after the call to the next function.
+
+
+
+
+
+## Listening to events from the main process
+
+Starting from v1.2, the main process can push messages to renderer processes without the request/response flow.
+
+```ts
+// main/users/users.controller.ts
+import { Controller, Post, Request, NoxSocket } from '@noxfly/noxus/main';
+
+@Controller('users')
+export class UsersController {
+    constructor(private readonly socket: NoxSocket) {}
+
+    @Post('create')
+    public async create(request: Request): Promise<void> {
+        const payload = { nickname: request.body.nickname };
+
+        this.socket.emitToRenderer(request.event.senderId, 'users:created', payload);
+        // or broadcast to every connected renderer: this.socket.emit('users:created', payload);
+    }
+}
+```
+
+On the renderer side, leverage the `RendererEventRegistry` to register and clean up listeners. The registry only handles push events, so it plays nicely with the existing request handling code above.
+
+```ts
+import { RendererEventRegistry, RendererEventSubscription } from '@noxfly/noxus';
+
+private readonly events = new RendererEventRegistry();
+
+constructor() {
+    // ... after the MessagePort is ready
+    this.port.onmessage = (event) => {
+        if(this.events.tryDispatchFromMessageEvent(event)) {
+            return;
+        }
+
+        this.onMessage(event); // existing request handling
+    };
+}
+
+public onUsersCreated(): RendererEventSubscription {
+    return this.events.subscribe('users:created', (payload) => {
+        // react to the event
+    });
+}
+
+public teardown(): void {
+    this.events.clear();
+}
+```
+
+
+
 
 ## Contributing
 

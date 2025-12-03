@@ -9,6 +9,7 @@ import { Injectable } from "src/decorators/injectable.decorator";
 import { IMiddleware } from "src/decorators/middleware.decorator";
 import { inject } from "src/DI/app-injector";
 import { IRequest, IResponse, Request } from "src/request";
+import { NoxSocket } from "src/socket";
 import { Router } from "src/router";
 import { Logger } from "src/utils/logger";
 import { Type } from "src/utils/types";
@@ -30,11 +31,37 @@ export interface IApp {
  */
 @Injectable('singleton')
 export class NoxApp {
-    private readonly messagePorts = new Map<number, Electron.MessageChannelMain>();
     private app: IApp | undefined;
+    private readonly onRendererMessage = async (event: Electron.MessageEvent): Promise<void> => {
+        const { senderId, requestId, path, method, body }: IRequest = event.data;
+
+        const channel = this.socket.get(senderId);
+
+        if(!channel) {
+            Logger.error(`No message channel found for sender ID: ${senderId}`);
+            return;
+        }
+
+        try {
+            const request = new Request(event, requestId, method, path, body);
+            const response = await this.router.handle(request);
+            channel.port1.postMessage(response);
+        }
+        catch(err: any) {
+            const response: IResponse = {
+                requestId,
+                status: 500,
+                body: null,
+                error: err.message || 'Internal Server Error',
+            };
+
+            channel.port1.postMessage(response);
+        }
+    };
 
     constructor(
         private readonly router: Router,
+        private readonly socket: NoxSocket,
     ) {}
 
     /**
@@ -62,47 +89,18 @@ export class NoxApp {
     private giveTheRendererAPort(event: Electron.IpcMainInvokeEvent): void {
         const senderId = event.sender.id;
 
-        if(this.messagePorts.has(senderId)) {
+        if(this.socket.get(senderId)) {
             this.shutdownChannel(senderId);
         }
 
         const channel = new MessageChannelMain();
-        this.messagePorts.set(senderId, channel);
 
-        channel.port1.on('message', this.onRendererMessage.bind(this));
+        channel.port1.on('message', this.onRendererMessage);
         channel.port1.start();
 
+        this.socket.register(senderId, channel);
+
         event.sender.postMessage('port', { senderId }, [channel.port2]);
-    }
-
-    /**
-     * Electron specific message handling.
-     * Replaces HTTP calls by using Electron's IPC mechanism.
-     */
-    private async onRendererMessage(event: Electron.MessageEvent): Promise<void> {
-        const { senderId, requestId, path, method, body }: IRequest = event.data;
-
-        const channel = this.messagePorts.get(senderId);
-
-        if(!channel) {
-            Logger.error(`No message channel found for sender ID: ${senderId}`);
-            return;
-        }
-        try {
-            const request = new Request(event, requestId, method, path, body);
-            const response = await this.router.handle(request);
-            channel.port1.postMessage(response);
-        }
-        catch(err: any) {
-            const response: IResponse = {
-                requestId,
-                status: 500,
-                body: null,
-                error: err.message || 'Internal Server Error',
-            };
-
-            channel.port1.postMessage(response);
-        }
     }
 
     /**
@@ -122,18 +120,18 @@ export class NoxApp {
      * @param remove - Whether to remove the channel from the messagePorts map.
      */
     private shutdownChannel(channelSenderId: number): void {
-        const channel = this.messagePorts.get(channelSenderId);
+        const channel = this.socket.get(channelSenderId);
 
         if(!channel) {
             Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
             return;
         }
 
-        channel.port1.off('message', this.onRendererMessage.bind(this));
+        channel.port1.off('message', this.onRendererMessage);
         channel.port1.close();
         channel.port2.close();
 
-        this.messagePorts.delete(channelSenderId);
+        this.socket.unregister(channelSenderId);
     }
 
     /**
@@ -141,11 +139,9 @@ export class NoxApp {
      * This method is called when all windows are closed, and it cleans up the message channels
      */
     private async onAllWindowsClosed(): Promise<void> {
-        this.messagePorts.forEach((channel, senderId) => {
+        for(const senderId of this.socket.getSenderIds()) {
             this.shutdownChannel(senderId);
-        });
-
-        this.messagePorts.clear();
+        }
 
         Logger.info('All windows closed, shutting down application...');
         await this.app?.dispose();

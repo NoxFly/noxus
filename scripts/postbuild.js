@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const frameworkName = 'noxus';
+function uniqueDocBlocks(filepath) {
+    if(!fs.existsSync(filepath)) {
+        return;
+    }
 
-function removeDuplicateCopyrights(filename) {
-    const filepath = path.join(__dirname, '../dist/' + filename);
     const content = fs.readFileSync(filepath, 'utf8');
 
     const reg = /\/\*\*[\t ]*\n(?: \*.*\n)*? \* *@copyright.*\n(?: \*.*\n)*? \*\/\n?/gm;
@@ -21,6 +22,10 @@ function removeDuplicateCopyrights(filename) {
     fs.writeFileSync(filepath, deduped);
 }
 
+const distDir = path.join(__dirname, '../dist');
 
-removeDuplicateCopyrights(`${frameworkName}.d.mts`);
-removeDuplicateCopyrights(`${frameworkName}.d.ts`);
+for(const filename of fs.readdirSync(distDir)) {
+    if(filename.endsWith('.d.ts') || filename.endsWith('.d.mts')) {
+        uniqueDocBlocks(path.join(distDir, filename));
+    }
+}
