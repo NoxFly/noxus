@@ -32,6 +32,10 @@ export interface IApp {
 @Injectable('singleton')
 export class NoxApp {
     private app: IApp | undefined;
+
+    /**
+     *
+     */
     private readonly onRendererMessage = async (event: Electron.MessageEvent): Promise<void> => {
         const { senderId, requestId, path, method, body }: IRequest = event.data;
 
@@ -43,7 +47,7 @@ export class NoxApp {
         }
 
         try {
-            const request = new Request(event, requestId, method, path, body);
+            const request = new Request(event, senderId, requestId, method, path, body);
             const response = await this.router.handle(request);
             channel.port1.postMessage(response);
         }
