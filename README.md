@@ -34,19 +34,11 @@ Noxus fills that gap.
 
 ## Installation
 
-Install the package in your main process application :
+Install the package in your main process application, and in your renderer as well :
 
 ```sh
 npm i @noxfly/noxus
 ```
-
-If you have a separated renderer from the main process, you'd like to install the package as well to get typed requests/responses models, for development purposes :
-
-```sh
-npm i -D @noxfly/noxus
-```
-
-Because you only need types during development, using the `-D` argument will make this package a `devDependency`, thus won't be present on your build.
 
 > ⚠️ The default entry (`@noxfly/noxus`) only exposes renderer-friendly helpers and types. Import Electron main-process APIs from `@noxfly/noxus/main`.
 
@@ -202,144 +194,61 @@ We need some configuration on the preload so the main process can give the rende
 ```ts
 // main/preload.ts
 
-import { contextBridge, ipcRenderer } from 'electron/renderer';
+import { exposeNoxusBridge } from '@noxfly/noxus';
 
-// .invoke -> front sends to back
-// .on -> back sends to front
-
-type fn = (...args: any[]) => void;
-
-contextBridge.exposeInMainWorld('ipcRenderer', {
-    requestPort: () => ipcRenderer.send('gimme-my-port'),
-    
-    hereIsMyPort: () => ipcRenderer.once('port', (e, message) => {
-        e.ports[0]?.start();
-        window.postMessage({ type: 'init-port', senderId: message.senderId }, '*', [e.ports[0]!]);
-    }),
-});
+exposeNoxusBridge();
 ```
 
-> ⚠️ As the Electron documentation warns well, you should NEVER expose the whole ipcRenderer to the renderer. Expose only restricted API that your renderer could use.
+The helper uses `ipcRenderer.send('gimme-my-port')`, waits for the `'port'` response, starts both transferred `MessagePort`s, and forwards them to the renderer with `window.postMessage({ type: 'init-port', ... }, '*', [requestPort, socketPort])`. If you need to customise any channel names or the exposed property, pass `exposeNoxusBridge({ exposeAs: 'customNoxus', requestChannel: 'my-port', responseChannel: 'my-port-ready', initMessageType: 'custom-init' })`.
 
-We need to use `window.postMessage()` and not a custom callback function, otherwise the port would have been structuredCloned and would only arrive to the renderer with the `onmessage` function, and nothing else (a bit frustrating to not request, isn't it).
+> ⚠️ As the Electron documentation warns, never expose the full `ipcRenderer` object. The helper only reveals a minimal `{ requestPort }` surface under `window.noxus` by default.
 
 
 ### Setup Renderer
 
-I am personnally using Angular as renderer, so there might be some changes if you use another framework or vanilla js, but it is only about typescript's configuration and types.
+Noxus ships with a `NoxRendererClient` helper that performs the renderer bootstrap: it asks the preload bridge for a port, expects two transferable `MessagePort`s (index `0` for request/response and index `1` for socket pushes), wires both, and exposes a promise-based `request`/`batch` API plus the `RendererEventRegistry` instance.
 
-Maybe this should become a class directly available from @noxfly/noxus;
+By default it calls `window.noxus.requestPort()`—the value registered by `exposeNoxusBridge()`—but you can pass a custom bridge through the constructor options if needed.
 
-```ts
-// renderer/anyFileAtStartup.ts
-
-import { IRequest, IResponse } from '@noxfly/noxus';
-
-interface PendingRequestHandlers<T> {
-    resolve: (value: IResponse<T>) => void;
-    reject: (reason?: IResponse<T>) => void;
-    request: IRequest;
-}
-
-// might be a singleton service
-class ElectronService {
-    private readonly bridge: any;
-    private readonly ipcRenderer: any; // if you know how to get a type, tell me
-
-    private port: MessagePort | undefined;
-    private senderId: number | undefined;
-    private readonly pendingRequests = new Map<string, PendingRequestsHandlers<any>>();
-
-    constructor() {
-        this.bridge = window as any;
-        this.ipcRenderer = this.bridge.ipcRenderer;
-
-        // when receiving the port given by the main renderer -> preload -> renderer
-        window.addEventListener('message', (event: MessageEvent) => {
-            if(event.data?.type === 'init-port' && event.ports.length > 0) {
-                this.port = event.ports[0]!;
-                this.senderId = event.data.senderId;
-                this.port.onmessage = onResponse;
-            }
-        });
-
-        ipcRenderer.requestPort();
-    }
-
-    /**
-     * Resolve the signal-based response
-     */
-    private onResponse(event: MessageEvent): void {
-        const response: IResponse<unknown> = event.data;
-
-        if(!response || !response.requestId) {
-            console.error('Received invalid response:', response);
-            return;
-        }
-
-        const pending = this.pendingRequests.get(response.requestId);
-        
-        if(!pending) {
-            console.error(`No handler found for request ID: ${response.requestId}`);
-            return;
-        }
-        
-        this.pendingRequests.delete(response.requestId);
-
-        let fn: (response: IResponse<unknown>) => void = pending.resolve;
-
-        console.groupCollapsed(`${response.status} ${pending.request.method} /${pending.request.path}`);
-        
-        if(response.error) {
-            console.error('error message:', response.error);
-            fn = pending.reject;
-        }
-        
-        console.info('response:', response.body);
-        console.info('request:', pending.request);
-
-        console.groupEnd();
-
-        fn(response);
-    }
-
-    /**
-     * Initiate a request to the main process
-     */
-    public request<T>(request: Omit<IRequest, 'requestId' | 'senderId'>): Promise<T> {
-        return new Promise<T>((resolve, reject) => {
-            if(!this.port || !this.senderId) {
-                return reject(new Error("MessagePort is not available"));
-            }
-        
-            const req: IRequest = {
-                requestId: /* Create a random ID with the function of your choice */,
-                senderId: this.senderId,
-                ...request,
-            };
-        
-            this.pendingRequests.set(req.requestId, {
-                resolve: (response: IResponse<T>) => (response.status < 400)
-                    ? resolve(response.body as T)
-                    : reject(response);
-                reject: (response?: IResponse<T>) => reject(response),
-                request: req,
-            });
-        
-            this.port.postMessage(req);
-        });
-    }
-}
-```
-
-Use it like that :
+Call `await client.setup()` early in your renderer startup (for example inside the first Angular service that needs IPC). Once the promise resolves, `client.request(...)` automatically includes the negotiated `senderId`, and socket events are routed through `client.events`.
 
 ```ts
-const response: User[] = await electronService.request<User[]>({
-    method: 'GET',
-    path: 'users/all',
+// renderer/services/noxus.service.ts
+
+import { Injectable } from '@angular/core';
+import { from, Observable } from 'rxjs';
+import {
+    IBatchRequestItem,
+    IBatchResponsePayload,
+    IRequest,
+    NoxRendererClient,
+} from '@noxfly/noxus';
+
+@Injectable({ providedIn: 'root' })
+export class NoxusService extends NoxRendererClient {
+    public async init(): Promise<void> {
+        await this.setup();
+    }
+
+    public request$<T, U = unknown>(request: Omit<IRequest<U>, 'requestId' | 'senderId'>): Observable<T> {
+        return from(this.request<T, U>(request));
+    }
+
+    public batch$<T = IBatchResponsePayload>(requests: Omit<IBatchRequestItem<unknown>, 'requestId'>[]): Observable<T> {
+        return from(this.batch(requests) as Promise<T>);
+    }
+}
+
+// Somewhere during app bootstrap
+await noxusService.init();
+
+// Subscribe to push notifications
+const subscription = noxusService.events.subscribe('users.updated', (payload) => {
+    console.log('Users updated:', payload);
 });
 ```
+
+If you need a custom bridge (for example a different preload shape), pass it via the constructor: `super({ bridge: window.customBridge })`. The class keeps promise-based semantics so frameworks can layer their own reactive wrappers as shown above.
 
 ![Startup image](./images/screenshot-requests.png)
 
@@ -354,7 +263,7 @@ If you throw any of these exception, the response to the renderer will contains 
 
 You can specify a message in the constructor.
 
-You throw it as follow : 
+You throw it as follow :
 ```ts
 throw new UnauthorizedException("Invalid credentials");
 throw new BadRequestException("id is missing in the body");

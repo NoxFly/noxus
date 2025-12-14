@@ -22,4 +22,5 @@ export * from './utils/logger';
 export * from './utils/types';
 export * from './request';
 export * from './renderer-events';
+export * from './renderer-client';
 export * from './socket';

@@ -14,6 +14,8 @@
 - ipcMain listens for gimme-my-port and posts two transferable ports back to the renderer: index 0 carries request/response traffic, index 1 is reserved for socket-style push messages.
 - NoxSocket in [src/socket.ts](src/socket.ts) maps sender IDs to {request, socket} channels and emits renderer events exclusively through channels.socket.port1.
 - Renderer helpers in [src/renderer-events.ts](src/renderer-events.ts) expose RendererEventRegistry.tryDispatchFromMessageEvent to route push events; the preload script must start both ports and hand the second to this registry.
+- Renderer-facing bootstrap lives in [src/renderer-client.ts](src/renderer-client.ts); NoxRendererClient requests ports, wires request/socket handlers, tracks pending promises, and surfaces RendererEventRegistry for push consumption.
+- Preload scripts should call exposeNoxusBridge from [src/preload-bridge.ts](src/preload-bridge.ts) to publish window.noxus.requestPort; the helper sends 'gimme-my-port' and forwards both transferable ports with the configured init message.
 - When adjusting preload or renderer glue, ensure window.postMessage('init-port', ...) forwards both ports so the socket channel stays alive alongside the request channel.
 ## Decorator Conventions
 - Controller paths omit leading/trailing slashes; method decorators (Get, Post, etc.) auto-trim segments via [src/decorators/method.decorator.ts](src/decorators/method.decorator.ts).

@@ -1,5 +1,5 @@
-import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime } from './index-5OkVPHfI.mjs';
-export { A as AppInjector, h as AtomicHttpMethod, d as Authorize, D as Delete, G as Get, H as HttpMethod, o as IBatchRequestItem, p as IBatchRequestPayload, q as IBatchResponsePayload, b as IBinding, s as IRendererEventMessage, n as IRequest, f as IRouteMetadata, l as Patch, P as Post, k as Put, r as RENDERER_EVENT_TYPE, m as ROUTE_METADATA_KEY, v as RendererEventHandler, x as RendererEventRegistry, w as RendererEventSubscription, c as RootInjector, t as createRendererEventMessage, g as getGuardForController, e as getGuardForControllerAction, j as getRouteMetadata, i as inject, u as isRendererEventMessage } from './index-5OkVPHfI.mjs';
+import { R as Request, d as IResponse, M as MaybeAsync, T as Type, n as IGuard, L as Lifetime } from './renderer-client-BwUWCi2Z.mjs';
+export { A as AppInjector, v as AtomicHttpMethod, r as Authorize, D as Delete, G as Get, H as HttpMethod, b as IBatchRequestItem, c as IBatchRequestPayload, e as IBatchResponsePayload, o as IBinding, I as IPortRequester, g as IRendererEventMessage, a as IRequest, u as IRouteMetadata, N as NoxRendererClient, y as Patch, P as Post, x as Put, f as RENDERER_EVENT_TYPE, z as ROUTE_METADATA_KEY, m as RendererClientOptions, j as RendererEventHandler, l as RendererEventRegistry, k as RendererEventSubscription, q as RootInjector, h as createRendererEventMessage, s as getGuardForController, t as getGuardForControllerAction, w as getRouteMetadata, p as inject, i as isRendererEventMessage } from './renderer-client-BwUWCi2Z.mjs';
 
 /**
  * @copyright 2025 NoxFly
@@ -160,10 +160,14 @@ declare class Router {
     private extractParams;
 }
 
+interface RendererChannels {
+    request: Electron.MessageChannelMain;
+    socket: Electron.MessageChannelMain;
+}
 declare class NoxSocket {
-    private readonly messagePorts;
-    register(senderId: number, channel: Electron.MessageChannelMain): void;
-    get(senderId: number): Electron.MessageChannelMain | undefined;
+    private readonly channels;
+    register(senderId: number, requestChannel: Electron.MessageChannelMain, socketChannel: Electron.MessageChannelMain): void;
+    get(senderId: number): RendererChannels | undefined;
     unregister(senderId: number): void;
     getSenderIds(): number[];
     emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number;
@@ -189,6 +193,9 @@ declare class NoxApp {
     private readonly router;
     private readonly socket;
     private app;
+    /**
+     *
+     */
     private readonly onRendererMessage;
     constructor(router: Router, socket: NoxSocket);
     /**

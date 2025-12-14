@@ -176,13 +176,14 @@ declare const RootInjector: AppInjector;
  */
 declare class Request {
     readonly event: Electron.MessageEvent;
+    readonly senderId: number;
     readonly id: string;
     readonly method: HttpMethod;
     readonly path: string;
     readonly body: any;
     readonly context: AppInjector;
     readonly params: Record<string, string>;
-    constructor(event: Electron.MessageEvent, id: string, method: HttpMethod, path: string, body: any);
+    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any);
 }
 /**
  * The IRequest interface defines the structure of a request object.
@@ -265,4 +266,53 @@ declare class RendererEventRegistry {
     hasHandlers(eventName: string): boolean;
 }
 
-export { AppInjector as A, Delete as D, Get as G, type HttpMethod as H, type IResponse as I, type Lifetime as L, type MaybeAsync as M, Post as P, Request as R, type Type as T, type IGuard as a, type IBinding as b, RootInjector as c, Authorize as d, getGuardForControllerAction as e, type IRouteMetadata as f, getGuardForController as g, type AtomicHttpMethod as h, inject as i, getRouteMetadata as j, Put as k, Patch as l, ROUTE_METADATA_KEY as m, type IRequest as n, type IBatchRequestItem as o, type IBatchRequestPayload as p, type IBatchResponsePayload as q, RENDERER_EVENT_TYPE as r, type IRendererEventMessage as s, createRendererEventMessage as t, isRendererEventMessage as u, type RendererEventHandler as v, type RendererEventSubscription as w, RendererEventRegistry as x };
+
+interface IPortRequester {
+    requestPort(): void;
+}
+interface RendererClientOptions {
+    bridge?: IPortRequester | null;
+    bridgeName?: string | string[];
+    initMessageType?: string;
+    windowRef?: Window;
+    generateRequestId?: () => string;
+}
+interface PendingRequest<T = unknown> {
+    resolve: (value: T) => void;
+    reject: (reason: IResponse<T>) => void;
+    request: IRequest;
+    submittedAt: number;
+}
+declare class NoxRendererClient {
+    readonly events: RendererEventRegistry;
+    protected readonly pendingRequests: Map<string, PendingRequest<unknown>>;
+    protected requestPort: MessagePort | undefined;
+    protected socketPort: MessagePort | undefined;
+    protected senderId: number | undefined;
+    private readonly bridge;
+    private readonly initMessageType;
+    private readonly windowRef;
+    private readonly generateRequestId;
+    private isReady;
+    private setupPromise;
+    private setupResolve;
+    private setupReject;
+    constructor(options?: RendererClientOptions);
+    setup(): Promise<void>;
+    dispose(): void;
+    request<TResponse, TBody = unknown>(request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>): Promise<TResponse>;
+    batch(requests: Omit<IBatchRequestItem<unknown>, 'requestId'>[]): Promise<IBatchResponsePayload>;
+    getSenderId(): number | undefined;
+    private readonly onWindowMessage;
+    private readonly onSocketMessage;
+    private readonly onRequestMessage;
+    protected onRequestCompleted(pending: PendingRequest, response: IResponse): void;
+    private attachRequestPort;
+    private attachSocketPort;
+    private validateReady;
+    private createErrorResponse;
+    private resetSetupState;
+    protected isElectronEnvironment(): boolean;
+}
+
+export { AppInjector as A, Delete as D, Get as G, type HttpMethod as H, type IPortRequester as I, type Lifetime as L, type MaybeAsync as M, NoxRendererClient as N, Post as P, Request as R, type Type as T, type IRequest as a, type IBatchRequestItem as b, type IBatchRequestPayload as c, type IResponse as d, type IBatchResponsePayload as e, RENDERER_EVENT_TYPE as f, type IRendererEventMessage as g, createRendererEventMessage as h, isRendererEventMessage as i, type RendererEventHandler as j, type RendererEventSubscription as k, RendererEventRegistry as l, type RendererClientOptions as m, type IGuard as n, type IBinding as o, inject as p, RootInjector as q, Authorize as r, getGuardForController as s, getGuardForControllerAction as t, type IRouteMetadata as u, type AtomicHttpMethod as v, getRouteMetadata as w, Put as x, Patch as y, ROUTE_METADATA_KEY as z };
