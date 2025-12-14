@@ -33,7 +33,6 @@ __export(src_exports, {
   RendererEventRegistry: () => RendererEventRegistry,
   Request: () => Request,
   createRendererEventMessage: () => createRendererEventMessage,
-  exposeNoxusBridge: () => exposeNoxusBridge,
   isRendererEventMessage: () => isRendererEventMessage
 });
 module.exports = __toCommonJS(src_exports);
@@ -499,42 +498,6 @@ var _NoxRendererClient = class _NoxRendererClient {
 };
 __name(_NoxRendererClient, "NoxRendererClient");
 var NoxRendererClient = _NoxRendererClient;
-
-// src/preload-bridge.ts
-var import_renderer = require("electron/renderer");
-var DEFAULT_EXPOSE_NAME = "noxus";
-var DEFAULT_INIT_EVENT2 = "init-port";
-var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
-var DEFAULT_RESPONSE_CHANNEL = "port";
-function exposeNoxusBridge(options = {}) {
-  const { exposeAs = DEFAULT_EXPOSE_NAME, initMessageType = DEFAULT_INIT_EVENT2, requestChannel = DEFAULT_REQUEST_CHANNEL, responseChannel = DEFAULT_RESPONSE_CHANNEL, targetWindow = window } = options;
-  const api = {
-    requestPort: /* @__PURE__ */ __name(() => {
-      import_renderer.ipcRenderer.send(requestChannel);
-      import_renderer.ipcRenderer.once(responseChannel, (event, message) => {
-        const ports = (event.ports ?? []).filter((port) => port !== void 0);
-        if (ports.length === 0) {
-          console.error("[Noxus] No MessagePort received from main process.");
-          return;
-        }
-        for (const port of ports) {
-          try {
-            port.start();
-          } catch (error) {
-            console.error("[Noxus] Failed to start MessagePort.", error);
-          }
-        }
-        targetWindow.postMessage({
-          type: initMessageType,
-          senderId: message?.senderId
-        }, "*", ports);
-      });
-    }, "requestPort")
-  };
-  import_renderer.contextBridge.exposeInMainWorld(exposeAs, api);
-  return api;
-}
-__name(exposeNoxusBridge, "exposeNoxusBridge");
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   NoxRendererClient,
@@ -542,7 +505,6 @@ __name(exposeNoxusBridge, "exposeNoxusBridge");
   RendererEventRegistry,
   Request,
   createRendererEventMessage,
-  exposeNoxusBridge,
   isRendererEventMessage
 });
 /**

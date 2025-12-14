@@ -312,7 +312,7 @@ declare class NoxRendererClient {
     private validateReady;
     private createErrorResponse;
     private resetSetupState;
-    protected isElectronEnvironment(): boolean;
+    isElectronEnvironment(): boolean;
 }
 
-export { AppInjector as A, Delete as D, Get as G, type HttpMethod as H, type IPortRequester as I, type Lifetime as L, type MaybeAsync as M, NoxRendererClient as N, Post as P, Request as R, type Type as T, type IRequest as a, type IBatchRequestItem as b, type IBatchRequestPayload as c, type IResponse as d, type IBatchResponsePayload as e, RENDERER_EVENT_TYPE as f, type IRendererEventMessage as g, createRendererEventMessage as h, isRendererEventMessage as i, type RendererEventHandler as j, type RendererEventSubscription as k, RendererEventRegistry as l, type RendererClientOptions as m, type IGuard as n, type IBinding as o, inject as p, RootInjector as q, Authorize as r, getGuardForController as s, getGuardForControllerAction as t, type IRouteMetadata as u, type AtomicHttpMethod as v, getRouteMetadata as w, Put as x, Patch as y, ROUTE_METADATA_KEY as z };
+export { Authorize as A, Delete as D, Get as G, type HttpMethod as H, type IResponse as I, type Lifetime as L, type MaybeAsync as M, NoxRendererClient as N, Post as P, Request as R, type Type as T, type IGuard as a, type IPortRequester as b, getGuardForControllerAction as c, type IRouteMetadata as d, type AtomicHttpMethod as e, getRouteMetadata as f, getGuardForController as g, Put as h, Patch as i, ROUTE_METADATA_KEY as j, type IBinding as k, AppInjector as l, inject as m, RootInjector as n, type RendererClientOptions as o, type RendererEventHandler as p, type RendererEventSubscription as q, RendererEventRegistry as r, type IRequest as s, type IBatchRequestItem as t, type IBatchRequestPayload as u, type IBatchResponsePayload as v, RENDERER_EVENT_TYPE as w, type IRendererEventMessage as x, createRendererEventMessage as y, isRendererEventMessage as z };

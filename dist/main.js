@@ -78,6 +78,7 @@ __export(main_exports, {
   VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
   bootstrapApplication: () => bootstrapApplication,
   createRendererEventMessage: () => createRendererEventMessage,
+  exposeNoxusBridge: () => exposeNoxusBridge,
   getControllerMetadata: () => getControllerMetadata,
   getGuardForController: () => getGuardForController,
   getGuardForControllerAction: () => getGuardForControllerAction,
@@ -90,6 +91,128 @@ __export(main_exports, {
   isRendererEventMessage: () => isRendererEventMessage
 });
 module.exports = __toCommonJS(main_exports);
+
+// src/app.ts
+var import_main = require("electron/main");
+
+// src/decorators/guards.decorator.ts
+function Authorize(...guardClasses) {
+  return (target, propertyKey) => {
+    let key;
+    if (propertyKey) {
+      const ctrlName = target.constructor.name;
+      const actionName = propertyKey;
+      key = `${ctrlName}.${actionName}`;
+    } else {
+      const ctrlName = target.name;
+      key = `${ctrlName}`;
+    }
+    if (authorizations.has(key)) {
+      throw new Error(`Guard(s) already registered for ${key}`);
+    }
+    authorizations.set(key, guardClasses);
+  };
+}
+__name(Authorize, "Authorize");
+function getGuardForController(controllerName) {
+  const key = `${controllerName}`;
+  return authorizations.get(key) ?? [];
+}
+__name(getGuardForController, "getGuardForController");
+function getGuardForControllerAction(controllerName, actionName) {
+  const key = `${controllerName}.${actionName}`;
+  return authorizations.get(key) ?? [];
+}
+__name(getGuardForControllerAction, "getGuardForControllerAction");
+var authorizations = /* @__PURE__ */ new Map();
+
+// src/decorators/controller.decorator.ts
+function Controller(path) {
+  return (target) => {
+    const data = {
+      path,
+      guards: getGuardForController(target.name)
+    };
+    Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
+    Injectable("scope")(target);
+  };
+}
+__name(Controller, "Controller");
+function getControllerMetadata(target) {
+  return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
+}
+__name(getControllerMetadata, "getControllerMetadata");
+var CONTROLLER_METADATA_KEY = Symbol("CONTROLLER_METADATA_KEY");
+
+// src/decorators/method.decorator.ts
+function createRouteDecorator(verb) {
+  return (path) => {
+    return (target, propertyKey) => {
+      const existingRoutes = Reflect.getMetadata(ROUTE_METADATA_KEY, target.constructor) || [];
+      const metadata = {
+        method: verb,
+        path: path.trim().replace(/^\/|\/$/g, ""),
+        handler: propertyKey,
+        guards: getGuardForControllerAction(target.constructor.__controllerName, propertyKey)
+      };
+      existingRoutes.push(metadata);
+      Reflect.defineMetadata(ROUTE_METADATA_KEY, existingRoutes, target.constructor);
+    };
+  };
+}
+__name(createRouteDecorator, "createRouteDecorator");
+function getRouteMetadata(target) {
+  return Reflect.getMetadata(ROUTE_METADATA_KEY, target) || [];
+}
+__name(getRouteMetadata, "getRouteMetadata");
+var Get = createRouteDecorator("GET");
+var Post = createRouteDecorator("POST");
+var Put = createRouteDecorator("PUT");
+var Patch = createRouteDecorator("PATCH");
+var Delete = createRouteDecorator("DELETE");
+var ROUTE_METADATA_KEY = Symbol("ROUTE_METADATA_KEY");
+
+// src/decorators/module.decorator.ts
+function Module(metadata) {
+  return (target) => {
+    const checkModule = /* @__PURE__ */ __name((arr, arrName) => {
+      if (!arr) return;
+      for (const clazz of arr) {
+        if (!Reflect.getMetadata(MODULE_METADATA_KEY, clazz)) {
+          throw new Error(`Class ${clazz.name} in ${arrName} must be decorated with @Module`);
+        }
+      }
+    }, "checkModule");
+    const checkInjectable = /* @__PURE__ */ __name((arr) => {
+      if (!arr) return;
+      for (const clazz of arr) {
+        if (!Reflect.getMetadata(INJECTABLE_METADATA_KEY, clazz)) {
+          throw new Error(`Class ${clazz.name} in providers must be decorated with @Injectable`);
+        }
+      }
+    }, "checkInjectable");
+    const checkController = /* @__PURE__ */ __name((arr) => {
+      if (!arr) return;
+      for (const clazz of arr) {
+        if (!Reflect.getMetadata(CONTROLLER_METADATA_KEY, clazz)) {
+          throw new Error(`Class ${clazz.name} in controllers must be decorated with @Controller`);
+        }
+      }
+    }, "checkController");
+    checkModule(metadata.imports, "imports");
+    checkModule(metadata.exports, "exports");
+    checkInjectable(metadata.providers);
+    checkController(metadata.controllers);
+    Reflect.defineMetadata(MODULE_METADATA_KEY, metadata, target);
+    Injectable("singleton")(target);
+  };
+}
+__name(Module, "Module");
+function getModuleMetadata(target) {
+  return Reflect.getMetadata(MODULE_METADATA_KEY, target);
+}
+__name(getModuleMetadata, "getModuleMetadata");
+var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
 
 // src/DI/app-injector.ts
 var import_reflect_metadata = require("reflect-metadata");
@@ -367,8 +490,8 @@ var RootInjector = new AppInjector("root");
 // src/router.ts
 var import_reflect_metadata3 = require("reflect-metadata");
 
-// src/decorators/guards.decorator.ts
-function Authorize(...guardClasses) {
+// src/decorators/middleware.decorator.ts
+function UseMiddlewares(mdlw) {
   return (target, propertyKey) => {
     let key;
     if (propertyKey) {
@@ -379,94 +502,65 @@ function Authorize(...guardClasses) {
       const ctrlName = target.name;
       key = `${ctrlName}`;
     }
-    if (authorizations.has(key)) {
-      throw new Error(`Guard(s) already registered for ${key}`);
+    if (middlewares.has(key)) {
+      throw new Error(`Middlewares(s) already registered for ${key}`);
     }
-    authorizations.set(key, guardClasses);
+    middlewares.set(key, mdlw);
   };
 }
-__name(Authorize, "Authorize");
-function getGuardForController(controllerName) {
+__name(UseMiddlewares, "UseMiddlewares");
+function getMiddlewaresForController(controllerName) {
   const key = `${controllerName}`;
-  return authorizations.get(key) ?? [];
+  return middlewares.get(key) ?? [];
 }
-__name(getGuardForController, "getGuardForController");
-function getGuardForControllerAction(controllerName, actionName) {
+__name(getMiddlewaresForController, "getMiddlewaresForController");
+function getMiddlewaresForControllerAction(controllerName, actionName) {
   const key = `${controllerName}.${actionName}`;
-  return authorizations.get(key) ?? [];
+  return middlewares.get(key) ?? [];
 }
-__name(getGuardForControllerAction, "getGuardForControllerAction");
-var authorizations = /* @__PURE__ */ new Map();
+__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
+var middlewares = /* @__PURE__ */ new Map();
 
-// src/decorators/method.decorator.ts
-function createRouteDecorator(verb) {
-  return (path) => {
-    return (target, propertyKey) => {
-      const existingRoutes = Reflect.getMetadata(ROUTE_METADATA_KEY, target.constructor) || [];
-      const metadata = {
-        method: verb,
-        path: path.trim().replace(/^\/|\/$/g, ""),
-        handler: propertyKey,
-        guards: getGuardForControllerAction(target.constructor.__controllerName, propertyKey)
-      };
-      existingRoutes.push(metadata);
-      Reflect.defineMetadata(ROUTE_METADATA_KEY, existingRoutes, target.constructor);
-    };
+// src/request.ts
+var import_reflect_metadata2 = require("reflect-metadata");
+var _Request = class _Request {
+  constructor(event, senderId, id, method, path, body) {
+    __publicField(this, "event");
+    __publicField(this, "senderId");
+    __publicField(this, "id");
+    __publicField(this, "method");
+    __publicField(this, "path");
+    __publicField(this, "body");
+    __publicField(this, "context", RootInjector.createScope());
+    __publicField(this, "params", {});
+    this.event = event;
+    this.senderId = senderId;
+    this.id = id;
+    this.method = method;
+    this.path = path;
+    this.body = body;
+    this.path = path.replace(/^\/|\/$/g, "");
+  }
+};
+__name(_Request, "Request");
+var Request = _Request;
+var RENDERER_EVENT_TYPE = "noxus:event";
+function createRendererEventMessage(event, payload) {
+  return {
+    type: RENDERER_EVENT_TYPE,
+    event,
+    payload
   };
 }
-__name(createRouteDecorator, "createRouteDecorator");
-function getRouteMetadata(target) {
-  return Reflect.getMetadata(ROUTE_METADATA_KEY, target) || [];
+__name(createRendererEventMessage, "createRendererEventMessage");
+function isRendererEventMessage(value) {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const possibleMessage = value;
+  return possibleMessage.type === RENDERER_EVENT_TYPE && typeof possibleMessage.event === "string";
 }
-__name(getRouteMetadata, "getRouteMetadata");
-var Get = createRouteDecorator("GET");
-var Post = createRouteDecorator("POST");
-var Put = createRouteDecorator("PUT");
-var Patch = createRouteDecorator("PATCH");
-var Delete = createRouteDecorator("DELETE");
-var ROUTE_METADATA_KEY = Symbol("ROUTE_METADATA_KEY");
-
-// src/decorators/module.decorator.ts
-function Module(metadata) {
-  return (target) => {
-    const checkModule = /* @__PURE__ */ __name((arr, arrName) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(MODULE_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in ${arrName} must be decorated with @Module`);
-        }
-      }
-    }, "checkModule");
-    const checkInjectable = /* @__PURE__ */ __name((arr) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(INJECTABLE_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in providers must be decorated with @Injectable`);
-        }
-      }
-    }, "checkInjectable");
-    const checkController = /* @__PURE__ */ __name((arr) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(CONTROLLER_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in controllers must be decorated with @Controller`);
-        }
-      }
-    }, "checkController");
-    checkModule(metadata.imports, "imports");
-    checkModule(metadata.exports, "exports");
-    checkInjectable(metadata.providers);
-    checkController(metadata.controllers);
-    Reflect.defineMetadata(MODULE_METADATA_KEY, metadata, target);
-    Injectable("singleton")(target);
-  };
-}
-__name(Module, "Module");
-function getModuleMetadata(target) {
-  return Reflect.getMetadata(MODULE_METADATA_KEY, target);
-}
-__name(getModuleMetadata, "getModuleMetadata");
-var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
+__name(isRendererEventMessage, "isRendererEventMessage");
 
 // src/utils/logger.ts
 function getPrettyTimestamp() {
@@ -598,153 +692,6 @@ var logLevelRank = {
   };
 })(Logger || (Logger = {}));
 var Logger;
-
-// src/DI/injector-explorer.ts
-var _InjectorExplorer = class _InjectorExplorer {
-  /**
-   * Registers the class as injectable.
-   * When a class is instantiated, if it has dependencies and those dependencies
-   * are listed using this method, they will be injected into the class constructor.
-   */
-  static register(target, lifetime) {
-    if (RootInjector.bindings.has(target)) return RootInjector;
-    RootInjector.bindings.set(target, {
-      implementation: target,
-      lifetime
-    });
-    if (lifetime === "singleton") {
-      RootInjector.resolve(target);
-    }
-    if (getModuleMetadata(target)) {
-      Logger.log(`${target.name} dependencies initialized`);
-      return RootInjector;
-    }
-    const controllerMeta = getControllerMetadata(target);
-    if (controllerMeta) {
-      const router = RootInjector.resolve(Router);
-      router?.registerController(target);
-      return RootInjector;
-    }
-    const routeMeta = getRouteMetadata(target);
-    if (routeMeta) {
-      return RootInjector;
-    }
-    if (getInjectableMetadata(target)) {
-      Logger.log(`Registered ${target.name} as ${lifetime}`);
-      return RootInjector;
-    }
-    return RootInjector;
-  }
-};
-__name(_InjectorExplorer, "InjectorExplorer");
-var InjectorExplorer = _InjectorExplorer;
-
-// src/decorators/injectable.decorator.ts
-function Injectable(lifetime = "scope") {
-  return (target) => {
-    if (typeof target !== "function" || !target.prototype) {
-      throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
-    }
-    Reflect.defineMetadata(INJECTABLE_METADATA_KEY, lifetime, target);
-    InjectorExplorer.register(target, lifetime);
-  };
-}
-__name(Injectable, "Injectable");
-function getInjectableMetadata(target) {
-  return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target);
-}
-__name(getInjectableMetadata, "getInjectableMetadata");
-var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
-
-// src/decorators/controller.decorator.ts
-function Controller(path) {
-  return (target) => {
-    const data = {
-      path,
-      guards: getGuardForController(target.name)
-    };
-    Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
-    Injectable("scope")(target);
-  };
-}
-__name(Controller, "Controller");
-function getControllerMetadata(target) {
-  return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
-}
-__name(getControllerMetadata, "getControllerMetadata");
-var CONTROLLER_METADATA_KEY = Symbol("CONTROLLER_METADATA_KEY");
-
-// src/decorators/middleware.decorator.ts
-function UseMiddlewares(mdlw) {
-  return (target, propertyKey) => {
-    let key;
-    if (propertyKey) {
-      const ctrlName = target.constructor.name;
-      const actionName = propertyKey;
-      key = `${ctrlName}.${actionName}`;
-    } else {
-      const ctrlName = target.name;
-      key = `${ctrlName}`;
-    }
-    if (middlewares.has(key)) {
-      throw new Error(`Middlewares(s) already registered for ${key}`);
-    }
-    middlewares.set(key, mdlw);
-  };
-}
-__name(UseMiddlewares, "UseMiddlewares");
-function getMiddlewaresForController(controllerName) {
-  const key = `${controllerName}`;
-  return middlewares.get(key) ?? [];
-}
-__name(getMiddlewaresForController, "getMiddlewaresForController");
-function getMiddlewaresForControllerAction(controllerName, actionName) {
-  const key = `${controllerName}.${actionName}`;
-  return middlewares.get(key) ?? [];
-}
-__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
-var middlewares = /* @__PURE__ */ new Map();
-
-// src/request.ts
-var import_reflect_metadata2 = require("reflect-metadata");
-var _Request = class _Request {
-  constructor(event, senderId, id, method, path, body) {
-    __publicField(this, "event");
-    __publicField(this, "senderId");
-    __publicField(this, "id");
-    __publicField(this, "method");
-    __publicField(this, "path");
-    __publicField(this, "body");
-    __publicField(this, "context", RootInjector.createScope());
-    __publicField(this, "params", {});
-    this.event = event;
-    this.senderId = senderId;
-    this.id = id;
-    this.method = method;
-    this.path = path;
-    this.body = body;
-    this.path = path.replace(/^\/|\/$/g, "");
-  }
-};
-__name(_Request, "Request");
-var Request = _Request;
-var RENDERER_EVENT_TYPE = "noxus:event";
-function createRendererEventMessage(event, payload) {
-  return {
-    type: RENDERER_EVENT_TYPE,
-    event,
-    payload
-  };
-}
-__name(createRendererEventMessage, "createRendererEventMessage");
-function isRendererEventMessage(value) {
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-  const possibleMessage = value;
-  return possibleMessage.type === RENDERER_EVENT_TYPE && typeof possibleMessage.event === "string";
-}
-__name(isRendererEventMessage, "isRendererEventMessage");
 
 // src/utils/radix-tree.ts
 var _a;
@@ -1261,8 +1208,62 @@ Router = _ts_decorate([
   Injectable("singleton")
 ], Router);
 
-// src/app.ts
-var import_main = require("electron/main");
+// src/DI/injector-explorer.ts
+var _InjectorExplorer = class _InjectorExplorer {
+  /**
+   * Registers the class as injectable.
+   * When a class is instantiated, if it has dependencies and those dependencies
+   * are listed using this method, they will be injected into the class constructor.
+   */
+  static register(target, lifetime) {
+    if (RootInjector.bindings.has(target)) return RootInjector;
+    RootInjector.bindings.set(target, {
+      implementation: target,
+      lifetime
+    });
+    if (lifetime === "singleton") {
+      RootInjector.resolve(target);
+    }
+    if (getModuleMetadata(target)) {
+      Logger.log(`${target.name} dependencies initialized`);
+      return RootInjector;
+    }
+    const controllerMeta = getControllerMetadata(target);
+    if (controllerMeta) {
+      const router = RootInjector.resolve(Router);
+      router?.registerController(target);
+      return RootInjector;
+    }
+    const routeMeta = getRouteMetadata(target);
+    if (routeMeta) {
+      return RootInjector;
+    }
+    if (getInjectableMetadata(target)) {
+      Logger.log(`Registered ${target.name} as ${lifetime}`);
+      return RootInjector;
+    }
+    return RootInjector;
+  }
+};
+__name(_InjectorExplorer, "InjectorExplorer");
+var InjectorExplorer = _InjectorExplorer;
+
+// src/decorators/injectable.decorator.ts
+function Injectable(lifetime = "scope") {
+  return (target) => {
+    if (typeof target !== "function" || !target.prototype) {
+      throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
+    }
+    Reflect.defineMetadata(INJECTABLE_METADATA_KEY, lifetime, target);
+    InjectorExplorer.register(target, lifetime);
+  };
+}
+__name(Injectable, "Injectable");
+function getInjectableMetadata(target) {
+  return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target);
+}
+__name(getInjectableMetadata, "getInjectableMetadata");
+var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
 
 // src/socket.ts
 function _ts_decorate2(decorators, target, key, desc) {
@@ -1503,6 +1504,42 @@ async function bootstrapApplication(rootModule) {
 }
 __name(bootstrapApplication, "bootstrapApplication");
 
+// src/preload-bridge.ts
+var import_renderer = require("electron/renderer");
+var DEFAULT_EXPOSE_NAME = "noxus";
+var DEFAULT_INIT_EVENT = "init-port";
+var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
+var DEFAULT_RESPONSE_CHANNEL = "port";
+function exposeNoxusBridge(options = {}) {
+  const { exposeAs = DEFAULT_EXPOSE_NAME, initMessageType = DEFAULT_INIT_EVENT, requestChannel = DEFAULT_REQUEST_CHANNEL, responseChannel = DEFAULT_RESPONSE_CHANNEL, targetWindow = window } = options;
+  const api = {
+    requestPort: /* @__PURE__ */ __name(() => {
+      import_renderer.ipcRenderer.send(requestChannel);
+      import_renderer.ipcRenderer.once(responseChannel, (event, message) => {
+        const ports = (event.ports ?? []).filter((port) => port !== void 0);
+        if (ports.length === 0) {
+          console.error("[Noxus] No MessagePort received from main process.");
+          return;
+        }
+        for (const port of ports) {
+          try {
+            port.start();
+          } catch (error) {
+            console.error("[Noxus] Failed to start MessagePort.", error);
+          }
+        }
+        targetWindow.postMessage({
+          type: initMessageType,
+          senderId: message?.senderId
+        }, "*", ports);
+      });
+    }, "requestPort")
+  };
+  import_renderer.contextBridge.exposeInMainWorld(exposeAs, api);
+  return api;
+}
+__name(exposeNoxusBridge, "exposeNoxusBridge");
+
 // src/renderer-events.ts
 var _RendererEventRegistry = class _RendererEventRegistry {
   constructor() {
@@ -1584,7 +1621,7 @@ __name(_RendererEventRegistry, "RendererEventRegistry");
 var RendererEventRegistry = _RendererEventRegistry;
 
 // src/renderer-client.ts
-var DEFAULT_INIT_EVENT = "init-port";
+var DEFAULT_INIT_EVENT2 = "init-port";
 var DEFAULT_BRIDGE_NAMES = [
   "noxus",
   "ipcRenderer"
@@ -1706,7 +1743,7 @@ var _NoxRendererClient = class _NoxRendererClient {
     this.windowRef = options.windowRef ?? window;
     const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
     this.bridge = resolvedBridge ?? null;
-    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
+    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT2;
     this.generateRequestId = options.generateRequestId ?? defaultRequestId;
   }
   async setup() {
@@ -1880,6 +1917,7 @@ var NoxRendererClient = _NoxRendererClient;
   VariantAlsoNegotiatesException,
   bootstrapApplication,
   createRendererEventMessage,
+  exposeNoxusBridge,
   getControllerMetadata,
   getGuardForController,
   getGuardForControllerAction,

@@ -332,7 +332,7 @@ export class NoxRendererClient {
         this.setupReject = undefined;
     }
 
-    protected isElectronEnvironment(): boolean {
+    public isElectronEnvironment(): boolean {
         return typeof window !== 'undefined' && /Electron/.test(window.navigator.userAgent);
     }
 }
