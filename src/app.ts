@@ -32,20 +32,24 @@ export interface IApp {
 @Injectable('singleton')
 export class NoxApp {
     private app: IApp | undefined;
+
+    /**
+     *
+     */
     private readonly onRendererMessage = async (event: Electron.MessageEvent): Promise<void> => {
         const { senderId, requestId, path, method, body }: IRequest = event.data;
 
-        const channel = this.socket.get(senderId);
+        const channels = this.socket.get(senderId);
 
-        if(!channel) {
+        if(!channels) {
             Logger.error(`No message channel found for sender ID: ${senderId}`);
             return;
         }
 
         try {
-            const request = new Request(event, requestId, method, path, body);
+            const request = new Request(event, senderId, requestId, method, path, body);
             const response = await this.router.handle(request);
-            channel.port1.postMessage(response);
+            channels.request.port1.postMessage(response);
         }
         catch(err: any) {
             const response: IResponse = {
@@ -55,7 +59,7 @@ export class NoxApp {
                 error: err.message || 'Internal Server Error',
             };
 
-            channel.port1.postMessage(response);
+            channels.request.port1.postMessage(response);
         }
     };
 
@@ -93,14 +97,16 @@ export class NoxApp {
             this.shutdownChannel(senderId);
         }
 
-        const channel = new MessageChannelMain();
+        const requestChannel = new MessageChannelMain();
+        const socketChannel = new MessageChannelMain();
 
-        channel.port1.on('message', this.onRendererMessage);
-        channel.port1.start();
+        requestChannel.port1.on('message', this.onRendererMessage);
+        requestChannel.port1.start();
+        socketChannel.port1.start();
 
-        this.socket.register(senderId, channel);
+        this.socket.register(senderId, requestChannel, socketChannel);
 
-        event.sender.postMessage('port', { senderId }, [channel.port2]);
+        event.sender.postMessage('port', { senderId }, [requestChannel.port2, socketChannel.port2]);
     }
 
     /**
@@ -120,16 +126,19 @@ export class NoxApp {
      * @param remove - Whether to remove the channel from the messagePorts map.
      */
     private shutdownChannel(channelSenderId: number): void {
-        const channel = this.socket.get(channelSenderId);
+        const channels = this.socket.get(channelSenderId);
 
-        if(!channel) {
+        if(!channels) {
             Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
             return;
         }
 
-        channel.port1.off('message', this.onRendererMessage);
-        channel.port1.close();
-        channel.port2.close();
+        channels.request.port1.off('message', this.onRendererMessage);
+        channels.request.port1.close();
+        channels.request.port2.close();
+
+        channels.socket.port1.close();
+        channels.socket.port2.close();
 
         this.socket.unregister(channelSenderId);
     }

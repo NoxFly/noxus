@@ -12,24 +12,29 @@ import { Injectable } from 'src/decorators/injectable.decorator';
 import { createRendererEventMessage } from 'src/request';
 import { Logger } from 'src/utils/logger';
 
+interface RendererChannels {
+    request: Electron.MessageChannelMain;
+    socket: Electron.MessageChannelMain;
+}
+
 @Injectable('singleton')
 export class NoxSocket {
-    private readonly messagePorts = new Map<number, Electron.MessageChannelMain>();
+    private readonly channels = new Map<number, RendererChannels>();
 
-    public register(senderId: number, channel: Electron.MessageChannelMain): void {
-        this.messagePorts.set(senderId, channel);
+    public register(senderId: number, requestChannel: Electron.MessageChannelMain, socketChannel: Electron.MessageChannelMain): void {
+        this.channels.set(senderId, { request: requestChannel, socket: socketChannel });
     }
 
-    public get(senderId: number): Electron.MessageChannelMain | undefined {
-        return this.messagePorts.get(senderId);
+    public get(senderId: number): RendererChannels | undefined {
+        return this.channels.get(senderId);
     }
 
     public unregister(senderId: number): void {
-        this.messagePorts.delete(senderId);
+        this.channels.delete(senderId);
     }
 
     public getSenderIds(): number[] {
-        return [...this.messagePorts.keys()];
+        return [...this.channels.keys()];
     }
 
     public emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number {
@@ -43,7 +48,7 @@ export class NoxSocket {
         let delivered = 0;
 
         for(const senderId of recipients) {
-            const channel = this.messagePorts.get(senderId);
+            const channel = this.channels.get(senderId);
 
             if(!channel) {
                 Logger.warn(`No message channel found for sender ID: ${senderId} while emitting "${normalizedEvent}".`);
@@ -51,7 +56,7 @@ export class NoxSocket {
             }
 
             try {
-                channel.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
+                channel.socket.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
                 delivered++;
             }
             catch(error) {

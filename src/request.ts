@@ -20,6 +20,7 @@ export class Request {
 
     constructor(
         public readonly event: Electron.MessageEvent,
+        public readonly senderId: number,
         public readonly id: string,
         public readonly method: HttpMethod,
         public readonly path: string,

@@ -213,7 +213,7 @@ export class Router {
 
             for(const [index, item] of payload.requests.entries()) {
                 const subRequestId = item.requestId ?? `${request.id}:${index}`;
-                const atomicRequest = new Request(request.event, subRequestId, item.method, item.path, item.body);
+                const atomicRequest = new Request(request.event, request.senderId, subRequestId, item.method, item.path, item.body);
                 batchResponses.push(await this.handleAtomic(atomicRequest));
             }
 

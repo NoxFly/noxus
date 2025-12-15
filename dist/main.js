@@ -56,6 +56,7 @@ __export(main_exports, {
   NotFoundException: () => NotFoundException,
   NotImplementedException: () => NotImplementedException,
   NoxApp: () => NoxApp,
+  NoxRendererClient: () => NoxRendererClient,
   NoxSocket: () => NoxSocket,
   Patch: () => Patch,
   PaymentRequiredException: () => PaymentRequiredException,
@@ -77,6 +78,7 @@ __export(main_exports, {
   VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
   bootstrapApplication: () => bootstrapApplication,
   createRendererEventMessage: () => createRendererEventMessage,
+  exposeNoxusBridge: () => exposeNoxusBridge,
   getControllerMetadata: () => getControllerMetadata,
   getGuardForController: () => getGuardForController,
   getGuardForControllerAction: () => getGuardForControllerAction,
@@ -85,6 +87,7 @@ __export(main_exports, {
   getMiddlewaresForControllerAction: () => getMiddlewaresForControllerAction,
   getModuleMetadata: () => getModuleMetadata,
   getRouteMetadata: () => getRouteMetadata,
+  hasInjectableMetadata: () => hasInjectableMetadata,
   inject: () => inject,
   isRendererEventMessage: () => isRendererEventMessage
 });
@@ -397,6 +400,21 @@ function getGuardForControllerAction(controllerName, actionName) {
 __name(getGuardForControllerAction, "getGuardForControllerAction");
 var authorizations = /* @__PURE__ */ new Map();
 
+// src/decorators/injectable.metadata.ts
+var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
+function defineInjectableMetadata(target, lifetime) {
+  Reflect.defineMetadata(INJECTABLE_METADATA_KEY, lifetime, target);
+}
+__name(defineInjectableMetadata, "defineInjectableMetadata");
+function getInjectableMetadata(target) {
+  return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target);
+}
+__name(getInjectableMetadata, "getInjectableMetadata");
+function hasInjectableMetadata(target) {
+  return Reflect.hasMetadata(INJECTABLE_METADATA_KEY, target);
+}
+__name(hasInjectableMetadata, "hasInjectableMetadata");
+
 // src/decorators/method.decorator.ts
 function createRouteDecorator(verb) {
   return (path) => {
@@ -644,16 +662,11 @@ function Injectable(lifetime = "scope") {
     if (typeof target !== "function" || !target.prototype) {
       throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
     }
-    Reflect.defineMetadata(INJECTABLE_METADATA_KEY, lifetime, target);
+    defineInjectableMetadata(target, lifetime);
     InjectorExplorer.register(target, lifetime);
   };
 }
 __name(Injectable, "Injectable");
-function getInjectableMetadata(target) {
-  return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target);
-}
-__name(getInjectableMetadata, "getInjectableMetadata");
-var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
 
 // src/decorators/controller.decorator.ts
 function Controller(path) {
@@ -707,8 +720,9 @@ var middlewares = /* @__PURE__ */ new Map();
 // src/request.ts
 var import_reflect_metadata2 = require("reflect-metadata");
 var _Request = class _Request {
-  constructor(event, id, method, path, body) {
+  constructor(event, senderId, id, method, path, body) {
     __publicField(this, "event");
+    __publicField(this, "senderId");
     __publicField(this, "id");
     __publicField(this, "method");
     __publicField(this, "path");
@@ -716,6 +730,7 @@ var _Request = class _Request {
     __publicField(this, "context", RootInjector.createScope());
     __publicField(this, "params", {});
     this.event = event;
+    this.senderId = senderId;
     this.id = id;
     this.method = method;
     this.path = path;
@@ -1051,7 +1066,7 @@ var _Router = class _Router {
       const batchResponses = [];
       for (const [index, item] of payload.requests.entries()) {
         const subRequestId = item.requestId ?? `${request.id}:${index}`;
-        const atomicRequest = new Request(request.event, subRequestId, item.method, item.path, item.body);
+        const atomicRequest = new Request(request.event, request.senderId, subRequestId, item.method, item.path, item.body);
         batchResponses.push(await this.handleAtomic(atomicRequest));
       }
       response.body.responses = batchResponses;
@@ -1271,20 +1286,23 @@ function _ts_decorate2(decorators, target, key, desc) {
 __name(_ts_decorate2, "_ts_decorate");
 var _NoxSocket = class _NoxSocket {
   constructor() {
-    __publicField(this, "messagePorts", /* @__PURE__ */ new Map());
+    __publicField(this, "channels", /* @__PURE__ */ new Map());
   }
-  register(senderId, channel) {
-    this.messagePorts.set(senderId, channel);
+  register(senderId, requestChannel, socketChannel) {
+    this.channels.set(senderId, {
+      request: requestChannel,
+      socket: socketChannel
+    });
   }
   get(senderId) {
-    return this.messagePorts.get(senderId);
+    return this.channels.get(senderId);
   }
   unregister(senderId) {
-    this.messagePorts.delete(senderId);
+    this.channels.delete(senderId);
   }
   getSenderIds() {
     return [
-      ...this.messagePorts.keys()
+      ...this.channels.keys()
     ];
   }
   emit(eventName, payload, targetSenderIds) {
@@ -1295,13 +1313,13 @@ var _NoxSocket = class _NoxSocket {
     const recipients = targetSenderIds ?? this.getSenderIds();
     let delivered = 0;
     for (const senderId of recipients) {
-      const channel = this.messagePorts.get(senderId);
+      const channel = this.channels.get(senderId);
       if (!channel) {
         Logger.warn(`No message channel found for sender ID: ${senderId} while emitting "${normalizedEvent}".`);
         continue;
       }
       try {
-        channel.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
+        channel.socket.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
         delivered++;
       } catch (error) {
         Logger.error(`[Noxus] Failed to emit "${normalizedEvent}" to sender ${senderId}.`, error);
@@ -1338,17 +1356,20 @@ var _NoxApp = class _NoxApp {
     __publicField(this, "router");
     __publicField(this, "socket");
     __publicField(this, "app");
+    /**
+     *
+     */
     __publicField(this, "onRendererMessage", /* @__PURE__ */ __name(async (event) => {
       const { senderId, requestId, path, method, body } = event.data;
-      const channel = this.socket.get(senderId);
-      if (!channel) {
+      const channels = this.socket.get(senderId);
+      if (!channels) {
         Logger.error(`No message channel found for sender ID: ${senderId}`);
         return;
       }
       try {
-        const request = new Request(event, requestId, method, path, body);
+        const request = new Request(event, senderId, requestId, method, path, body);
         const response = await this.router.handle(request);
-        channel.port1.postMessage(response);
+        channels.request.port1.postMessage(response);
       } catch (err) {
         const response = {
           requestId,
@@ -1356,7 +1377,7 @@ var _NoxApp = class _NoxApp {
           body: null,
           error: err.message || "Internal Server Error"
         };
-        channel.port1.postMessage(response);
+        channels.request.port1.postMessage(response);
       }
     }, "onRendererMessage"));
     this.router = router;
@@ -1385,14 +1406,17 @@ var _NoxApp = class _NoxApp {
     if (this.socket.get(senderId)) {
       this.shutdownChannel(senderId);
     }
-    const channel = new import_main.MessageChannelMain();
-    channel.port1.on("message", this.onRendererMessage);
-    channel.port1.start();
-    this.socket.register(senderId, channel);
+    const requestChannel = new import_main.MessageChannelMain();
+    const socketChannel = new import_main.MessageChannelMain();
+    requestChannel.port1.on("message", this.onRendererMessage);
+    requestChannel.port1.start();
+    socketChannel.port1.start();
+    this.socket.register(senderId, requestChannel, socketChannel);
     event.sender.postMessage("port", {
       senderId
     }, [
-      channel.port2
+      requestChannel.port2,
+      socketChannel.port2
     ]);
   }
   /**
@@ -1411,14 +1435,16 @@ var _NoxApp = class _NoxApp {
    * @param remove - Whether to remove the channel from the messagePorts map.
    */
   shutdownChannel(channelSenderId) {
-    const channel = this.socket.get(channelSenderId);
-    if (!channel) {
+    const channels = this.socket.get(channelSenderId);
+    if (!channels) {
       Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
       return;
     }
-    channel.port1.off("message", this.onRendererMessage);
-    channel.port1.close();
-    channel.port2.close();
+    channels.request.port1.off("message", this.onRendererMessage);
+    channels.request.port1.close();
+    channels.request.port2.close();
+    channels.socket.port1.close();
+    channels.socket.port2.close();
     this.socket.unregister(channelSenderId);
   }
   /**
@@ -1488,6 +1514,42 @@ async function bootstrapApplication(rootModule) {
   return noxApp;
 }
 __name(bootstrapApplication, "bootstrapApplication");
+
+// src/preload-bridge.ts
+var import_renderer = require("electron/renderer");
+var DEFAULT_EXPOSE_NAME = "noxus";
+var DEFAULT_INIT_EVENT = "init-port";
+var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
+var DEFAULT_RESPONSE_CHANNEL = "port";
+function exposeNoxusBridge(options = {}) {
+  const { exposeAs = DEFAULT_EXPOSE_NAME, initMessageType = DEFAULT_INIT_EVENT, requestChannel = DEFAULT_REQUEST_CHANNEL, responseChannel = DEFAULT_RESPONSE_CHANNEL, targetWindow = window } = options;
+  const api = {
+    requestPort: /* @__PURE__ */ __name(() => {
+      import_renderer.ipcRenderer.send(requestChannel);
+      import_renderer.ipcRenderer.once(responseChannel, (event, message) => {
+        const ports = (event.ports ?? []).filter((port) => port !== void 0);
+        if (ports.length === 0) {
+          console.error("[Noxus] No MessagePort received from main process.");
+          return;
+        }
+        for (const port of ports) {
+          try {
+            port.start();
+          } catch (error) {
+            console.error("[Noxus] Failed to start MessagePort.", error);
+          }
+        }
+        targetWindow.postMessage({
+          type: initMessageType,
+          senderId: message?.senderId
+        }, "*", ports);
+      });
+    }, "requestPort")
+  };
+  import_renderer.contextBridge.exposeInMainWorld(exposeAs, api);
+  return api;
+}
+__name(exposeNoxusBridge, "exposeNoxusBridge");
 
 // src/renderer-events.ts
 var _RendererEventRegistry = class _RendererEventRegistry {
@@ -1568,6 +1630,252 @@ var _RendererEventRegistry = class _RendererEventRegistry {
 };
 __name(_RendererEventRegistry, "RendererEventRegistry");
 var RendererEventRegistry = _RendererEventRegistry;
+
+// src/renderer-client.ts
+var DEFAULT_INIT_EVENT2 = "init-port";
+var DEFAULT_BRIDGE_NAMES = [
+  "noxus",
+  "ipcRenderer"
+];
+function defaultRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(16)}-${Math.floor(Math.random() * 1e8).toString(16)}`;
+}
+__name(defaultRequestId, "defaultRequestId");
+function normalizeBridgeNames(preferred) {
+  const names = [];
+  const add = /* @__PURE__ */ __name((name) => {
+    if (!name) return;
+    if (!names.includes(name)) {
+      names.push(name);
+    }
+  }, "add");
+  if (Array.isArray(preferred)) {
+    for (const name of preferred) {
+      add(name);
+    }
+  } else {
+    add(preferred);
+  }
+  for (const fallback of DEFAULT_BRIDGE_NAMES) {
+    add(fallback);
+  }
+  return names;
+}
+__name(normalizeBridgeNames, "normalizeBridgeNames");
+function resolveBridgeFromWindow(windowRef, preferred) {
+  const names = normalizeBridgeNames(preferred);
+  const globalRef = windowRef;
+  if (!globalRef) {
+    return null;
+  }
+  for (const name of names) {
+    const candidate = globalRef[name];
+    if (candidate && typeof candidate.requestPort === "function") {
+      return candidate;
+    }
+  }
+  return null;
+}
+__name(resolveBridgeFromWindow, "resolveBridgeFromWindow");
+var _NoxRendererClient = class _NoxRendererClient {
+  constructor(options = {}) {
+    __publicField(this, "events", new RendererEventRegistry());
+    __publicField(this, "pendingRequests", /* @__PURE__ */ new Map());
+    __publicField(this, "requestPort");
+    __publicField(this, "socketPort");
+    __publicField(this, "senderId");
+    __publicField(this, "bridge");
+    __publicField(this, "initMessageType");
+    __publicField(this, "windowRef");
+    __publicField(this, "generateRequestId");
+    __publicField(this, "isReady", false);
+    __publicField(this, "setupPromise");
+    __publicField(this, "setupResolve");
+    __publicField(this, "setupReject");
+    __publicField(this, "onWindowMessage", /* @__PURE__ */ __name((event) => {
+      if (event.data?.type !== this.initMessageType) {
+        return;
+      }
+      if (!Array.isArray(event.ports) || event.ports.length < 2) {
+        const error = new Error("[Noxus] Renderer expected two MessagePorts (request + socket).");
+        console.error(error);
+        this.setupReject?.(error);
+        this.resetSetupState();
+        return;
+      }
+      this.windowRef.removeEventListener("message", this.onWindowMessage);
+      this.requestPort = event.ports[0];
+      this.socketPort = event.ports[1];
+      this.senderId = event.data.senderId;
+      if (this.requestPort === void 0 || this.socketPort === void 0) {
+        const error = new Error("[Noxus] Renderer failed to receive valid MessagePorts.");
+        console.error(error);
+        this.setupReject?.(error);
+        this.resetSetupState();
+        return;
+      }
+      this.attachRequestPort(this.requestPort);
+      this.attachSocketPort(this.socketPort);
+      this.isReady = true;
+      this.setupResolve?.();
+      this.resetSetupState(true);
+    }, "onWindowMessage"));
+    __publicField(this, "onSocketMessage", /* @__PURE__ */ __name((event) => {
+      if (this.events.tryDispatchFromMessageEvent(event)) {
+        return;
+      }
+      console.warn("[Noxus] Received a socket message that is not a renderer event payload.", event.data);
+    }, "onSocketMessage"));
+    __publicField(this, "onRequestMessage", /* @__PURE__ */ __name((event) => {
+      if (this.events.tryDispatchFromMessageEvent(event)) {
+        return;
+      }
+      const response = event.data;
+      if (!response || typeof response.requestId !== "string") {
+        console.error("[Noxus] Renderer received an invalid response payload.", response);
+        return;
+      }
+      const pending = this.pendingRequests.get(response.requestId);
+      if (!pending) {
+        console.error(`[Noxus] No pending handler found for request ${response.requestId}.`);
+        return;
+      }
+      this.pendingRequests.delete(response.requestId);
+      this.onRequestCompleted(pending, response);
+      if (response.status >= 400) {
+        pending.reject(response);
+        return;
+      }
+      pending.resolve(response.body);
+    }, "onRequestMessage"));
+    this.windowRef = options.windowRef ?? window;
+    const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
+    this.bridge = resolvedBridge ?? null;
+    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT2;
+    this.generateRequestId = options.generateRequestId ?? defaultRequestId;
+  }
+  async setup() {
+    if (this.isReady) {
+      return Promise.resolve();
+    }
+    if (this.setupPromise) {
+      return this.setupPromise;
+    }
+    if (!this.bridge || typeof this.bridge.requestPort !== "function") {
+      throw new Error("[Noxus] Renderer bridge is missing requestPort().");
+    }
+    this.setupPromise = new Promise((resolve, reject) => {
+      this.setupResolve = resolve;
+      this.setupReject = reject;
+    });
+    this.windowRef.addEventListener("message", this.onWindowMessage);
+    this.bridge.requestPort();
+    return this.setupPromise;
+  }
+  dispose() {
+    this.windowRef.removeEventListener("message", this.onWindowMessage);
+    this.requestPort?.close();
+    this.socketPort?.close();
+    this.requestPort = void 0;
+    this.socketPort = void 0;
+    this.senderId = void 0;
+    this.isReady = false;
+    this.pendingRequests.clear();
+  }
+  async request(request) {
+    const senderId = this.senderId;
+    const requestId = this.generateRequestId();
+    if (senderId === void 0) {
+      return Promise.reject(this.createErrorResponse(requestId, "MessagePort is not available"));
+    }
+    const readinessError = this.validateReady(requestId);
+    if (readinessError) {
+      return Promise.reject(readinessError);
+    }
+    const message = {
+      requestId,
+      senderId,
+      ...request
+    };
+    return new Promise((resolve, reject) => {
+      const pending = {
+        resolve,
+        reject: /* @__PURE__ */ __name((response) => reject(response), "reject"),
+        request: message,
+        submittedAt: Date.now()
+      };
+      this.pendingRequests.set(message.requestId, pending);
+      this.requestPort.postMessage(message);
+    });
+  }
+  async batch(requests) {
+    return this.request({
+      method: "BATCH",
+      path: "",
+      body: {
+        requests
+      }
+    });
+  }
+  getSenderId() {
+    return this.senderId;
+  }
+  onRequestCompleted(pending, response) {
+    if (typeof console.groupCollapsed === "function") {
+      console.groupCollapsed(`${response.status} ${pending.request.method} /${pending.request.path}`);
+    }
+    if (response.error) {
+      console.error("error message:", response.error);
+    }
+    if (response.body !== void 0) {
+      console.info("response:", response.body);
+    }
+    console.info("request:", pending.request);
+    console.info(`Request duration: ${Date.now() - pending.submittedAt} ms`);
+    if (typeof console.groupCollapsed === "function") {
+      console.groupEnd();
+    }
+  }
+  attachRequestPort(port) {
+    port.onmessage = this.onRequestMessage;
+    port.start();
+  }
+  attachSocketPort(port) {
+    port.onmessage = this.onSocketMessage;
+    port.start();
+  }
+  validateReady(requestId) {
+    if (!this.isElectronEnvironment()) {
+      return this.createErrorResponse(requestId, "Not running in Electron environment");
+    }
+    if (!this.requestPort) {
+      return this.createErrorResponse(requestId, "MessagePort is not available");
+    }
+    return void 0;
+  }
+  createErrorResponse(requestId, message) {
+    return {
+      status: 500,
+      requestId,
+      error: message
+    };
+  }
+  resetSetupState(success = false) {
+    if (!success) {
+      this.setupPromise = void 0;
+    }
+    this.setupResolve = void 0;
+    this.setupReject = void 0;
+  }
+  isElectronEnvironment() {
+    return typeof window !== "undefined" && /Electron/.test(window.navigator.userAgent);
+  }
+};
+__name(_NoxRendererClient, "NoxRendererClient");
+var NoxRendererClient = _NoxRendererClient;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AppInjector,
@@ -1598,6 +1906,7 @@ var RendererEventRegistry = _RendererEventRegistry;
   NotFoundException,
   NotImplementedException,
   NoxApp,
+  NoxRendererClient,
   NoxSocket,
   Patch,
   PaymentRequiredException,
@@ -1619,6 +1928,7 @@ var RendererEventRegistry = _RendererEventRegistry;
   VariantAlsoNegotiatesException,
   bootstrapApplication,
   createRendererEventMessage,
+  exposeNoxusBridge,
   getControllerMetadata,
   getGuardForController,
   getGuardForControllerAction,
@@ -1627,6 +1937,7 @@ var RendererEventRegistry = _RendererEventRegistry;
   getMiddlewaresForControllerAction,
   getModuleMetadata,
   getRouteMetadata,
+  hasInjectableMetadata,
   inject,
   isRendererEventMessage
 });
