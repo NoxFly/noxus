@@ -5,7 +5,7 @@
  */
 
 import { getControllerMetadata } from "src/decorators/controller.decorator";
-import { getInjectableMetadata } from "src/decorators/injectable.decorator";
+import { getInjectableMetadata } from "src/decorators/injectable.metadata";
 import { getRouteMetadata } from "src/decorators/method.decorator";
 import { getModuleMetadata } from "src/decorators/module.decorator";
 import { Lifetime, RootInjector } from "src/DI/app-injector";

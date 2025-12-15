@@ -1,5 +1,5 @@
-import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime, b as IPortRequester } from './index-CzSI-LvO.mjs';
-export { l as AppInjector, e as AtomicHttpMethod, A as Authorize, D as Delete, G as Get, H as HttpMethod, t as IBatchRequestItem, u as IBatchRequestPayload, v as IBatchResponsePayload, k as IBinding, x as IRendererEventMessage, s as IRequest, d as IRouteMetadata, N as NoxRendererClient, i as Patch, P as Post, h as Put, w as RENDERER_EVENT_TYPE, j as ROUTE_METADATA_KEY, o as RendererClientOptions, p as RendererEventHandler, r as RendererEventRegistry, q as RendererEventSubscription, n as RootInjector, y as createRendererEventMessage, g as getGuardForController, c as getGuardForControllerAction, f as getRouteMetadata, m as inject, z as isRendererEventMessage } from './index-CzSI-LvO.mjs';
+import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime, b as IPortRequester } from './index-CI3OMzNR.mjs';
+export { A as AppInjector, j as AtomicHttpMethod, e as Authorize, D as Delete, G as Get, H as HttpMethod, p as IBatchRequestItem, q as IBatchRequestPayload, r as IBatchResponsePayload, c as IBinding, t as IRendererEventMessage, o as IRequest, h as IRouteMetadata, N as NoxRendererClient, m as Patch, P as Post, l as Put, s as RENDERER_EVENT_TYPE, n as ROUTE_METADATA_KEY, z as RendererClientOptions, w as RendererEventHandler, y as RendererEventRegistry, x as RendererEventSubscription, d as RootInjector, u as createRendererEventMessage, g as getGuardForController, f as getGuardForControllerAction, k as getRouteMetadata, i as inject, v as isRendererEventMessage } from './index-CI3OMzNR.mjs';
 
 /**
  * @copyright 2025 NoxFly
@@ -45,20 +45,6 @@ declare function getMiddlewaresForController(controllerName: string): Type<IMidd
  * @returns An array of middlewares for the controller action.
  */
 declare function getMiddlewaresForControllerAction(controllerName: string, actionName: string): Type<IMiddleware>[];
-
-interface RendererChannels {
-    request: Electron.MessageChannelMain;
-    socket: Electron.MessageChannelMain;
-}
-declare class NoxSocket {
-    private readonly channels;
-    register(senderId: number, requestChannel: Electron.MessageChannelMain, socketChannel: Electron.MessageChannelMain): void;
-    get(senderId: number): RendererChannels | undefined;
-    unregister(senderId: number): void;
-    getSenderIds(): number[];
-    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number;
-    emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
-}
 
 
 /**
@@ -174,6 +160,20 @@ declare class Router {
     private extractParams;
 }
 
+interface RendererChannels {
+    request: Electron.MessageChannelMain;
+    socket: Electron.MessageChannelMain;
+}
+declare class NoxSocket {
+    private readonly channels;
+    register(senderId: number, requestChannel: Electron.MessageChannelMain, socketChannel: Electron.MessageChannelMain): void;
+    get(senderId: number): RendererChannels | undefined;
+    unregister(senderId: number): void;
+    getSenderIds(): number[];
+    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number;
+    emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
+}
+
 
 /**
  * The application service should implement this interface, as
@@ -260,65 +260,6 @@ declare class NoxApp {
  */
 declare function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp>;
 
-
-/**
- * The configuration that waits a controller's decorator.
- */
-interface IControllerMetadata {
-    path: string;
-    guards: Type<IGuard>[];
-}
-/**
- * Controller decorator is used to define a controller in the application.
- * It is a kind of node in the routing tree, that can contains routes and middlewares.
- *
- * @param path - The path for the controller.
- */
-declare function Controller(path: string): ClassDecorator;
-/**
- * Gets the controller metadata for a given target class.
- * This metadata includes the path and guards defined by the @Controller decorator.
- * @param target - The target class to get the controller metadata from.
- * @returns The controller metadata if it exists, otherwise undefined.
- */
-declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
-declare const CONTROLLER_METADATA_KEY: unique symbol;
-
-
-/**
- * The Injectable decorator marks a class as injectable.
- * It allows the class to be registered in the dependency injection system.
- * A class decorated with @Injectable can be injected into other classes
- * either from the constructor of the class that needs it of from the `inject` function.
- * @param lifetime - The lifetime of the injectable. Can be 'singleton', 'scope', or 'transient'.
- */
-declare function Injectable(lifetime?: Lifetime): ClassDecorator;
-/**
- * Gets the injectable metadata for a given target class.
- * This metadata includes the lifetime of the injectable defined by the @Injectable decorator.
- * @param target - The target class to get the injectable metadata from.
- * @returns The lifetime of the injectable if it exists, otherwise undefined.
- */
-declare function getInjectableMetadata(target: Type<unknown>): Lifetime | undefined;
-declare const INJECTABLE_METADATA_KEY: unique symbol;
-
-
-interface IModuleMetadata {
-    imports?: Type<unknown>[];
-    exports?: Type<unknown>[];
-    providers?: Type<unknown>[];
-    controllers?: Type<unknown>[];
-}
-/**
- * Module decorator is used to define a module in the application.
- * It is a kind of node in the routing tree, that can contains controllers, services, and other modules.
- *
- * @param metadata - The metadata for the module.
- */
-declare function Module(metadata: IModuleMetadata): ClassDecorator;
-declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
-declare const MODULE_METADATA_KEY: unique symbol;
-
 declare class ResponseException extends Error {
     readonly status: number;
     constructor(message?: string);
@@ -393,6 +334,61 @@ declare class NetworkAuthenticationRequiredException extends ResponseException {
 declare class NetworkConnectTimeoutException extends ResponseException {
     readonly status = 599;
 }
+
+
+/**
+ * The configuration that waits a controller's decorator.
+ */
+interface IControllerMetadata {
+    path: string;
+    guards: Type<IGuard>[];
+}
+/**
+ * Controller decorator is used to define a controller in the application.
+ * It is a kind of node in the routing tree, that can contains routes and middlewares.
+ *
+ * @param path - The path for the controller.
+ */
+declare function Controller(path: string): ClassDecorator;
+/**
+ * Gets the controller metadata for a given target class.
+ * This metadata includes the path and guards defined by the @Controller decorator.
+ * @param target - The target class to get the controller metadata from.
+ * @returns The controller metadata if it exists, otherwise undefined.
+ */
+declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
+declare const CONTROLLER_METADATA_KEY: unique symbol;
+
+declare const INJECTABLE_METADATA_KEY: unique symbol;
+declare function getInjectableMetadata(target: Function): Lifetime | undefined;
+declare function hasInjectableMetadata(target: Function): boolean;
+
+
+/**
+ * The Injectable decorator marks a class as injectable.
+ * It allows the class to be registered in the dependency injection system.
+ * A class decorated with @Injectable can be injected into other classes
+ * either from the constructor of the class that needs it of from the `inject` function.
+ * @param lifetime - The lifetime of the injectable. Can be 'singleton', 'scope', or 'transient'.
+ */
+declare function Injectable(lifetime?: Lifetime): ClassDecorator;
+
+
+interface IModuleMetadata {
+    imports?: Type<unknown>[];
+    exports?: Type<unknown>[];
+    providers?: Type<unknown>[];
+    controllers?: Type<unknown>[];
+}
+/**
+ * Module decorator is used to define a module in the application.
+ * It is a kind of node in the routing tree, that can contains controllers, services, and other modules.
+ *
+ * @param metadata - The metadata for the module.
+ */
+declare function Module(metadata: IModuleMetadata): ClassDecorator;
+declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
+declare const MODULE_METADATA_KEY: unique symbol;
 
 
 interface NoxusPreloadAPI extends IPortRequester {
@@ -486,4 +482,4 @@ declare namespace Logger {
     };
 }
 
-export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, IPortRequester, IResponse, type IRouteDefinition, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };
+export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, IPortRequester, IResponse, type IRouteDefinition, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, hasInjectableMetadata };
