@@ -20,46 +20,10 @@ export type LogLevel =
     | 'critical'
 ;
 
-
-const fileSettings: Map<LogLevel, { filepath: string }> = new Map();
-const fileQueues: Map<string, string[]> = new Map(); // filepath -> messages[]
-
-
-
-
-const logLevels: Set<LogLevel> = new Set();
-Logger.setLogLevel("debug");
-
-
-const logLevelRank: Record<LogLevel, number> = {
-    debug: 0,
-    comment: 1,
-    log: 2,
-    info: 3,
-    warn: 4,
-    error: 5,
-    critical: 6,
-};
-
-const logLevelColors: Record<LogLevel, string> = {
-    debug: Logger.colors.purple,
-    comment: Logger.colors.grey,
-    log: Logger.colors.green,
-    info: Logger.colors.blue,
-    warn: Logger.colors.brown,
-    error: Logger.colors.red,
-    critical: Logger.colors.lightRed,
-};
-
-const logLevelChannel: Record<LogLevel, (message?: any, ...optionalParams: any[]) => void> = {
-    debug: console.debug,
-    comment: console.debug,
-    log: console.log,
-    info: console.info,
-    warn: console.warn,
-    error: console.error,
-    critical: console.error,
-};
+interface FileLogState {
+    queue: string[];
+    isWriting: boolean;
+}
 
 
 
@@ -79,15 +43,24 @@ function getPrettyTimestamp(): string {
  * @param color - The color to use for the log message.
  * @returns A formatted string that includes the timestamp, process ID, message type, and callee name.
  */
-function getLogPrefix(callee: string, messageType: string, color: string): string {
+function getLogPrefix(callee: string, messageType: string, color?: string): string {
     const timestamp = getPrettyTimestamp();
 
-    const spaces = ' '.repeat(10 - messageType.length);
+    const spaces = " ".repeat(10 - messageType.length);
 
-    return `${color}[APP] ${process.pid} - ${Logger.colors.initial}`
+    let colReset = Logger.colors.initial;
+    let colCallee = Logger.colors.yellow;
+
+    if(color === undefined) {
+        color = "";
+        colReset = "";
+        colCallee = "";
+    }
+
+    return `${color}[APP] ${process.pid} - ${colReset}`
         + `${timestamp}${spaces}`
-        + `${color}${messageType.toUpperCase()}${Logger.colors.initial} `
-        + `${Logger.colors.yellow}[${callee}]${Logger.colors.initial}`;
+        + `${color}${messageType.toUpperCase()}${colReset} `
+        + `${colCallee}[${callee}]${colReset}`;
 }
 
 /**
@@ -97,13 +70,23 @@ function getLogPrefix(callee: string, messageType: string, color: string): strin
  * @param arg - The object to format.
  * @returns A formatted string representation of the object, with each line prefixed by the specified prefix.
  */
-function formatObject(prefix: string, arg: object): string {
+function formatObject(prefix: string, arg: object, enableColor: boolean = true): string {
     const json = JSON.stringify(arg, null, 2);
+
+    let colStart = "";
+    let colLine = "";
+    let colReset = "";
+
+    if(enableColor) {
+        colStart = Logger.colors.darkGrey;
+        colLine = Logger.colors.grey;
+        colReset = Logger.colors.initial;
+    }
 
     const prefixedJson = json
         .split('\n')
-        .map((line, idx) => idx === 0 ? `${Logger.colors.darkGrey}${line}` : `${prefix} ${Logger.colors.grey}${line}`)
-        .join('\n') + Logger.colors.initial;
+        .map((line, idx) => idx === 0 ? `${colStart}${line}` : `${prefix} ${colLine}${line}`)
+        .join('\n') + colReset;
 
     return prefixedJson;
 }
@@ -117,14 +100,21 @@ function formatObject(prefix: string, arg: object): string {
  * @param color - The color to use for the formatted arguments.
  * @returns An array of formatted arguments, where strings are colored and objects are formatted with indentation.
  */
-function formattedArgs(prefix: string, args: any[], color: string): any[] {
+function formattedArgs(prefix: string, args: any[], color?: string): any[] {
+    let colReset = Logger.colors.initial;
+
+    if(color === undefined) {
+        color = "";
+        colReset = "";
+    }
+
     return args.map(arg => {
-        if(typeof arg === 'string') {
-            return `${color}${arg}${Logger.colors.initial}`;
+        if(typeof arg === "string") {
+            return `${color}${arg}${colReset}`;
         }
 
-        else if(typeof arg === 'object') {
-            return formatObject(prefix, arg);
+        else if(typeof arg === "object") {
+            return formatObject(prefix, arg, color === "");
         }
 
         return arg;
@@ -142,8 +132,8 @@ function getCallee(): string {
         ?.trim()
         .match(/at (.+?)(?:\..+)? .+$/)
         ?.[1]
-        ?.replace('Object', '')
-        .replace(/^_/, '')
+        ?.replace("Object", "")
+        .replace(/^_/, "")
         || "App";
     return caller;
 }
@@ -159,40 +149,60 @@ function canLog(level: LogLevel): boolean {
 }
 
 /**
- * Writes a log message to a file.
+ * Writes a log message to a file asynchronously to avoid blocking the event loop.
+ * It batches messages if writing is already in progress.
  * @param filepath - The path to the log file.
- * @param message - The log message to write.
  */
-function writeToFile(filepath: string): void {
-    const queue = fileQueues.get(filepath);
+function processLogQueue(filepath: string): void {
+    const state = fileStates.get(filepath);
 
-    if(!queue) {
+    if(!state || state.isWriting || state.queue.length === 0) {
         return;
     }
 
-    const message = queue.shift();
+    state.isWriting = true;
+
+    // Optimization: Grab all pending messages to write in one go
+    const messagesToWrite = state.queue.join('\n') + '\n';
+    state.queue = []; // Clear the queue immediately
 
     const dir = path.dirname(filepath);
 
-    if(!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
+    // Using async IO to allow other operations
+    fs.mkdir(dir, { recursive: true }, (err) => {
+        if(err) {
+            console.error(`[Logger] Failed to create directory ${dir}`, err);
+            state.isWriting = false;
+            return;
+        }
 
-    fs.appendFileSync(filepath, message + '\n', { encoding: 'utf-8' });
+        fs.appendFile(filepath, messagesToWrite, { encoding: "utf-8" }, (err) => {
+            state.isWriting = false;
+
+            if(err) {
+                console.error(`[Logger] Failed to write log to ${filepath}`, err);
+            }
+
+            // If new messages arrived while we were writing, process them now
+            if(state.queue.length > 0) {
+                processLogQueue(filepath);
+            }
+        });
+    });
 }
 
 /**
- *
+ * Adds a message to the file queue and triggers processing.
  */
 function enqueue(filepath: string, message: string): void {
-    if(!fileQueues.has(filepath)) {
-        fileQueues.set(filepath, []);
+    if(!fileStates.has(filepath)) {
+        fileStates.set(filepath, { queue: [], isWriting: false });
     }
 
-    const queue = fileQueues.get(filepath)!;
-    queue.push(message);
+    const state = fileStates.get(filepath)!;
+    state.queue.push(message);
 
-    writeToFile(filepath);
+    processLogQueue(filepath);
 }
 
 /**
@@ -204,16 +214,24 @@ function output(level: LogLevel, args: any[]): void {
     }
 
     const callee = getCallee();
-    const prefix = getLogPrefix(callee, level, logLevelColors[level]);
-    const data = formattedArgs(prefix, args, logLevelColors[level]);
 
-    logLevelChannel[level](prefix, ...data);
+    {
+        const prefix = getLogPrefix(callee, level, logLevelColors[level]);
+        const data = formattedArgs(prefix, args, logLevelColors[level]);
 
-    const filepath = fileSettings.get(level)?.filepath;
+        logLevelChannel[level](prefix, ...data);
+    }
 
-    if(filepath) {
-        const message = prefix + " " + data.join(' ');
-        enqueue(filepath, message);
+    {
+        const prefix = getLogPrefix(callee, level);
+        const data = formattedArgs(prefix, args);
+
+        const filepath = fileSettings.get(level)?.filepath;
+
+        if(filepath) {
+            const message = prefix + " " + data.join(" ");
+            enqueue(filepath, message);
+        }
     }
 }
 
@@ -333,7 +351,7 @@ export namespace Logger {
      * @param filepath The path to the log file.
      * @param levels The log levels to enable file logging for. Defaults to all levels.
      */
-    export function enableFileLogging(filepath: string, levels: LogLevel[] = ['debug', 'comment', 'log', 'info', 'warn', 'error', 'critical']): void {
+    export function enableFileLogging(filepath: string, levels: LogLevel[] = ["debug", "comment", "log", "info", "warn", "error", "critical"]): void {
         for(const level of levels) {
             fileSettings.set(level, { filepath });
         }
@@ -343,7 +361,7 @@ export namespace Logger {
      * Disables logging to a file output for the specified log levels.
      * @param levels The log levels to disable file logging for. Defaults to all levels.
      */
-    export function disableFileLogging(levels: LogLevel[] = ['debug', 'comment', 'log', 'info', 'warn', 'error', 'critical']): void {
+    export function disableFileLogging(levels: LogLevel[] = ["debug", "comment", "log", "info", "warn", "error", "critical"]): void {
         for(const level of levels) {
             fileSettings.delete(level);
         }
@@ -351,23 +369,62 @@ export namespace Logger {
 
 
     export const colors = {
-        black: '\x1b[0;30m',
-        grey: '\x1b[0;37m',
-        red: '\x1b[0;31m',
-        green: '\x1b[0;32m',
-        brown: '\x1b[0;33m',
-        blue: '\x1b[0;34m',
-        purple: '\x1b[0;35m',
+        black: "\x1b[0;30m",
+        grey: "\x1b[0;37m",
+        red: "\x1b[0;31m",
+        green: "\x1b[0;32m",
+        brown: "\x1b[0;33m",
+        blue: "\x1b[0;34m",
+        purple: "\x1b[0;35m",
 
-        darkGrey: '\x1b[1;30m',
-        lightRed: '\x1b[1;31m',
-        lightGreen: '\x1b[1;32m',
-        yellow: '\x1b[1;33m',
-        lightBlue: '\x1b[1;34m',
-        magenta: '\x1b[1;35m',
-        cyan: '\x1b[1;36m',
-        white: '\x1b[1;37m',
+        darkGrey: "\x1b[1;30m",
+        lightRed: "\x1b[1;31m",
+        lightGreen: "\x1b[1;32m",
+        yellow: "\x1b[1;33m",
+        lightBlue: "\x1b[1;34m",
+        magenta: "\x1b[1;35m",
+        cyan: "\x1b[1;36m",
+        white: "\x1b[1;37m",
 
-        initial: '\x1b[0m'
+        initial: "\x1b[0m"
     };
 }
+
+
+const fileSettings: Map<LogLevel, { filepath: string }> = new Map();
+const fileStates: Map<string, FileLogState> = new Map(); // filepath -> state
+
+const logLevels: Set<LogLevel> = new Set();
+
+const logLevelRank: Record<LogLevel, number> = {
+    debug: 0,
+    comment: 1,
+    log: 2,
+    info: 3,
+    warn: 4,
+    error: 5,
+    critical: 6,
+};
+
+const logLevelColors: Record<LogLevel, string> = {
+    debug: Logger.colors.purple,
+    comment: Logger.colors.grey,
+    log: Logger.colors.green,
+    info: Logger.colors.blue,
+    warn: Logger.colors.brown,
+    error: Logger.colors.red,
+    critical: Logger.colors.lightRed,
+};
+
+const logLevelChannel: Record<LogLevel, (message?: any, ...optionalParams: any[]) => void> = {
+    debug: console.debug,
+    comment: console.debug,
+    log: console.log,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+    critical: console.error,
+};
+
+
+Logger.setLogLevel("debug");

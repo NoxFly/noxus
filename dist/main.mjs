@@ -332,12 +332,12 @@ __name(hasInjectableMetadata, "hasInjectableMetadata");
 
 // src/decorators/method.decorator.ts
 function createRouteDecorator(verb) {
-  return (path) => {
+  return (path2) => {
     return (target, propertyKey) => {
       const existingRoutes = Reflect.getMetadata(ROUTE_METADATA_KEY, target.constructor) || [];
       const metadata = {
         method: verb,
-        path: path.trim().replace(/^\/|\/$/g, ""),
+        path: path2.trim().replace(/^\/|\/$/g, ""),
         handler: propertyKey,
         guards: getGuardForControllerAction(target.constructor.__controllerName, propertyKey)
       };
@@ -401,6 +401,8 @@ __name(getModuleMetadata, "getModuleMetadata");
 var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
 
 // src/utils/logger.ts
+import * as fs from "fs";
+import * as path from "path";
 function getPrettyTimestamp() {
   const now = /* @__PURE__ */ new Date();
   return `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
@@ -409,21 +411,41 @@ __name(getPrettyTimestamp, "getPrettyTimestamp");
 function getLogPrefix(callee, messageType, color) {
   const timestamp = getPrettyTimestamp();
   const spaces = " ".repeat(10 - messageType.length);
-  return `${color}[APP] ${process.pid} - ${Logger.colors.initial}${timestamp}${spaces}${color}${messageType.toUpperCase()}${Logger.colors.initial} ${Logger.colors.yellow}[${callee}]${Logger.colors.initial}`;
+  let colReset = Logger.colors.initial;
+  let colCallee = Logger.colors.yellow;
+  if (color === void 0) {
+    color = "";
+    colReset = "";
+    colCallee = "";
+  }
+  return `${color}[APP] ${process.pid} - ${colReset}${timestamp}${spaces}${color}${messageType.toUpperCase()}${colReset} ${colCallee}[${callee}]${colReset}`;
 }
 __name(getLogPrefix, "getLogPrefix");
-function formatObject(prefix, arg) {
+function formatObject(prefix, arg, enableColor = true) {
   const json = JSON.stringify(arg, null, 2);
-  const prefixedJson = json.split("\n").map((line, idx) => idx === 0 ? `${Logger.colors.darkGrey}${line}` : `${prefix} ${Logger.colors.grey}${line}`).join("\n") + Logger.colors.initial;
+  let colStart = "";
+  let colLine = "";
+  let colReset = "";
+  if (enableColor) {
+    colStart = Logger.colors.darkGrey;
+    colLine = Logger.colors.grey;
+    colReset = Logger.colors.initial;
+  }
+  const prefixedJson = json.split("\n").map((line, idx) => idx === 0 ? `${colStart}${line}` : `${prefix} ${colLine}${line}`).join("\n") + colReset;
   return prefixedJson;
 }
 __name(formatObject, "formatObject");
 function formattedArgs(prefix, args, color) {
+  let colReset = Logger.colors.initial;
+  if (color === void 0) {
+    color = "";
+    colReset = "";
+  }
   return args.map((arg) => {
     if (typeof arg === "string") {
-      return `${color}${arg}${Logger.colors.initial}`;
+      return `${color}${arg}${colReset}`;
     } else if (typeof arg === "object") {
-      return formatObject(prefix, arg);
+      return formatObject(prefix, arg, color === "");
     }
     return arg;
   });
@@ -436,80 +458,163 @@ function getCallee() {
 }
 __name(getCallee, "getCallee");
 function canLog(level) {
-  return logLevelRank[level] >= logLevelRank[logLevel];
+  return logLevels.has(level);
 }
 __name(canLog, "canLog");
-var logLevel = "debug";
-var logLevelRank = {
-  debug: 0,
-  comment: 1,
-  log: 2,
-  info: 3,
-  warn: 4,
-  error: 5
-};
+function processLogQueue(filepath) {
+  const state = fileStates.get(filepath);
+  if (!state || state.isWriting || state.queue.length === 0) {
+    return;
+  }
+  state.isWriting = true;
+  const messagesToWrite = state.queue.join("\n") + "\n";
+  state.queue = [];
+  const dir = path.dirname(filepath);
+  fs.mkdir(dir, {
+    recursive: true
+  }, (err) => {
+    if (err) {
+      console.error(`[Logger] Failed to create directory ${dir}`, err);
+      state.isWriting = false;
+      return;
+    }
+    fs.appendFile(filepath, messagesToWrite, {
+      encoding: "utf-8"
+    }, (err2) => {
+      state.isWriting = false;
+      if (err2) {
+        console.error(`[Logger] Failed to write log to ${filepath}`, err2);
+      }
+      if (state.queue.length > 0) {
+        processLogQueue(filepath);
+      }
+    });
+  });
+}
+__name(processLogQueue, "processLogQueue");
+function enqueue(filepath, message) {
+  if (!fileStates.has(filepath)) {
+    fileStates.set(filepath, {
+      queue: [],
+      isWriting: false
+    });
+  }
+  const state = fileStates.get(filepath);
+  state.queue.push(message);
+  processLogQueue(filepath);
+}
+__name(enqueue, "enqueue");
+function output(level, args) {
+  if (!canLog(level)) {
+    return;
+  }
+  const callee = getCallee();
+  {
+    const prefix = getLogPrefix(callee, level, logLevelColors[level]);
+    const data = formattedArgs(prefix, args, logLevelColors[level]);
+    logLevelChannel[level](prefix, ...data);
+  }
+  {
+    const prefix = getLogPrefix(callee, level);
+    const data = formattedArgs(prefix, args);
+    const filepath = fileSettings.get(level)?.filepath;
+    if (filepath) {
+      const message = prefix + " " + data.join(" ");
+      enqueue(filepath, message);
+    }
+  }
+}
+__name(output, "output");
 (function(Logger2) {
   function setLogLevel(level) {
-    logLevel = level;
+    logLevels.clear();
+    if (Array.isArray(level)) {
+      for (const lvl of level) {
+        logLevels.add(lvl);
+      }
+    } else {
+      const targetRank = logLevelRank[level];
+      for (const [lvl, rank] of Object.entries(logLevelRank)) {
+        if (rank >= targetRank) {
+          logLevels.add(lvl);
+        }
+      }
+    }
   }
   __name(setLogLevel, "setLogLevel");
   Logger2.setLogLevel = setLogLevel;
   function log(...args) {
-    if (!canLog("log")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "log", Logger2.colors.green);
-    console.log(prefix, ...formattedArgs(prefix, args, Logger2.colors.green));
+    output("log", args);
   }
   __name(log, "log");
   Logger2.log = log;
   function info(...args) {
-    if (!canLog("info")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "info", Logger2.colors.blue);
-    console.info(prefix, ...formattedArgs(prefix, args, Logger2.colors.blue));
+    output("info", args);
   }
   __name(info, "info");
   Logger2.info = info;
   function warn(...args) {
-    if (!canLog("warn")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "warn", Logger2.colors.brown);
-    console.warn(prefix, ...formattedArgs(prefix, args, Logger2.colors.brown));
+    output("warn", args);
   }
   __name(warn, "warn");
   Logger2.warn = warn;
   function error(...args) {
-    if (!canLog("error")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "error", Logger2.colors.red);
-    console.error(prefix, ...formattedArgs(prefix, args, Logger2.colors.red));
+    output("error", args);
   }
   __name(error, "error");
   Logger2.error = error;
   function errorStack(...args) {
-    if (!canLog("error")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "error", Logger2.colors.grey);
-    console.error(prefix, ...formattedArgs(prefix, args, Logger2.colors.grey));
+    output("error", args);
   }
   __name(errorStack, "errorStack");
   Logger2.errorStack = errorStack;
   function debug(...args) {
-    if (!canLog("debug")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "debug", Logger2.colors.purple);
-    console.debug(prefix, ...formattedArgs(prefix, args, Logger2.colors.purple));
+    output("debug", args);
   }
   __name(debug, "debug");
   Logger2.debug = debug;
   function comment(...args) {
-    if (!canLog("comment")) return;
-    const callee = getCallee();
-    const prefix = getLogPrefix(callee, "comment", Logger2.colors.grey);
-    console.debug(prefix, ...formattedArgs(prefix, args, Logger2.colors.grey));
+    output("comment", args);
   }
   __name(comment, "comment");
   Logger2.comment = comment;
+  function critical(...args) {
+    output("critical", args);
+  }
+  __name(critical, "critical");
+  Logger2.critical = critical;
+  function enableFileLogging(filepath, levels = [
+    "debug",
+    "comment",
+    "log",
+    "info",
+    "warn",
+    "error",
+    "critical"
+  ]) {
+    for (const level of levels) {
+      fileSettings.set(level, {
+        filepath
+      });
+    }
+  }
+  __name(enableFileLogging, "enableFileLogging");
+  Logger2.enableFileLogging = enableFileLogging;
+  function disableFileLogging(levels = [
+    "debug",
+    "comment",
+    "log",
+    "info",
+    "warn",
+    "error",
+    "critical"
+  ]) {
+    for (const level of levels) {
+      fileSettings.delete(level);
+    }
+  }
+  __name(disableFileLogging, "disableFileLogging");
+  Logger2.disableFileLogging = disableFileLogging;
   Logger2.colors = {
     black: "\x1B[0;30m",
     grey: "\x1B[0;37m",
@@ -529,6 +634,37 @@ var logLevelRank = {
     initial: "\x1B[0m"
   };
 })(Logger || (Logger = {}));
+var fileSettings = /* @__PURE__ */ new Map();
+var fileStates = /* @__PURE__ */ new Map();
+var logLevels = /* @__PURE__ */ new Set();
+var logLevelRank = {
+  debug: 0,
+  comment: 1,
+  log: 2,
+  info: 3,
+  warn: 4,
+  error: 5,
+  critical: 6
+};
+var logLevelColors = {
+  debug: Logger.colors.purple,
+  comment: Logger.colors.grey,
+  log: Logger.colors.green,
+  info: Logger.colors.blue,
+  warn: Logger.colors.brown,
+  error: Logger.colors.red,
+  critical: Logger.colors.lightRed
+};
+var logLevelChannel = {
+  debug: console.debug,
+  comment: console.debug,
+  log: console.log,
+  info: console.info,
+  warn: console.warn,
+  error: console.error,
+  critical: console.error
+};
+Logger.setLogLevel("debug");
 var Logger;
 
 // src/DI/injector-explorer.ts
@@ -584,10 +720,10 @@ function Injectable(lifetime = "scope") {
 __name(Injectable, "Injectable");
 
 // src/decorators/controller.decorator.ts
-function Controller(path) {
+function Controller(path2) {
   return (target) => {
     const data = {
-      path,
+      path: path2,
       guards: getGuardForController(target.name)
     };
     Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
@@ -635,7 +771,7 @@ var middlewares = /* @__PURE__ */ new Map();
 // src/request.ts
 import "reflect-metadata";
 var _Request = class _Request {
-  constructor(event, senderId, id, method, path, body) {
+  constructor(event, senderId, id, method, path2, body) {
     __publicField(this, "event");
     __publicField(this, "senderId");
     __publicField(this, "id");
@@ -648,9 +784,9 @@ var _Request = class _Request {
     this.senderId = senderId;
     this.id = id;
     this.method = method;
-    this.path = path;
+    this.path = path2;
     this.body = body;
-    this.path = path.replace(/^\/|\/$/g, "");
+    this.path = path2.replace(/^\/|\/$/g, "");
   }
 };
 __name(_Request, "Request");
@@ -732,8 +868,8 @@ var _RadixTree = class _RadixTree {
    * @param path - The path to insert into the tree.
    * @param value - The value to associate with the path.
    */
-  insert(path, value) {
-    const segments = this.normalize(path);
+  insert(path2, value) {
+    const segments = this.normalize(path2);
     this.insertRecursive(this.root, segments, value);
   }
   /**
@@ -762,8 +898,8 @@ var _RadixTree = class _RadixTree {
    * @param path - The path to search for in the Radix Tree.
    * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
    */
-  search(path) {
-    const segments = this.normalize(path);
+  search(path2) {
+    const segments = this.normalize(path2);
     return this.searchRecursive(this.root, segments, {});
   }
   /**
@@ -819,8 +955,8 @@ var _RadixTree = class _RadixTree {
    * @param path - The path to normalize.
    * @returns An array of normalized path segments.
    */
-  normalize(path) {
-    const segments = path.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+  normalize(path2) {
+    const segments = path2.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
     return [
       "",
       ...segments
@@ -930,6 +1066,7 @@ var _Router = class _Router {
       status: 200,
       body: null
     };
+    let isCritical = false;
     try {
       const routeDef = this.findRoute(request);
       await this.resolveController(request, response, routeDef);
@@ -943,10 +1080,12 @@ var _Router = class _Router {
         response.error = error.message;
         response.stack = error.stack;
       } else if (error instanceof Error) {
+        isCritical = true;
         response.status = 500;
         response.error = error.message || "Internal Server Error";
         response.stack = error.stack || "No stack trace available";
       } else {
+        isCritical = true;
         response.status = 500;
         response.error = "Unknown error occurred";
         response.stack = "No stack trace available";
@@ -954,11 +1093,23 @@ var _Router = class _Router {
     } finally {
       const t1 = performance.now();
       const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
-      if (response.status < 400) Logger.log(message);
-      else if (response.status < 500) Logger.warn(message);
-      else Logger.error(message);
+      if (response.status < 400) {
+        Logger.log(message);
+      } else if (response.status < 500) {
+        Logger.warn(message);
+      } else {
+        if (isCritical) {
+          Logger.critical(message);
+        } else {
+          Logger.error(message);
+        }
+      }
       if (response.error !== void 0) {
-        Logger.error(response.error);
+        if (isCritical) {
+          Logger.critical(response.error);
+        } else {
+          Logger.error(response.error);
+        }
         if (response.stack !== void 0) {
           Logger.errorStack(response.stack);
         }
@@ -976,6 +1127,7 @@ var _Router = class _Router {
         responses: []
       }
     };
+    let isCritical = false;
     try {
       const payload = this.normalizeBatchPayload(request.body);
       const batchResponses = [];
@@ -992,10 +1144,12 @@ var _Router = class _Router {
         response.error = error.message;
         response.stack = error.stack;
       } else if (error instanceof Error) {
+        isCritical = true;
         response.status = 500;
         response.error = error.message || "Internal Server Error";
         response.stack = error.stack || "No stack trace available";
       } else {
+        isCritical = true;
         response.status = 500;
         response.error = "Unknown error occurred";
         response.stack = "No stack trace available";
@@ -1003,11 +1157,23 @@ var _Router = class _Router {
     } finally {
       const t1 = performance.now();
       const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
-      if (response.status < 400) Logger.log(message);
-      else if (response.status < 500) Logger.warn(message);
-      else Logger.error(message);
+      if (response.status < 400) {
+        Logger.log(message);
+      } else if (response.status < 500) {
+        Logger.warn(message);
+      } else {
+        if (isCritical) {
+          Logger.critical(message);
+        } else {
+          Logger.error(message);
+        }
+      }
       if (response.error !== void 0) {
-        Logger.error(response.error);
+        if (isCritical) {
+          Logger.critical(response.error);
+        } else {
+          Logger.error(response.error);
+        }
         if (response.stack !== void 0) {
           Logger.errorStack(response.stack);
         }
@@ -1033,11 +1199,11 @@ var _Router = class _Router {
     if (entry === null || typeof entry !== "object") {
       throw new BadRequestException(`Batch request at index ${index} must be an object.`);
     }
-    const { requestId, path, method, body } = entry;
+    const { requestId, path: path2, method, body } = entry;
     if (requestId !== void 0 && typeof requestId !== "string") {
       throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
     }
-    if (typeof path !== "string" || path.length === 0) {
+    if (typeof path2 !== "string" || path2.length === 0) {
       throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
     }
     if (typeof method !== "string") {
@@ -1049,7 +1215,7 @@ var _Router = class _Router {
     }
     return {
       requestId,
-      path,
+      path: path2,
       method: normalizedMethod,
       body
     };
@@ -1275,14 +1441,14 @@ var _NoxApp = class _NoxApp {
      *
      */
     __publicField(this, "onRendererMessage", /* @__PURE__ */ __name(async (event) => {
-      const { senderId, requestId, path, method, body } = event.data;
+      const { senderId, requestId, path: path2, method, body } = event.data;
       const channels = this.socket.get(senderId);
       if (!channels) {
         Logger.error(`No message channel found for sender ID: ${senderId}`);
         return;
       }
       try {
-        const request = new Request(event, senderId, requestId, method, path, body);
+        const request = new Request(event, senderId, requestId, method, path2, body);
         const response = await this.router.handle(request);
         channels.request.port1.postMessage(response);
       } catch (err) {
