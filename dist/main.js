@@ -540,7 +540,7 @@ function formattedArgs(prefix, args, color) {
     if (typeof arg === "string") {
       return `${color}${arg}${colReset}`;
     } else if (typeof arg === "object") {
-      return formatObject(prefix, arg, color === "");
+      return formatObject(prefix, arg, color !== "");
     }
     return arg;
   });
@@ -614,7 +614,7 @@ function output(level, args) {
     const data = formattedArgs(prefix, args);
     const filepath = fileSettings.get(level)?.filepath;
     if (filepath) {
-      const message = prefix + " " + data.join(" ");
+      const message = prefix + " " + data.join(" ").replace(/\x1b\[[0-9;]*m/g, "");
       enqueue(filepath, message);
     }
   }

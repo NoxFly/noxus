@@ -114,7 +114,7 @@ function formattedArgs(prefix: string, args: any[], color?: string): any[] {
         }
 
         else if(typeof arg === "object") {
-            return formatObject(prefix, arg, color === "");
+            return formatObject(prefix, arg, color !== "");
         }
 
         return arg;
@@ -229,7 +229,7 @@ function output(level: LogLevel, args: any[]): void {
         const filepath = fileSettings.get(level)?.filepath;
 
         if(filepath) {
-            const message = prefix + " " + data.join(" ");
+            const message = prefix + " " + data.join(" ").replace(/\x1b\[[0-9;]*m/g, ''); // Remove ANSI codes
             enqueue(filepath, message);
         }
     }
