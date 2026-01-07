@@ -4,10 +4,64 @@
  * @author NoxFly
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 /**
  * Logger is a utility class for logging messages to the console.
  */
-export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'comment';
+export type LogLevel =
+    | 'debug'
+    | 'comment'
+    | 'log'
+    | 'info'
+    | 'warn'
+    | 'error'
+    | 'critical'
+;
+
+
+const fileSettings: Map<LogLevel, { filepath: string }> = new Map();
+const fileQueues: Map<string, string[]> = new Map(); // filepath -> messages[]
+
+
+
+
+const logLevels: Set<LogLevel> = new Set();
+Logger.setLogLevel("debug");
+
+
+const logLevelRank: Record<LogLevel, number> = {
+    debug: 0,
+    comment: 1,
+    log: 2,
+    info: 3,
+    warn: 4,
+    error: 5,
+    critical: 6,
+};
+
+const logLevelColors: Record<LogLevel, string> = {
+    debug: Logger.colors.purple,
+    comment: Logger.colors.grey,
+    log: Logger.colors.green,
+    info: Logger.colors.blue,
+    warn: Logger.colors.brown,
+    error: Logger.colors.red,
+    critical: Logger.colors.lightRed,
+};
+
+const logLevelChannel: Record<LogLevel, (message?: any, ...optionalParams: any[]) => void> = {
+    debug: console.debug,
+    comment: console.debug,
+    log: console.log,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+    critical: console.error,
+};
+
+
 
 /**
  * Returns a formatted timestamp for logging.
@@ -101,20 +155,69 @@ function getCallee(): string {
  * @returns A boolean indicating whether the log level is enabled.
  */
 function canLog(level: LogLevel): boolean {
-    return logLevelRank[level] >= logLevelRank[logLevel];
+    return logLevels.has(level);
+}
+
+/**
+ * Writes a log message to a file.
+ * @param filepath - The path to the log file.
+ * @param message - The log message to write.
+ */
+function writeToFile(filepath: string): void {
+    const queue = fileQueues.get(filepath);
+
+    if(!queue) {
+        return;
+    }
+
+    const message = queue.shift();
+
+    const dir = path.dirname(filepath);
+
+    if(!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.appendFileSync(filepath, message + '\n', { encoding: 'utf-8' });
+}
+
+/**
+ *
+ */
+function enqueue(filepath: string, message: string): void {
+    if(!fileQueues.has(filepath)) {
+        fileQueues.set(filepath, []);
+    }
+
+    const queue = fileQueues.get(filepath)!;
+    queue.push(message);
+
+    writeToFile(filepath);
+}
+
+/**
+ *
+ */
+function output(level: LogLevel, args: any[]): void {
+    if(!canLog(level)) {
+        return;
+    }
+
+    const callee = getCallee();
+    const prefix = getLogPrefix(callee, level, logLevelColors[level]);
+    const data = formattedArgs(prefix, args, logLevelColors[level]);
+
+    logLevelChannel[level](prefix, ...data);
+
+    const filepath = fileSettings.get(level)?.filepath;
+
+    if(filepath) {
+        const message = prefix + " " + data.join(' ');
+        enqueue(filepath, message);
+    }
 }
 
 
-let logLevel: LogLevel = 'debug';
-
-const logLevelRank: Record<LogLevel, number> = {
-    debug: 0,
-    comment: 1,
-    log: 2,
-    info: 3,
-    warn: 4,
-    error: 5,
-};
 
 export namespace Logger {
 
@@ -122,10 +225,30 @@ export namespace Logger {
      * Sets the log level for the logger.
      * This function allows you to change the log level dynamically at runtime.
      * This won't affect the startup logs.
+     *
+     * If the parameter is a single LogLevel, all log levels with equal or higher severity will be enabled.
+
+    * If the parameter is an array of LogLevels, only the specified levels will be enabled.
+     *
      * @param level Sets the log level for the logger.
      */
-    export function setLogLevel(level: LogLevel): void {
-        logLevel = level;
+    export function setLogLevel(level: LogLevel | LogLevel[]): void {
+        logLevels.clear();
+
+        if(Array.isArray(level)) {
+            for(const lvl of level) {
+                logLevels.add(lvl);
+            }
+        }
+        else {
+            const targetRank = logLevelRank[level];
+
+            for(const [lvl, rank] of Object.entries(logLevelRank) as [LogLevel, number][]) {
+                if(rank >= targetRank) {
+                    logLevels.add(lvl);
+                }
+            }
+        }
     }
 
     /**
@@ -135,12 +258,7 @@ export namespace Logger {
      * @param args The arguments to log.
      */
     export function log(...args: any[]): void {
-        if(!canLog('log'))
-            return;
-
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "log", colors.green);
-        console.log(prefix, ...formattedArgs(prefix, args, colors.green));
+        output("log", args);
     }
 
     /**
@@ -150,12 +268,7 @@ export namespace Logger {
      * @param args The arguments to log.
      */
     export function info(...args: any[]): void {
-        if(!canLog('info'))
-            return;
-
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "info", colors.blue);
-        console.info(prefix, ...formattedArgs(prefix, args, colors.blue));
+        output("info", args);
     }
 
     /**
@@ -165,12 +278,7 @@ export namespace Logger {
      * @param args The arguments to log.
      */
     export function warn(...args: any[]): void {
-        if(!canLog('warn'))
-            return;
-
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "warn", colors.brown);
-        console.warn(prefix, ...formattedArgs(prefix, args, colors.brown));
+        output("warn", args);
     }
 
     /**
@@ -180,21 +288,14 @@ export namespace Logger {
      * @param args The arguments to log.
      */
     export function error(...args: any[]): void {
-        if(!canLog('error'))
-            return;
-
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "error", colors.red);
-        console.error(prefix, ...formattedArgs(prefix, args, colors.red));
+        output("error", args);
     }
 
+    /**
+     * Logs a message to the console with log level ERROR and a grey color scheme.
+     */
     export function errorStack(...args: any[]): void {
-        if(!canLog('error'))
-            return;
-
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "error", colors.grey);
-        console.error(prefix, ...formattedArgs(prefix, args, colors.grey));
+        output("error", args);
     }
 
     /**
@@ -204,12 +305,7 @@ export namespace Logger {
      * @param args The arguments to log.
      */
     export function debug(...args: any[]): void {
-        if(!canLog('debug'))
-            return;
-
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "debug", colors.purple);
-        console.debug(prefix, ...formattedArgs(prefix, args, colors.purple));
+        output("debug", args);
     }
 
     /**
@@ -219,12 +315,38 @@ export namespace Logger {
      * @param args The arguments to log.
      */
     export function comment(...args: any[]): void {
-        if(!canLog('comment'))
-            return;
+        output("comment", args);
+    }
 
-        const callee = getCallee();
-        const prefix = getLogPrefix(callee, "comment", colors.grey);
-        console.debug(prefix, ...formattedArgs(prefix, args, colors.grey));
+    /**
+     * Logs a message to the console with log level CRITICAL.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    export function critical(...args: any[]): void {
+        output("critical", args);
+    }
+
+    /**
+     * Enables logging to a file output for the specified log levels.
+     * @param filepath The path to the log file.
+     * @param levels The log levels to enable file logging for. Defaults to all levels.
+     */
+    export function enableFileLogging(filepath: string, levels: LogLevel[] = ['debug', 'comment', 'log', 'info', 'warn', 'error', 'critical']): void {
+        for(const level of levels) {
+            fileSettings.set(level, { filepath });
+        }
+    }
+
+    /**
+     * Disables logging to a file output for the specified log levels.
+     * @param levels The log levels to disable file logging for. Defaults to all levels.
+     */
+    export function disableFileLogging(levels: LogLevel[] = ['debug', 'comment', 'log', 'info', 'warn', 'error', 'critical']): void {
+        for(const level of levels) {
+            fileSettings.delete(level);
+        }
     }
 
 
