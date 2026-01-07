@@ -410,15 +410,20 @@ declare function exposeNoxusBridge(options?: NoxusPreloadOptions): NoxusPreloadA
 /**
  * Logger is a utility class for logging messages to the console.
  */
-type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'comment';
+type LogLevel = 'debug' | 'comment' | 'log' | 'info' | 'warn' | 'error' | 'critical';
 declare namespace Logger {
     /**
      * Sets the log level for the logger.
      * This function allows you to change the log level dynamically at runtime.
      * This won't affect the startup logs.
+     *
+     * If the parameter is a single LogLevel, all log levels with equal or higher severity will be enabled.
+
+    * If the parameter is an array of LogLevels, only the specified levels will be enabled.
+     *
      * @param level Sets the log level for the logger.
      */
-    function setLogLevel(level: LogLevel): void;
+    function setLogLevel(level: LogLevel | LogLevel[]): void;
     /**
      * Logs a message to the console with log level LOG.
      * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
@@ -447,6 +452,9 @@ declare namespace Logger {
      * @param args The arguments to log.
      */
     function error(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level ERROR and a grey color scheme.
+     */
     function errorStack(...args: any[]): void;
     /**
      * Logs a message to the console with log level DEBUG.
@@ -462,6 +470,24 @@ declare namespace Logger {
      * @param args The arguments to log.
      */
     function comment(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level CRITICAL.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function critical(...args: any[]): void;
+    /**
+     * Enables logging to a file output for the specified log levels.
+     * @param filepath The path to the log file.
+     * @param levels The log levels to enable file logging for. Defaults to all levels.
+     */
+    function enableFileLogging(filepath: string, levels?: LogLevel[]): void;
+    /**
+     * Disables logging to a file output for the specified log levels.
+     * @param levels The log levels to disable file logging for. Defaults to all levels.
+     */
+    function disableFileLogging(levels?: LogLevel[]): void;
     const colors: {
         black: string;
         grey: string;

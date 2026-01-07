@@ -6,7 +6,10 @@
 
 /**
  * Entry point for Electron main-process consumers.
+ * order of exports here matters and can affect module resolution.
+ * Please be cautious when modifying.
  */
+
 export * from './DI/app-injector';
 export * from './router';
 export * from './app';

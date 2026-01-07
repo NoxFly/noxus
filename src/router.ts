@@ -145,6 +145,8 @@ export class Router {
             body: null,
         };
 
+        let isCritical: boolean = false;
+
         try {
             const routeDef = this.findRoute(request);
             await this.resolveController(request, response, routeDef);
@@ -162,11 +164,13 @@ export class Router {
                 response.stack = error.stack;
             }
             else if(error instanceof Error) {
+                isCritical = true;
                 response.status = 500;
                 response.error = error.message || 'Internal Server Error';
                 response.stack = error.stack || 'No stack trace available';
             }
             else {
+                isCritical = true;
                 response.status = 500;
                 response.error = 'Unknown error occurred';
                 response.stack = 'No stack trace available';
@@ -177,15 +181,28 @@ export class Router {
 
             const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
 
-            if(response.status < 400)
+            if(response.status < 400) {
                 Logger.log(message);
-            else if(response.status < 500)
+            }
+            else if(response.status < 500) {
                 Logger.warn(message);
-            else
-                Logger.error(message);
+            }
+            else {
+                if(isCritical) {
+                    Logger.critical(message);
+                }
+                else {
+                    Logger.error(message);
+                }
+            }
 
             if(response.error !== undefined) {
-                Logger.error(response.error);
+                if(isCritical) {
+                    Logger.critical(response.error);
+                }
+                else {
+                    Logger.error(response.error);
+                }
 
                 if(response.stack !== undefined) {
                     Logger.errorStack(response.stack);
@@ -206,6 +223,8 @@ export class Router {
             status: 200,
             body: { responses: [] },
         };
+
+        let isCritical: boolean = false;
 
         try {
             const payload = this.normalizeBatchPayload(request.body);
@@ -228,11 +247,13 @@ export class Router {
                 response.stack = error.stack;
             }
             else if(error instanceof Error) {
+                isCritical = true;
                 response.status = 500;
                 response.error = error.message || 'Internal Server Error';
                 response.stack = error.stack || 'No stack trace available';
             }
             else {
+                isCritical = true;
                 response.status = 500;
                 response.error = 'Unknown error occurred';
                 response.stack = 'No stack trace available';
@@ -243,15 +264,28 @@ export class Router {
 
             const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
 
-            if(response.status < 400)
+            if(response.status < 400) {
                 Logger.log(message);
-            else if(response.status < 500)
+            }
+            else if(response.status < 500) {
                 Logger.warn(message);
-            else
-                Logger.error(message);
+            }
+            else {
+                if(isCritical) {
+                    Logger.critical(message);
+                }
+                else {
+                    Logger.error(message);
+                }
+            }
 
             if(response.error !== undefined) {
-                Logger.error(response.error);
+                if(isCritical) {
+                    Logger.critical(response.error);
+                }
+                else {
+                    Logger.error(response.error);
+                }
 
                 if(response.stack !== undefined) {
                     Logger.errorStack(response.stack);
