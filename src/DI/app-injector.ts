@@ -64,11 +64,21 @@ export class AppInjector {
     public resolve<T extends Type<unknown>>(target: T): InstanceType<T> {
         const binding = this.bindings.get(target);
 
-        if(!binding)
+        if(!binding) {
+            if(target === undefined) {
+                throw new InternalServerException(
+                    "Failed to resolve a dependency injection : Undefined target type.\n"
+                    + "This might be caused by a circular dependency."
+                );
+            }
+
+            const name = target.name || "unknown";
+
             throw new InternalServerException(
-                `Failed to resolve a dependency injection : No binding for type ${target.name}.\n`
+                `Failed to resolve a dependency injection : No binding for type ${name}.\n`
                 + `Did you forget to use @Injectable() decorator ?`
             );
+        }
 
         switch(binding.lifetime) {
             case 'transient':
