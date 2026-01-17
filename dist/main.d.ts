@@ -1,5 +1,5 @@
-import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime, b as IPortRequester } from './index-CI3OMzNR.js';
-export { A as AppInjector, j as AtomicHttpMethod, e as Authorize, D as Delete, G as Get, H as HttpMethod, p as IBatchRequestItem, q as IBatchRequestPayload, r as IBatchResponsePayload, c as IBinding, t as IRendererEventMessage, o as IRequest, h as IRouteMetadata, N as NoxRendererClient, m as Patch, P as Post, l as Put, s as RENDERER_EVENT_TYPE, n as ROUTE_METADATA_KEY, z as RendererClientOptions, w as RendererEventHandler, y as RendererEventRegistry, x as RendererEventSubscription, d as RootInjector, u as createRendererEventMessage, g as getGuardForController, f as getGuardForControllerAction, k as getRouteMetadata, i as inject, v as isRendererEventMessage } from './index-CI3OMzNR.js';
+import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime, b as IPortRequester } from './index-Dr-ifUJj.js';
+export { A as AppInjector, j as AtomicHttpMethod, e as Authorize, D as Delete, F as ForwardRefFn, o as ForwardReference, G as Get, H as HttpMethod, r as IBatchRequestItem, s as IBatchRequestPayload, t as IBatchResponsePayload, c as IBinding, v as IRendererEventMessage, q as IRequest, h as IRouteMetadata, N as NoxRendererClient, m as Patch, P as Post, l as Put, u as RENDERER_EVENT_TYPE, n as ROUTE_METADATA_KEY, C as RendererClientOptions, y as RendererEventHandler, B as RendererEventRegistry, z as RendererEventSubscription, d as RootInjector, w as createRendererEventMessage, p as forwardRef, g as getGuardForController, f as getGuardForControllerAction, k as getRouteMetadata, i as inject, x as isRendererEventMessage } from './index-Dr-ifUJj.js';
 
 /**
  * @copyright 2025 NoxFly
@@ -374,6 +374,16 @@ declare function hasInjectableMetadata(target: Function): boolean;
 declare function Injectable(lifetime?: Lifetime): ClassDecorator;
 
 
+declare const INJECT_METADATA_KEY = "custom:inject";
+/**
+ * Decorator to manually inject a dependency.
+ * Useful for handling circular dependencies with `forwardRef` or injecting specific tokens.
+ *
+ * @param token The token or forward reference to inject.
+ */
+declare function Inject(token: any): ParameterDecorator;
+
+
 interface IModuleMetadata {
     imports?: Type<unknown>[];
     exports?: Type<unknown>[];
@@ -508,4 +518,4 @@ declare namespace Logger {
     };
 }
 
-export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, IPortRequester, IResponse, type IRouteDefinition, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, hasInjectableMetadata };
+export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, IPortRequester, IResponse, type IRouteDefinition, Inject, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, hasInjectableMetadata };

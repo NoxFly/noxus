@@ -5,7 +5,9 @@
  */
 
 import 'reflect-metadata';
+import { INJECT_METADATA_KEY } from 'src/decorators/inject.decorator';
 import { InternalServerException } from 'src/exceptions';
+import { ForwardReference } from 'src/utils/forward-ref';
 import { Type } from 'src/utils/types';
 
 /**
@@ -61,28 +63,59 @@ export class AppInjector {
      * Called when resolving a dependency,
      * i.e., retrieving the instance of a given class.
      */
-    public resolve<T extends Type<unknown>>(target: T): InstanceType<T> {
+    public resolve<T>(target: Type<T> | ForwardReference<T>): T {
+        if (target instanceof ForwardReference) {
+            return new Proxy({}, {
+                get: (obj, prop, receiver) => {
+                    const realType = target.forwardRefFn();
+                    const instance = this.resolve(realType) as any;
+                    const value = Reflect.get(instance, prop, receiver);
+                    
+                    return typeof value === 'function' ? value.bind(instance) : value;
+                },
+                set: (obj, prop, value, receiver) => {
+                     const realType = target.forwardRefFn();
+                     const instance = this.resolve(realType) as any;
+                     return Reflect.set(instance, prop, value, receiver);
+                },
+                getPrototypeOf: () => {
+                     const realType = target.forwardRefFn();
+                     return (realType as any).prototype;
+                }
+            }) as T;
+        }
+
         const binding = this.bindings.get(target);
 
-        if(!binding)
+        if(!binding) {
+            if(target === undefined) {
+                throw new InternalServerException(
+                    "Failed to resolve a dependency injection : Undefined target type.\n"
+                    + "This might be caused by a circular dependency."
+                );
+            }
+
+            const name = target.name || "unknown";
+
             throw new InternalServerException(
-                `Failed to resolve a dependency injection : No binding for type ${target.name}.\n`
+                `Failed to resolve a dependency injection : No binding for type ${name}.\n`
                 + `Did you forget to use @Injectable() decorator ?`
             );
+        }
 
         switch(binding.lifetime) {
             case 'transient':
-                return this.instantiate(binding.implementation) as InstanceType<T>;
+                return this.instantiate(binding.implementation) as T;
 
             case 'scope': {
                 if(this.scoped.has(target)) {
-                    return this.scoped.get(target) as InstanceType<T>;
+                    return this.scoped.get(target) as T;
                 }
 
                 const instance = this.instantiate(binding.implementation);
                 this.scoped.set(target, instance);
 
-                return instance as InstanceType<T>;
+                return instance as T;
             }
 
             case 'singleton': {
@@ -91,17 +124,25 @@ export class AppInjector {
                     this.singletons.set(target, binding.instance);
                 }
 
-                return binding.instance as InstanceType<T>;
+                return binding.instance as T;
             }
         }
     }
 
     /**
-     *
+     * Instantiates a class, resolving its dependencies.
      */
     private instantiate<T extends Type<unknown>>(target: T): InstanceType<T> {
         const paramTypes = Reflect.getMetadata('design:paramtypes', target) || [];
-        const params = paramTypes.map((p: any) => this.resolve(p));
+        const injectParams = Reflect.getMetadata(INJECT_METADATA_KEY, target) || [];
+
+        const params = paramTypes.map((paramType: any, index: number) => {
+            const overrideToken = injectParams[index];
+            const actualToken = overrideToken !== undefined ? overrideToken : paramType;
+
+            return this.resolve(actualToken);
+        });
+
         return new target(...params) as InstanceType<T>;
     }
 }
@@ -114,7 +155,7 @@ export class AppInjector {
  * @returns An instance of the type.
  * @throws If the type is not registered in the dependency injection system.
  */
-export function inject<T>(t: Type<T>): T {
+export function inject<T>(t: Type<T> | ForwardReference<T>): T {
     return RootInjector.resolve(t);
 }
 

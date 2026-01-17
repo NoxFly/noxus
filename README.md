@@ -311,6 +311,50 @@ import { MyClass } from 'src/myclass';
 const instance: MyClass = inject(MyClass);
 ```
 
+### Circular Dependencies
+
+Noxus solves circular dependencies using a forward reference pattern. When two classes depend on each other, you can use `forwardRef()` combined with either the `@Inject()` decorator or the `inject()` helper to lazily resolve the dependency.
+
+**Using Constructor Injection (`@Inject`)**
+
+```ts
+import { Injectable, Inject, forwardRef } from '@noxfly/noxus/main';
+
+@Injectable()
+class ServiceA {
+    constructor(
+        @Inject(forwardRef(() => ServiceB)) 
+        private readonly serviceB: ServiceB
+    ) {}
+}
+
+@Injectable()
+class ServiceB {
+    constructor(
+        private readonly serviceA: ServiceA
+    ) {}
+}
+```
+
+**Using Property Injection (`inject`)**
+
+```ts
+import { Injectable, inject, forwardRef } from '@noxfly/noxus/main';
+
+@Injectable()
+class ServiceA {
+    // Lazily resolves ServiceB, avoiding infinite recursion during instantiation
+    private readonly serviceB = inject(forwardRef(() => ServiceB));
+}
+
+@Injectable()
+class ServiceB {
+    private readonly serviceA = inject(ServiceA);
+}
+```
+
+In both cases, a `Proxy` is returned, meaning the actual instance is only resolved when you access a property or method on it.
+
 ### Middlewares
 
 Declare middlewares as follow :

@@ -47,10 +47,13 @@ __export(main_exports, {
   Controller: () => Controller,
   Delete: () => Delete,
   ForbiddenException: () => ForbiddenException,
+  ForwardReference: () => ForwardReference,
   GatewayTimeoutException: () => GatewayTimeoutException,
   Get: () => Get,
   HttpVersionNotSupportedException: () => HttpVersionNotSupportedException,
   INJECTABLE_METADATA_KEY: () => INJECTABLE_METADATA_KEY,
+  INJECT_METADATA_KEY: () => INJECT_METADATA_KEY,
+  Inject: () => Inject,
   Injectable: () => Injectable,
   InsufficientStorageException: () => InsufficientStorageException,
   InternalServerException: () => InternalServerException,
@@ -89,6 +92,7 @@ __export(main_exports, {
   bootstrapApplication: () => bootstrapApplication,
   createRendererEventMessage: () => createRendererEventMessage,
   exposeNoxusBridge: () => exposeNoxusBridge,
+  forwardRef: () => forwardRef,
   getControllerMetadata: () => getControllerMetadata,
   getGuardForController: () => getGuardForController,
   getGuardForControllerAction: () => getGuardForControllerAction,
@@ -104,7 +108,19 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 
 // src/DI/app-injector.ts
+var import_reflect_metadata2 = require("reflect-metadata");
+
+// src/decorators/inject.decorator.ts
 var import_reflect_metadata = require("reflect-metadata");
+var INJECT_METADATA_KEY = "custom:inject";
+function Inject(token) {
+  return (target, propertyKey, parameterIndex) => {
+    const existingParameters = Reflect.getOwnMetadata(INJECT_METADATA_KEY, target) || [];
+    existingParameters[parameterIndex] = token;
+    Reflect.defineMetadata(INJECT_METADATA_KEY, existingParameters, target);
+  };
+}
+__name(Inject, "Inject");
 
 // src/exceptions.ts
 var _ResponseException = class _ResponseException extends Error {
@@ -310,6 +326,20 @@ var _NetworkConnectTimeoutException = class _NetworkConnectTimeoutException exte
 __name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
 var NetworkConnectTimeoutException = _NetworkConnectTimeoutException;
 
+// src/utils/forward-ref.ts
+var _ForwardReference = class _ForwardReference {
+  constructor(forwardRefFn) {
+    __publicField(this, "forwardRefFn");
+    this.forwardRefFn = forwardRefFn;
+  }
+};
+__name(_ForwardReference, "ForwardReference");
+var ForwardReference = _ForwardReference;
+function forwardRef(fn) {
+  return new ForwardReference(fn);
+}
+__name(forwardRef, "forwardRef");
+
 // src/DI/app-injector.ts
 var _AppInjector = class _AppInjector {
   constructor(name = null) {
@@ -336,9 +366,34 @@ var _AppInjector = class _AppInjector {
    * i.e., retrieving the instance of a given class.
    */
   resolve(target) {
+    if (target instanceof ForwardReference) {
+      return new Proxy({}, {
+        get: /* @__PURE__ */ __name((obj, prop, receiver) => {
+          const realType = target.forwardRefFn();
+          const instance = this.resolve(realType);
+          const value = Reflect.get(instance, prop, receiver);
+          return typeof value === "function" ? value.bind(instance) : value;
+        }, "get"),
+        set: /* @__PURE__ */ __name((obj, prop, value, receiver) => {
+          const realType = target.forwardRefFn();
+          const instance = this.resolve(realType);
+          return Reflect.set(instance, prop, value, receiver);
+        }, "set"),
+        getPrototypeOf: /* @__PURE__ */ __name(() => {
+          const realType = target.forwardRefFn();
+          return realType.prototype;
+        }, "getPrototypeOf")
+      });
+    }
     const binding = this.bindings.get(target);
-    if (!binding) throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${target.name}.
+    if (!binding) {
+      if (target === void 0) {
+        throw new InternalServerException("Failed to resolve a dependency injection : Undefined target type.\nThis might be caused by a circular dependency.");
+      }
+      const name = target.name || "unknown";
+      throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${name}.
 Did you forget to use @Injectable() decorator ?`);
+    }
     switch (binding.lifetime) {
       case "transient":
         return this.instantiate(binding.implementation);
@@ -360,11 +415,16 @@ Did you forget to use @Injectable() decorator ?`);
     }
   }
   /**
-   *
+   * Instantiates a class, resolving its dependencies.
    */
   instantiate(target) {
     const paramTypes = Reflect.getMetadata("design:paramtypes", target) || [];
-    const params = paramTypes.map((p) => this.resolve(p));
+    const injectParams = Reflect.getMetadata(INJECT_METADATA_KEY, target) || [];
+    const params = paramTypes.map((paramType, index) => {
+      const overrideToken = injectParams[index];
+      const actualToken = overrideToken !== void 0 ? overrideToken : paramType;
+      return this.resolve(actualToken);
+    });
     return new target(...params);
   }
 };
@@ -377,7 +437,7 @@ __name(inject, "inject");
 var RootInjector = new AppInjector("root");
 
 // src/router.ts
-var import_reflect_metadata3 = require("reflect-metadata");
+var import_reflect_metadata4 = require("reflect-metadata");
 
 // src/decorators/guards.decorator.ts
 function Authorize(...guardClasses) {
@@ -864,7 +924,7 @@ __name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
 var middlewares = /* @__PURE__ */ new Map();
 
 // src/request.ts
-var import_reflect_metadata2 = require("reflect-metadata");
+var import_reflect_metadata3 = require("reflect-metadata");
 var _Request = class _Request {
   constructor(event, senderId, id, method, path2, body) {
     __publicField(this, "event");
@@ -2063,10 +2123,13 @@ var NoxRendererClient = _NoxRendererClient;
   Controller,
   Delete,
   ForbiddenException,
+  ForwardReference,
   GatewayTimeoutException,
   Get,
   HttpVersionNotSupportedException,
   INJECTABLE_METADATA_KEY,
+  INJECT_METADATA_KEY,
+  Inject,
   Injectable,
   InsufficientStorageException,
   InternalServerException,
@@ -2105,6 +2168,7 @@ var NoxRendererClient = _NoxRendererClient;
   bootstrapApplication,
   createRendererEventMessage,
   exposeNoxusBridge,
+  forwardRef,
   getControllerMetadata,
   getGuardForController,
   getGuardForControllerAction,
