@@ -111,6 +111,28 @@ declare const ROUTE_METADATA_KEY: unique symbol;
 
 
 /**
+ * A function that returns a type.
+ * Used for forward references to types that are not yet defined.
+ */
+interface ForwardRefFn<T = any> {
+    (): Type<T>;
+}
+/**
+ * A wrapper class for forward referenced types.
+ */
+declare class ForwardReference<T = any> {
+    readonly forwardRefFn: ForwardRefFn<T>;
+    constructor(forwardRefFn: ForwardRefFn<T>);
+}
+/**
+ * Creates a forward reference to a type.
+ * @param fn A function that returns the type.
+ * @returns A ForwardReference instance.
+ */
+declare function forwardRef<T = any>(fn: ForwardRefFn<T>): ForwardReference<T>;
+
+
+/**
  * Represents a lifetime of a binding in the dependency injection system.
  * It can be one of the following:
  * - 'singleton': The instance is created once and shared across the application.
@@ -151,9 +173,9 @@ declare class AppInjector {
      * Called when resolving a dependency,
      * i.e., retrieving the instance of a given class.
      */
-    resolve<T extends Type<unknown>>(target: T): InstanceType<T>;
+    resolve<T>(target: Type<T> | ForwardReference<T>): T;
     /**
-     *
+     * Instantiates a class, resolving its dependencies.
      */
     private instantiate;
 }
@@ -165,7 +187,7 @@ declare class AppInjector {
  * @returns An instance of the type.
  * @throws If the type is not registered in the dependency injection system.
  */
-declare function inject<T>(t: Type<T>): T;
+declare function inject<T>(t: Type<T> | ForwardReference<T>): T;
 declare const RootInjector: AppInjector;
 
 
@@ -315,4 +337,4 @@ declare class NoxRendererClient {
     isElectronEnvironment(): boolean;
 }
 
-export { AppInjector as A, Delete as D, Get as G, type HttpMethod as H, type IResponse as I, type Lifetime as L, type MaybeAsync as M, NoxRendererClient as N, Post as P, Request as R, type Type as T, type IGuard as a, type IPortRequester as b, type IBinding as c, RootInjector as d, Authorize as e, getGuardForControllerAction as f, getGuardForController as g, type IRouteMetadata as h, inject as i, type AtomicHttpMethod as j, getRouteMetadata as k, Put as l, Patch as m, ROUTE_METADATA_KEY as n, type IRequest as o, type IBatchRequestItem as p, type IBatchRequestPayload as q, type IBatchResponsePayload as r, RENDERER_EVENT_TYPE as s, type IRendererEventMessage as t, createRendererEventMessage as u, isRendererEventMessage as v, type RendererEventHandler as w, type RendererEventSubscription as x, RendererEventRegistry as y, type RendererClientOptions as z };
+export { AppInjector as A, RendererEventRegistry as B, type RendererClientOptions as C, Delete as D, type ForwardRefFn as F, Get as G, type HttpMethod as H, type IResponse as I, type Lifetime as L, type MaybeAsync as M, NoxRendererClient as N, Post as P, Request as R, type Type as T, type IGuard as a, type IPortRequester as b, type IBinding as c, RootInjector as d, Authorize as e, getGuardForControllerAction as f, getGuardForController as g, type IRouteMetadata as h, inject as i, type AtomicHttpMethod as j, getRouteMetadata as k, Put as l, Patch as m, ROUTE_METADATA_KEY as n, ForwardReference as o, forwardRef as p, type IRequest as q, type IBatchRequestItem as r, type IBatchRequestPayload as s, type IBatchResponsePayload as t, RENDERER_EVENT_TYPE as u, type IRendererEventMessage as v, createRendererEventMessage as w, isRendererEventMessage as x, type RendererEventHandler as y, type RendererEventSubscription as z };
