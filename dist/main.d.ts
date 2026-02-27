@@ -1,5 +1,8 @@
-import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime, b as IPortRequester } from './index-Dr-ifUJj.js';
-export { A as AppInjector, j as AtomicHttpMethod, e as Authorize, D as Delete, F as ForwardRefFn, o as ForwardReference, G as Get, H as HttpMethod, r as IBatchRequestItem, s as IBatchRequestPayload, t as IBatchResponsePayload, c as IBinding, v as IRendererEventMessage, q as IRequest, h as IRouteMetadata, N as NoxRendererClient, m as Patch, P as Post, l as Put, u as RENDERER_EVENT_TYPE, n as ROUTE_METADATA_KEY, C as RendererClientOptions, y as RendererEventHandler, B as RendererEventRegistry, z as RendererEventSubscription, d as RootInjector, w as createRendererEventMessage, p as forwardRef, g as getGuardForController, f as getGuardForControllerAction, k as getRouteMetadata, i as inject, x as isRendererEventMessage } from './index-Dr-ifUJj.js';
+import { M as MaybeAsync, T as Type } from './app-injector-B3MvgV3k.js';
+export { A as AppInjector, F as ForwardRefFn, a as ForwardReference, I as IBinding, L as Lifetime, R as RootInjector, f as forwardRef, i as inject } from './app-injector-B3MvgV3k.js';
+import { R as Request, I as IResponse, a as IGuard, b as IPortRequester } from './index-BxWQVi6C.js';
+export { e as AtomicHttpMethod, A as Authorize, D as Delete, G as Get, H as HttpMethod, l as IBatchRequestItem, m as IBatchRequestPayload, n as IBatchResponsePayload, p as IRendererEventMessage, k as IRequest, d as IRouteMetadata, N as NoxRendererClient, i as Patch, P as Post, h as Put, o as RENDERER_EVENT_TYPE, j as ROUTE_METADATA_KEY, v as RendererClientOptions, s as RendererEventHandler, u as RendererEventRegistry, t as RendererEventSubscription, q as createRendererEventMessage, g as getGuardForController, c as getGuardForControllerAction, f as getRouteMetadata, r as isRendererEventMessage } from './index-BxWQVi6C.js';
+export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, Inject, Injectable, InsufficientStorageException, InternalServerException, LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, getInjectableMetadata, hasInjectableMetadata } from './child.js';
 
 /**
  * @copyright 2025 NoxFly
@@ -260,81 +263,6 @@ declare class NoxApp {
  */
 declare function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp>;
 
-declare class ResponseException extends Error {
-    readonly status: number;
-    constructor(message?: string);
-    constructor(statusCode?: number, message?: string);
-}
-declare class BadRequestException extends ResponseException {
-    readonly status = 400;
-}
-declare class UnauthorizedException extends ResponseException {
-    readonly status = 401;
-}
-declare class PaymentRequiredException extends ResponseException {
-    readonly status = 402;
-}
-declare class ForbiddenException extends ResponseException {
-    readonly status = 403;
-}
-declare class NotFoundException extends ResponseException {
-    readonly status = 404;
-}
-declare class MethodNotAllowedException extends ResponseException {
-    readonly status = 405;
-}
-declare class NotAcceptableException extends ResponseException {
-    readonly status = 406;
-}
-declare class RequestTimeoutException extends ResponseException {
-    readonly status = 408;
-}
-declare class ConflictException extends ResponseException {
-    readonly status = 409;
-}
-declare class UpgradeRequiredException extends ResponseException {
-    readonly status = 426;
-}
-declare class TooManyRequestsException extends ResponseException {
-    readonly status = 429;
-}
-declare class InternalServerException extends ResponseException {
-    readonly status = 500;
-}
-declare class NotImplementedException extends ResponseException {
-    readonly status = 501;
-}
-declare class BadGatewayException extends ResponseException {
-    readonly status = 502;
-}
-declare class ServiceUnavailableException extends ResponseException {
-    readonly status = 503;
-}
-declare class GatewayTimeoutException extends ResponseException {
-    readonly status = 504;
-}
-declare class HttpVersionNotSupportedException extends ResponseException {
-    readonly status = 505;
-}
-declare class VariantAlsoNegotiatesException extends ResponseException {
-    readonly status = 506;
-}
-declare class InsufficientStorageException extends ResponseException {
-    readonly status = 507;
-}
-declare class LoopDetectedException extends ResponseException {
-    readonly status = 508;
-}
-declare class NotExtendedException extends ResponseException {
-    readonly status = 510;
-}
-declare class NetworkAuthenticationRequiredException extends ResponseException {
-    readonly status = 511;
-}
-declare class NetworkConnectTimeoutException extends ResponseException {
-    readonly status = 599;
-}
-
 
 /**
  * The configuration that waits a controller's decorator.
@@ -358,30 +286,6 @@ declare function Controller(path: string): ClassDecorator;
  */
 declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
 declare const CONTROLLER_METADATA_KEY: unique symbol;
-
-declare const INJECTABLE_METADATA_KEY: unique symbol;
-declare function getInjectableMetadata(target: Function): Lifetime | undefined;
-declare function hasInjectableMetadata(target: Function): boolean;
-
-
-/**
- * The Injectable decorator marks a class as injectable.
- * It allows the class to be registered in the dependency injection system.
- * A class decorated with @Injectable can be injected into other classes
- * either from the constructor of the class that needs it of from the `inject` function.
- * @param lifetime - The lifetime of the injectable. Can be 'singleton', 'scope', or 'transient'.
- */
-declare function Injectable(lifetime?: Lifetime): ClassDecorator;
-
-
-declare const INJECT_METADATA_KEY = "custom:inject";
-/**
- * Decorator to manually inject a dependency.
- * Useful for handling circular dependencies with `forwardRef` or injecting specific tokens.
- *
- * @param token The token or forward reference to inject.
- */
-declare function Inject(token: any): ParameterDecorator;
 
 
 interface IModuleMetadata {
@@ -417,105 +321,4 @@ interface NoxusPreloadOptions {
  */
 declare function exposeNoxusBridge(options?: NoxusPreloadOptions): NoxusPreloadAPI;
 
-/**
- * Logger is a utility class for logging messages to the console.
- */
-type LogLevel = 'debug' | 'comment' | 'log' | 'info' | 'warn' | 'error' | 'critical';
-declare namespace Logger {
-    /**
-     * Sets the log level for the logger.
-     * This function allows you to change the log level dynamically at runtime.
-     * This won't affect the startup logs.
-     *
-     * If the parameter is a single LogLevel, all log levels with equal or higher severity will be enabled.
-
-    * If the parameter is an array of LogLevels, only the specified levels will be enabled.
-     *
-     * @param level Sets the log level for the logger.
-     */
-    function setLogLevel(level: LogLevel | LogLevel[]): void;
-    /**
-     * Logs a message to the console with log level LOG.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function log(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level INFO.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function info(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level WARN.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function warn(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level ERROR.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function error(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level ERROR and a grey color scheme.
-     */
-    function errorStack(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level DEBUG.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function debug(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level COMMENT.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function comment(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level CRITICAL.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function critical(...args: any[]): void;
-    /**
-     * Enables logging to a file output for the specified log levels.
-     * @param filepath The path to the log file.
-     * @param levels The log levels to enable file logging for. Defaults to all levels.
-     */
-    function enableFileLogging(filepath: string, levels?: LogLevel[]): void;
-    /**
-     * Disables logging to a file output for the specified log levels.
-     * @param levels The log levels to disable file logging for. Defaults to all levels.
-     */
-    function disableFileLogging(levels?: LogLevel[]): void;
-    const colors: {
-        black: string;
-        grey: string;
-        red: string;
-        green: string;
-        brown: string;
-        blue: string;
-        purple: string;
-        darkGrey: string;
-        lightRed: string;
-        lightGreen: string;
-        yellow: string;
-        lightBlue: string;
-        magenta: string;
-        cyan: string;
-        white: string;
-        initial: string;
-    };
-}
-
-export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, IPortRequester, IResponse, type IRouteDefinition, Inject, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, hasInjectableMetadata };
+export { CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, IPortRequester, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, Request, Router, Type, UseMiddlewares, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };
