@@ -228,15 +228,14 @@ export class Router {
 
         try {
             const payload = this.normalizeBatchPayload(request.body);
-            const batchResponses: IResponse[] = [];
 
-            for(const [index, item] of payload.requests.entries()) {
+            const batchPromises = payload.requests.map((item, index) => {
                 const subRequestId = item.requestId ?? `${request.id}:${index}`;
                 const atomicRequest = new Request(request.event, request.senderId, subRequestId, item.method, item.path, item.body);
-                batchResponses.push(await this.handleAtomic(atomicRequest));
-            }
+                return this.handleAtomic(atomicRequest);
+            });
 
-            response.body!.responses = batchResponses;
+            response.body!.responses = await Promise.all(batchPromises);
         }
         catch(error: unknown) {
             response.body = undefined;

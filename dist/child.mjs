@@ -1035,13 +1035,12 @@ var _Router = class _Router {
     let isCritical = false;
     try {
       const payload = this.normalizeBatchPayload(request.body);
-      const batchResponses = [];
-      for (const [index, item] of payload.requests.entries()) {
+      const batchPromises = payload.requests.map((item, index) => {
         const subRequestId = item.requestId ?? `${request.id}:${index}`;
         const atomicRequest = new Request(request.event, request.senderId, subRequestId, item.method, item.path, item.body);
-        batchResponses.push(await this.handleAtomic(atomicRequest));
-      }
-      response.body.responses = batchResponses;
+        return this.handleAtomic(atomicRequest);
+      });
+      response.body.responses = await Promise.all(batchPromises);
     } catch (error) {
       response.body = void 0;
       if (error instanceof ResponseException) {
