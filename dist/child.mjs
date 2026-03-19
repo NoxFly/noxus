@@ -1261,41 +1261,59 @@ Router = _ts_decorate([
 // src/DI/injector-explorer.ts
 var _InjectorExplorer = class _InjectorExplorer {
   /**
-   * Registers the class as injectable.
-   * When a class is instantiated, if it has dependencies and those dependencies
-   * are listed using this method, they will be injected into the class constructor.
+   * Enqueues a class for deferred registration.
+   * Called by the @Injectable decorator at import time. No instantiation occurs here.
    */
-  static register(target, lifetime) {
-    if (RootInjector.bindings.has(target)) return RootInjector;
-    RootInjector.bindings.set(target, {
-      implementation: target,
+  static enqueue(target, lifetime) {
+    _InjectorExplorer.pending.push({
+      target,
       lifetime
     });
-    if (lifetime === "singleton") {
-      RootInjector.resolve(target);
+  }
+  /**
+   * Processes all pending registrations in two phases:
+   * 1. Register all bindings (no instantiation) so every dependency is known.
+   * 2. Resolve singletons, register controllers and log module readiness.
+   *
+   * This two-phase approach makes the system resilient to import ordering:
+   * all bindings exist before any singleton is instantiated.
+   */
+  static processPending() {
+    const queue = _InjectorExplorer.pending;
+    for (const { target, lifetime } of queue) {
+      if (!RootInjector.bindings.has(target)) {
+        RootInjector.bindings.set(target, {
+          implementation: target,
+          lifetime
+        });
+      }
     }
-    if (getModuleMetadata(target)) {
-      Logger.log(`${target.name} dependencies initialized`);
-      return RootInjector;
+    for (const { target, lifetime } of queue) {
+      if (lifetime === "singleton") {
+        RootInjector.resolve(target);
+      }
+      if (getModuleMetadata(target)) {
+        Logger.log(`${target.name} dependencies initialized`);
+        continue;
+      }
+      const controllerMeta = getControllerMetadata(target);
+      if (controllerMeta) {
+        const router = RootInjector.resolve(Router);
+        router?.registerController(target);
+        continue;
+      }
+      if (getRouteMetadata(target).length > 0) {
+        continue;
+      }
+      if (getInjectableMetadata(target)) {
+        Logger.log(`Registered ${target.name} as ${lifetime}`);
+      }
     }
-    const controllerMeta = getControllerMetadata(target);
-    if (controllerMeta) {
-      const router = RootInjector.resolve(Router);
-      router?.registerController(target);
-      return RootInjector;
-    }
-    const routeMeta = getRouteMetadata(target);
-    if (routeMeta) {
-      return RootInjector;
-    }
-    if (getInjectableMetadata(target)) {
-      Logger.log(`Registered ${target.name} as ${lifetime}`);
-      return RootInjector;
-    }
-    return RootInjector;
+    queue.length = 0;
   }
 };
 __name(_InjectorExplorer, "InjectorExplorer");
+__publicField(_InjectorExplorer, "pending", []);
 var InjectorExplorer = _InjectorExplorer;
 
 // src/decorators/injectable.decorator.ts
@@ -1305,7 +1323,7 @@ function Injectable(lifetime = "scope") {
       throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
     }
     defineInjectableMetadata(target, lifetime);
-    InjectorExplorer.register(target, lifetime);
+    InjectorExplorer.enqueue(target, lifetime);
   };
 }
 __name(Injectable, "Injectable");

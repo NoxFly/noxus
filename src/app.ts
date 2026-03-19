@@ -21,7 +21,7 @@ import { Type } from "src/utils/types";
  */
 export interface IApp {
     dispose(): Promise<void>;
-    onReady(): Promise<void>;
+    onReady(mainWindow?: BrowserWindow): Promise<void>;
     onActivated(): Promise<void>;
 }
 
@@ -32,6 +32,7 @@ export interface IApp {
 @Injectable('singleton')
 export class NoxApp {
     private app: IApp | undefined;
+    private mainWindow: BrowserWindow | undefined;
 
     /**
      *
@@ -164,6 +165,15 @@ export class NoxApp {
     // ---
 
     /**
+     * Sets the main BrowserWindow that was created early by bootstrapApplication.
+     * This window will be passed to IApp.onReady when start() is called.
+     * @param window - The BrowserWindow created during bootstrap.
+     */
+    public setMainWindow(window: BrowserWindow): void {
+        this.mainWindow = window;
+    }
+
+    /**
      * Configures the NoxApp instance with the provided application class.
      * This method allows you to set the application class that will handle lifecycle events.
      * @param app - The application class to configure.
@@ -187,10 +197,11 @@ export class NoxApp {
 
     /**
      * Should be called after the bootstrapApplication function is called.
+     * Passes the early-created BrowserWindow (if any) to the configured IApp service.
      * @returns NoxApp instance for method chaining.
      */
     public start(): NoxApp {
-        this.app?.onReady();
+        this.app?.onReady(this.mainWindow);
         return this;
     }
 }

@@ -825,41 +825,59 @@ var Logger;
 // src/DI/injector-explorer.ts
 var _InjectorExplorer = class _InjectorExplorer {
   /**
-   * Registers the class as injectable.
-   * When a class is instantiated, if it has dependencies and those dependencies
-   * are listed using this method, they will be injected into the class constructor.
+   * Enqueues a class for deferred registration.
+   * Called by the @Injectable decorator at import time. No instantiation occurs here.
    */
-  static register(target, lifetime) {
-    if (RootInjector.bindings.has(target)) return RootInjector;
-    RootInjector.bindings.set(target, {
-      implementation: target,
+  static enqueue(target, lifetime) {
+    _InjectorExplorer.pending.push({
+      target,
       lifetime
     });
-    if (lifetime === "singleton") {
-      RootInjector.resolve(target);
+  }
+  /**
+   * Processes all pending registrations in two phases:
+   * 1. Register all bindings (no instantiation) so every dependency is known.
+   * 2. Resolve singletons, register controllers and log module readiness.
+   *
+   * This two-phase approach makes the system resilient to import ordering:
+   * all bindings exist before any singleton is instantiated.
+   */
+  static processPending() {
+    const queue = _InjectorExplorer.pending;
+    for (const { target, lifetime } of queue) {
+      if (!RootInjector.bindings.has(target)) {
+        RootInjector.bindings.set(target, {
+          implementation: target,
+          lifetime
+        });
+      }
     }
-    if (getModuleMetadata(target)) {
-      Logger.log(`${target.name} dependencies initialized`);
-      return RootInjector;
+    for (const { target, lifetime } of queue) {
+      if (lifetime === "singleton") {
+        RootInjector.resolve(target);
+      }
+      if (getModuleMetadata(target)) {
+        Logger.log(`${target.name} dependencies initialized`);
+        continue;
+      }
+      const controllerMeta = getControllerMetadata(target);
+      if (controllerMeta) {
+        const router = RootInjector.resolve(Router);
+        router?.registerController(target);
+        continue;
+      }
+      if (getRouteMetadata(target).length > 0) {
+        continue;
+      }
+      if (getInjectableMetadata(target)) {
+        Logger.log(`Registered ${target.name} as ${lifetime}`);
+      }
     }
-    const controllerMeta = getControllerMetadata(target);
-    if (controllerMeta) {
-      const router = RootInjector.resolve(Router);
-      router?.registerController(target);
-      return RootInjector;
-    }
-    const routeMeta = getRouteMetadata(target);
-    if (routeMeta) {
-      return RootInjector;
-    }
-    if (getInjectableMetadata(target)) {
-      Logger.log(`Registered ${target.name} as ${lifetime}`);
-      return RootInjector;
-    }
-    return RootInjector;
+    queue.length = 0;
   }
 };
 __name(_InjectorExplorer, "InjectorExplorer");
+__publicField(_InjectorExplorer, "pending", []);
 var InjectorExplorer = _InjectorExplorer;
 
 // src/decorators/injectable.decorator.ts
@@ -869,7 +887,7 @@ function Injectable(lifetime = "scope") {
       throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
     }
     defineInjectableMetadata(target, lifetime);
-    InjectorExplorer.register(target, lifetime);
+    InjectorExplorer.enqueue(target, lifetime);
   };
 }
 __name(Injectable, "Injectable");
@@ -1591,6 +1609,7 @@ var _NoxApp = class _NoxApp {
     __publicField(this, "router");
     __publicField(this, "socket");
     __publicField(this, "app");
+    __publicField(this, "mainWindow");
     /**
      *
      */
@@ -1698,6 +1717,14 @@ var _NoxApp = class _NoxApp {
   }
   // ---
   /**
+   * Sets the main BrowserWindow that was created early by bootstrapApplication.
+   * This window will be passed to IApp.onReady when start() is called.
+   * @param window - The BrowserWindow created during bootstrap.
+   */
+  setMainWindow(window2) {
+    this.mainWindow = window2;
+  }
+  /**
    * Configures the NoxApp instance with the provided application class.
    * This method allows you to set the application class that will handle lifecycle events.
    * @param app - The application class to configure.
@@ -1719,10 +1746,11 @@ var _NoxApp = class _NoxApp {
   }
   /**
    * Should be called after the bootstrapApplication function is called.
+   * Passes the early-created BrowserWindow (if any) to the configured IApp service.
    * @returns NoxApp instance for method chaining.
    */
   start() {
-    this.app?.onReady();
+    this.app?.onReady(this.mainWindow);
     return this;
   }
 };
@@ -1739,12 +1767,20 @@ NoxApp = _ts_decorate3([
 
 // src/bootstrap.ts
 var import_main2 = require("electron/main");
-async function bootstrapApplication(rootModule) {
+async function bootstrapApplication(rootModule, options) {
   if (!getModuleMetadata(rootModule)) {
     throw new Error(`Root module must be decorated with @Module`);
   }
   await import_main2.app.whenReady();
+  let mainWindow;
+  if (options?.window) {
+    mainWindow = new import_main2.BrowserWindow(options.window);
+  }
+  InjectorExplorer.processPending();
   const noxApp = inject(NoxApp);
+  if (mainWindow) {
+    noxApp.setMainWindow(mainWindow);
+  }
   await noxApp.init();
   return noxApp;
 }

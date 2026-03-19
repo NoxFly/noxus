@@ -13,52 +13,76 @@ import { Router } from "src/router";
 import { Logger } from "src/utils/logger";
 import { Type } from "src/utils/types";
 
+interface PendingRegistration {
+    target: Type<unknown>;
+    lifetime: Lifetime;
+}
+
 /**
  * InjectorExplorer is a utility class that explores the dependency injection system at the startup.
+ * It collects decorated classes during the import phase and defers their actual registration
+ * and resolution to when {@link processPending} is called by bootstrapApplication.
  */
 export class InjectorExplorer {
+    private static readonly pending: PendingRegistration[] = [];
+
     /**
-     * Registers the class as injectable.
-     * When a class is instantiated, if it has dependencies and those dependencies
-     * are listed using this method, they will be injected into the class constructor.
+     * Enqueues a class for deferred registration.
+     * Called by the @Injectable decorator at import time. No instantiation occurs here.
      */
-    public static register(target: Type<unknown>, lifetime: Lifetime): typeof RootInjector {
-        if(RootInjector.bindings.has(target)) // already registered
-            return RootInjector;
+    public static enqueue(target: Type<unknown>, lifetime: Lifetime): void {
+        InjectorExplorer.pending.push({ target, lifetime });
+    }
 
-        RootInjector.bindings.set(target, {
-            implementation: target,
-            lifetime
-        });
+    /**
+     * Processes all pending registrations in two phases:
+     * 1. Register all bindings (no instantiation) so every dependency is known.
+     * 2. Resolve singletons, register controllers and log module readiness.
+     *
+     * This two-phase approach makes the system resilient to import ordering:
+     * all bindings exist before any singleton is instantiated.
+     */
+    public static processPending(): void {
+        const queue = InjectorExplorer.pending;
 
-        if(lifetime === 'singleton') {
-            RootInjector.resolve(target);
+        // Phase 1: register all bindings without instantiation
+        for(const { target, lifetime } of queue) {
+            if(!RootInjector.bindings.has(target)) {
+                RootInjector.bindings.set(target, {
+                    implementation: target,
+                    lifetime
+                });
+            }
         }
 
-        if(getModuleMetadata(target)) {
-            Logger.log(`${target.name} dependencies initialized`);
-            return RootInjector;
+        // Phase 2: resolve singletons, register controllers, log modules
+        for(const { target, lifetime } of queue) {
+            if(lifetime === 'singleton') {
+                RootInjector.resolve(target);
+            }
+
+            if(getModuleMetadata(target)) {
+                Logger.log(`${target.name} dependencies initialized`);
+                continue;
+            }
+
+            const controllerMeta = getControllerMetadata(target);
+
+            if(controllerMeta) {
+                const router = RootInjector.resolve(Router);
+                router?.registerController(target);
+                continue;
+            }
+
+            if(getRouteMetadata(target).length > 0) {
+                continue;
+            }
+
+            if(getInjectableMetadata(target)) {
+                Logger.log(`Registered ${target.name} as ${lifetime}`);
+            }
         }
 
-        const controllerMeta = getControllerMetadata(target);
-
-        if(controllerMeta) {
-            const router = RootInjector.resolve(Router);
-            router?.registerController(target);
-            return RootInjector;
-        }
-
-        const routeMeta = getRouteMetadata(target);
-
-        if(routeMeta) {
-            return RootInjector;
-        }
-
-        if(getInjectableMetadata(target)) {
-            Logger.log(`Registered ${target.name} as ${lifetime}`);
-            return RootInjector;
-        }
-
-        return RootInjector;
+        queue.length = 0;
     }
 }

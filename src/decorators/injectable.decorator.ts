@@ -23,6 +23,6 @@ export function Injectable(lifetime: Lifetime = "scope"): ClassDecorator {
             throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
         }
         defineInjectableMetadata(target, lifetime);
-        InjectorExplorer.register(target as unknown as Type<any>, lifetime);
+        InjectorExplorer.enqueue(target as unknown as Type<any>, lifetime);
     };
 }

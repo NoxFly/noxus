@@ -2,6 +2,7 @@ import { M as MaybeAsync, T as Type } from './app-injector-B3MvgV3k.js';
 export { A as AppInjector, F as ForwardRefFn, a as ForwardReference, I as IBinding, L as Lifetime, R as RootInjector, f as forwardRef, i as inject } from './app-injector-B3MvgV3k.js';
 import { R as Request, I as IResponse, a as IGuard, b as IPortRequester } from './index-BxWQVi6C.js';
 export { e as AtomicHttpMethod, A as Authorize, D as Delete, G as Get, H as HttpMethod, l as IBatchRequestItem, m as IBatchRequestPayload, n as IBatchResponsePayload, p as IRendererEventMessage, k as IRequest, d as IRouteMetadata, N as NoxRendererClient, i as Patch, P as Post, h as Put, o as RENDERER_EVENT_TYPE, j as ROUTE_METADATA_KEY, v as RendererClientOptions, s as RendererEventHandler, u as RendererEventRegistry, t as RendererEventSubscription, q as createRendererEventMessage, g as getGuardForController, c as getGuardForControllerAction, f as getRouteMetadata, r as isRendererEventMessage } from './index-BxWQVi6C.js';
+import { BrowserWindow } from 'electron/main';
 export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, Inject, Injectable, InsufficientStorageException, InternalServerException, LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, getInjectableMetadata, hasInjectableMetadata } from './child.js';
 
 /**
@@ -185,7 +186,7 @@ declare class NoxSocket {
  */
 interface IApp {
     dispose(): Promise<void>;
-    onReady(): Promise<void>;
+    onReady(mainWindow?: BrowserWindow): Promise<void>;
     onActivated(): Promise<void>;
 }
 /**
@@ -196,6 +197,7 @@ declare class NoxApp {
     private readonly router;
     private readonly socket;
     private app;
+    private mainWindow;
     /**
      *
      */
@@ -232,6 +234,12 @@ declare class NoxApp {
      */
     private onAllWindowsClosed;
     /**
+     * Sets the main BrowserWindow that was created early by bootstrapApplication.
+     * This window will be passed to IApp.onReady when start() is called.
+     * @param window - The BrowserWindow created during bootstrap.
+     */
+    setMainWindow(window: BrowserWindow): void;
+    /**
      * Configures the NoxApp instance with the provided application class.
      * This method allows you to set the application class that will handle lifecycle events.
      * @param app - The application class to configure.
@@ -247,6 +255,7 @@ declare class NoxApp {
     use(middleware: Type<IMiddleware>): NoxApp;
     /**
      * Should be called after the bootstrapApplication function is called.
+     * Passes the early-created BrowserWindow (if any) to the configured IApp service.
      * @returns NoxApp instance for method chaining.
      */
     start(): NoxApp;
@@ -254,14 +263,32 @@ declare class NoxApp {
 
 
 /**
+ * Options for bootstrapping the Noxus application.
+ */
+interface BootstrapOptions {
+    /**
+     * If provided, Noxus creates a BrowserWindow immediately after Electron is ready,
+     * before any DI processing occurs. This window is passed to the configured
+     * IApp service via onReady(). It allows the user to see a window as fast as possible,
+     * even before the application is fully initialized.
+     */
+    window?: Electron.BrowserWindowConstructorOptions;
+}
+/**
  * Bootstraps the Noxus application.
  * This function initializes the application by creating an instance of NoxApp,
  * registering the root module, and starting the application.
+ *
+ * When {@link BootstrapOptions.window} is provided, a BrowserWindow is created
+ * immediately after Electron readiness — before DI resolution — so the user
+ * sees a window as quickly as possible.
+ *
  * @param rootModule - The root module of the application, decorated with @Module.
+ * @param options - Optional bootstrap configuration.
  * @return A promise that resolves to the NoxApp instance.
  * @throws Error if the root module is not decorated with @Module, or if the electron process could not start.
  */
-declare function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp>;
+declare function bootstrapApplication(rootModule: Type<any>, options?: BootstrapOptions): Promise<NoxApp>;
 
 
 /**
@@ -321,4 +348,4 @@ interface NoxusPreloadOptions {
  */
 declare function exposeNoxusBridge(options?: NoxusPreloadOptions): NoxusPreloadAPI;
 
-export { CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, IPortRequester, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, Request, Router, Type, UseMiddlewares, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };
+export { type BootstrapOptions, CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, IPortRequester, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, Request, Router, Type, UseMiddlewares, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };
