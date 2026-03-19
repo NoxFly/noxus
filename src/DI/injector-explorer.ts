@@ -25,12 +25,22 @@ interface PendingRegistration {
  */
 export class InjectorExplorer {
     private static readonly pending: PendingRegistration[] = [];
+    private static processed = false;
 
     /**
      * Enqueues a class for deferred registration.
-     * Called by the @Injectable decorator at import time. No instantiation occurs here.
+     * Called by the @Injectable decorator at import time.
+     *
+     * If {@link processPending} has already been called (i.e. after bootstrap),
+     * the class is registered immediately so that late dynamic imports
+     * (e.g. middlewares loaded after bootstrap) work correctly.
      */
     public static enqueue(target: Type<unknown>, lifetime: Lifetime): void {
+        if(InjectorExplorer.processed) {
+            InjectorExplorer.registerImmediate(target, lifetime);
+            return;
+        }
+
         InjectorExplorer.pending.push({ target, lifetime });
     }
 
@@ -57,32 +67,58 @@ export class InjectorExplorer {
 
         // Phase 2: resolve singletons, register controllers, log modules
         for(const { target, lifetime } of queue) {
-            if(lifetime === 'singleton') {
-                RootInjector.resolve(target);
-            }
-
-            if(getModuleMetadata(target)) {
-                Logger.log(`${target.name} dependencies initialized`);
-                continue;
-            }
-
-            const controllerMeta = getControllerMetadata(target);
-
-            if(controllerMeta) {
-                const router = RootInjector.resolve(Router);
-                router?.registerController(target);
-                continue;
-            }
-
-            if(getRouteMetadata(target).length > 0) {
-                continue;
-            }
-
-            if(getInjectableMetadata(target)) {
-                Logger.log(`Registered ${target.name} as ${lifetime}`);
-            }
+            InjectorExplorer.processRegistration(target, lifetime);
         }
 
         queue.length = 0;
+        InjectorExplorer.processed = true;
+    }
+
+    /**
+     * Registers a single class immediately (post-bootstrap path).
+     * Used for classes discovered via late dynamic imports.
+     */
+    private static registerImmediate(target: Type<unknown>, lifetime: Lifetime): void {
+        if(RootInjector.bindings.has(target)) {
+            return;
+        }
+
+        RootInjector.bindings.set(target, {
+            implementation: target,
+            lifetime
+        });
+
+        InjectorExplorer.processRegistration(target, lifetime);
+    }
+
+    /**
+     * Performs phase-2 work for a single registration: resolve singletons,
+     * register controllers, and log module readiness.
+     */
+    private static processRegistration(target: Type<unknown>, lifetime: Lifetime): void {
+        if(lifetime === 'singleton') {
+            RootInjector.resolve(target);
+        }
+
+        if(getModuleMetadata(target)) {
+            Logger.log(`${target.name} dependencies initialized`);
+            return;
+        }
+
+        const controllerMeta = getControllerMetadata(target);
+
+        if(controllerMeta) {
+            const router = RootInjector.resolve(Router);
+            router?.registerController(target);
+            return;
+        }
+
+        if(getRouteMetadata(target).length > 0) {
+            return;
+        }
+
+        if(getInjectableMetadata(target)) {
+            Logger.log(`Registered ${target.name} as ${lifetime}`);
+        }
     }
 }
