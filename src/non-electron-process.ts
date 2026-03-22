@@ -15,7 +15,7 @@
  */
 
 export * from './DI/app-injector';
-export * from './exceptions';
+export * from './internal/exceptions';
 export * from './decorators/injectable.decorator';
 export * from './utils/logger';
 export * from './utils/types';

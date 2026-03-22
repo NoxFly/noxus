@@ -4,7 +4,7 @@
  * @author NoxFly
  */
 
-import { IResponse, Request } from '../request';
+import { IResponse, Request } from '../internal/request';
 import { MaybeAsync } from '../utils/types';
 
 /**

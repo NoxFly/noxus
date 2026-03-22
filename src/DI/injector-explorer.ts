@@ -118,7 +118,7 @@ export class InjectorExplorer {
 
             if (reg.isController) {
                 // Lazily import Router to avoid circular dependency at module load time
-                const { Router } = require('../router') as { Router: { prototype: { registerController(t: Type<unknown>): void } } };
+                const { Router } = require('../internal/router') as { Router: { prototype: { registerController(t: Type<unknown>): void } } };
                 const router = RootInjector.resolve(Router as any) as { registerController(t: Type<unknown>, pathPrefix: string, routeGuards: Guard[], routeMiddlewares: Middleware[]): void };
                 router.registerController(reg.implementation, reg.pathPrefix ?? '', routeGuards, routeMiddlewares);
             } else if (reg.lifetime !== 'singleton') {
@@ -135,7 +135,7 @@ export class InjectorExplorer {
         }
 
         if (reg.isController) {
-            const { Router } = require('../router') as { Router: { prototype: { registerController(t: Type<unknown>): void } } };
+            const { Router } = require('../internal/router') as { Router: { prototype: { registerController(t: Type<unknown>): void } } };
             const router = RootInjector.resolve(Router as any) as { registerController(t: Type<unknown>): void };
             router.registerController(reg.implementation);
         }

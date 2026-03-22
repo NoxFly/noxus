@@ -5,8 +5,8 @@
  */
 
 
-import { AtomicHttpMethod, HttpMethod } from './decorators/method.decorator';
-import { AppInjector, RootInjector } from './DI/app-injector';
+import { AtomicHttpMethod, HttpMethod } from '../decorators/method.decorator';
+import { AppInjector, RootInjector } from '../DI/app-injector';
 
 /**
  * The Request class represents an HTTP request in the Noxus framework.

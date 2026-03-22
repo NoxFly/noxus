@@ -5,17 +5,17 @@
  */
 
 import { app, BrowserWindow, ipcMain, MessageChannelMain } from 'electron/main';
-import { Injectable } from './decorators/injectable.decorator';
-import { Middleware } from './decorators/middleware.decorator';
-import { inject } from './DI/app-injector';
-import { InjectorExplorer } from './DI/injector-explorer';
+import { Guard } from "src/main";
+import { Injectable } from '../decorators/injectable.decorator';
+import { Middleware } from '../decorators/middleware.decorator';
+import { inject } from '../DI/app-injector';
+import { InjectorExplorer } from '../DI/injector-explorer';
+import { Logger } from '../utils/logger';
+import { Type } from '../utils/types';
+import { WindowManager } from '../window/window-manager';
 import { IResponse, Request } from './request';
 import { Router } from './router';
 import { NoxSocket } from './socket';
-import { Logger } from './utils/logger';
-import { Type } from './utils/types';
-import { WindowManager } from './window/window-manager';
-import { Guard } from "src/main";
 
 /**
  * Your application service should implement IApp.

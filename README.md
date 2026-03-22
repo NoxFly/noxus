@@ -460,17 +460,17 @@ createPreloadBridge(); // exposes window.__noxus__ to the renderer
 
 ```ts
 // In the renderer (Angular, React, Vue, Vanilla...)
-import { NoxusClient } from '@noxfly/noxus';
+import { NoxRendererClient } from '@noxfly/noxus';
 
-const client = new NoxusClient();
-await client.connect();
+const client = new NoxRendererClient();
+await client.setup(); // requests the MessagePort from main
 
 // Requests
-const users = await client.get<User[]>('users/list');
-const user  = await client.get<User>('users/42');
-await client.post('users/create', { name: 'Bob' });
-await client.put('users/42', { name: 'Bob Updated' });
-await client.delete('users/42');
+const users  = await client.request<User[]>({ method: 'GET',    path: 'users/list' });
+const user   = await client.request<User>  ({ method: 'GET',    path: 'users/42' });
+await client.request({ method: 'POST',   path: 'users/create',        body: { name: 'Bob' } });
+await client.request({ method: 'PUT',    path: 'users/42',            body: { name: 'Bob Updated' } });
+await client.request({ method: 'DELETE', path: 'users/42' });
 ```
 
 ### Push events (main → renderer)
@@ -495,9 +495,12 @@ class NotificationService {
 On the renderer side:
 
 ```ts
-client.on('notification', (payload) => {
+const sub = client.events.subscribe<INotification>('notification', (payload) => {
     console.log(payload.message);
 });
+
+// Unsubscribe when done
+sub.unsubscribe();
 ```
 
 ---

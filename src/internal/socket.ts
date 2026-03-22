@@ -8,9 +8,9 @@
  * Centralizes MessagePort storage for renderer communication and handles
  * push-event delivery back to renderer processes.
  */
-import { Injectable } from './decorators/injectable.decorator';
+import { Injectable } from '../decorators/injectable.decorator';
+import { Logger } from '../utils/logger';
 import { createRendererEventMessage } from './request';
-import { Logger } from './utils/logger';
 
 interface RendererChannels {
     request: Electron.MessageChannelMain;

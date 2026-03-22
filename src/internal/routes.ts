@@ -4,8 +4,8 @@
  * @author NoxFly
  */
 
-import { Guard } from './decorators/guards.decorator';
-import { Middleware } from './decorators/middleware.decorator';
+import { Guard } from '../decorators/guards.decorator';
+import { Middleware } from '../decorators/middleware.decorator';
 
 /**
  * A single route entry in the application routing table.

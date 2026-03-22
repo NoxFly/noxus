@@ -6,8 +6,5 @@
  * Entry point for renderer process and preload consumers.
  */
 
-export * from './request';
-export * from './preload-bridge';
-export * from './renderer-events';
-export * from './renderer-client';
-export type { HttpMethod, AtomicHttpMethod } from './decorators/method.decorator';
+// src/index.ts — redirige vers renderer
+export * from './renderer';

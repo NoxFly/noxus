@@ -1,35 +1,40 @@
 {
     "name": "@noxfly/noxus",
-    "version": "3.0.0-dev.0",
+    "version": "3.0.0-dev.1",
     "main": "dist/main.js",
     "module": "dist/main.mjs",
     "types": "dist/main.d.ts",
     "exports": {
         ".": {
             "browser": {
-                "types": "./dist/renderer.d.ts",
-                "import": "./dist/renderer.mjs",
+                "types":   "./dist/renderer.d.ts",
+                "import":  "./dist/renderer.mjs",
                 "require": "./dist/renderer.js"
             },
             "default": {
-                "types": "./dist/child.d.ts",
-                "import": "./dist/child.mjs",
+                "types":   "./dist/child.d.ts",
+                "import":  "./dist/child.mjs",
                 "require": "./dist/child.js"
             }
         },
-        "./renderer": {
-            "types": "./dist/renderer.d.ts",
-            "import": "./dist/renderer.mjs",
-            "require": "./dist/renderer.js"
-        },
         "./main": {
-            "types": "./dist/main.d.ts",
-            "import": "./dist/main.mjs",
+            "types":   "./dist/main.d.ts",
+            "import":  "./dist/main.mjs",
             "require": "./dist/main.js"
         },
+        "./renderer": {
+            "types":   "./dist/renderer.d.ts",
+            "import":  "./dist/renderer.mjs",
+            "require": "./dist/renderer.js"
+        },
+        "./preload": {
+            "types":   "./dist/preload.d.ts",
+            "import":  "./dist/preload.mjs",
+            "require": "./dist/preload.js"
+        },
         "./child": {
-            "types": "./dist/child.d.ts",
-            "import": "./dist/child.mjs",
+            "types":   "./dist/child.d.ts",
+            "import":  "./dist/child.mjs",
             "require": "./dist/child.js"
         }
     },

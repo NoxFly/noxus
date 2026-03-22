@@ -178,10 +178,10 @@ Did you forget to declare it in @Injectable({ deps }) or in bootstrapApplication
   }
 });
 
-// src/exceptions.ts
+// src/internal/exceptions.ts
 var _ResponseException, ResponseException, _BadRequestException, BadRequestException, _UnauthorizedException, UnauthorizedException, _PaymentRequiredException, PaymentRequiredException, _ForbiddenException, ForbiddenException, _NotFoundException, NotFoundException, _MethodNotAllowedException, MethodNotAllowedException, _NotAcceptableException, NotAcceptableException, _RequestTimeoutException, RequestTimeoutException, _ConflictException, ConflictException, _UpgradeRequiredException, UpgradeRequiredException, _TooManyRequestsException, TooManyRequestsException, _InternalServerException, InternalServerException, _NotImplementedException, NotImplementedException, _BadGatewayException, BadGatewayException, _ServiceUnavailableException, ServiceUnavailableException, _GatewayTimeoutException, GatewayTimeoutException, _HttpVersionNotSupportedException, HttpVersionNotSupportedException, _VariantAlsoNegotiatesException, VariantAlsoNegotiatesException, _InsufficientStorageException, InsufficientStorageException, _LoopDetectedException, LoopDetectedException, _NotExtendedException, NotExtendedException, _NetworkAuthenticationRequiredException, NetworkAuthenticationRequiredException, _NetworkConnectTimeoutException, NetworkConnectTimeoutException;
 var init_exceptions = __esm({
-  "src/exceptions.ts"() {
+  "src/internal/exceptions.ts"() {
     "use strict";
     _ResponseException = class _ResponseException extends Error {
       constructor(statusOrMessage, message) {
@@ -689,30 +689,6 @@ var init_method_decorator = __esm({
   }
 });
 
-// src/request.ts
-var _Request, Request;
-var init_request = __esm({
-  "src/request.ts"() {
-    "use strict";
-    init_app_injector();
-    _Request = class _Request {
-      constructor(event, senderId, id, method, path2, body) {
-        this.event = event;
-        this.senderId = senderId;
-        this.id = id;
-        this.method = method;
-        this.path = path2;
-        this.body = body;
-        this.context = RootInjector.createScope();
-        this.params = {};
-        this.path = path2.replace(/^\/|\/$/g, "");
-      }
-    };
-    __name(_Request, "Request");
-    Request = _Request;
-  }
-});
-
 // src/utils/radix-tree.ts
 var _RadixNode, RadixNode, _RadixTree, RadixTree;
 var init_radix_tree = __esm({
@@ -875,23 +851,47 @@ var init_radix_tree = __esm({
   }
 });
 
-// src/router.ts
+// src/internal/request.ts
+var _Request, Request;
+var init_request = __esm({
+  "src/internal/request.ts"() {
+    "use strict";
+    init_app_injector();
+    _Request = class _Request {
+      constructor(event, senderId, id, method, path2, body) {
+        this.event = event;
+        this.senderId = senderId;
+        this.id = id;
+        this.method = method;
+        this.path = path2;
+        this.body = body;
+        this.context = RootInjector.createScope();
+        this.params = {};
+        this.path = path2.replace(/^\/|\/$/g, "");
+      }
+    };
+    __name(_Request, "Request");
+    Request = _Request;
+  }
+});
+
+// src/internal/router.ts
 var router_exports = {};
 __export(router_exports, {
   Router: () => Router
 });
 var Router;
 var init_router = __esm({
-  "src/router.ts"() {
+  "src/internal/router.ts"() {
     "use strict";
     init_controller_decorator();
     init_injectable_decorator();
     init_method_decorator();
     init_injector_explorer();
-    init_exceptions();
-    init_request();
     init_logger();
     init_radix_tree();
+    init_exceptions();
+    init_request();
     Router = class {
       constructor() {
         this.routes = new RadixTree();

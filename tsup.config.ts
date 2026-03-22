@@ -1,4 +1,4 @@
-import { defineConfig } from "tsup";
+import { defineConfig, Options } from "tsup";
 
 const copyrights = `
 /**
@@ -8,19 +8,14 @@ const copyrights = `
  */
 `.trim();
 
-export default defineConfig({
-    entry: {
-        renderer: "src/index.ts",
-        main: "src/main.ts",
-        child: "src/non-electron-process.ts",
-    },
+const options: Options = {
     keepNames: true,
     minifyIdentifiers: false,
     name: "noxus",
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,
-    clean: true,
+    clean: false,  // ← false dans le base config
     outDir: "dist",
     external: ["electron"],
     target: "es2020",
@@ -28,7 +23,28 @@ export default defineConfig({
     splitting: false,
     shims: false,
     treeshake: false,
-    banner: {
-        js: copyrights,
+    banner: { js: copyrights },
+};
+
+export default defineConfig([
+    {
+        entry: { main: 'src/main.ts' },
+        external: ['electron', 'electron/main'],
+        clean: true,  // ← true uniquement ici
+        ...options,
     },
-});
+    {
+        entry: { renderer: 'src/renderer.ts' },
+        external: ['electron', 'electron/renderer'],
+        ...options,
+    },
+    {
+        entry: { preload: 'src/preload.ts' },
+        external: ['electron', 'electron/renderer'],
+        ...options,
+    },
+    {
+        entry: { child: 'src/non-electron-process.ts' },
+        ...options,
+    },
+]);

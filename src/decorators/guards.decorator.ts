@@ -4,7 +4,7 @@
  * @author NoxFly
  */
 
-import { Request } from '../request';
+import { Request } from '../internal/request';
 import { MaybeAsync } from '../utils/types';
 
 /**

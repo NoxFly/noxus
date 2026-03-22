@@ -622,10 +622,172 @@ var init_method_decorator = __esm({
   }
 });
 
-// src/exceptions.ts
+// src/utils/radix-tree.ts
+var _RadixNode, RadixNode, _RadixTree, RadixTree;
+var init_radix_tree = __esm({
+  "src/utils/radix-tree.ts"() {
+    "use strict";
+    _RadixNode = class _RadixNode {
+      /**
+       * Creates a new RadixNode.
+       * @param segment - The segment of the path this node represents.
+       */
+      constructor(segment) {
+        this.children = [];
+        this.segment = segment;
+        this.isParam = segment.startsWith(":");
+        if (this.isParam) {
+          this.paramName = segment.slice(1);
+        }
+      }
+      /**
+       * Matches a child node against a given segment.
+       * This method checks if the segment matches any of the children nodes.
+       * @param segment - The segment to match against the children of this node.
+       * @returns A child node that matches the segment, or undefined if no match is found.
+       */
+      matchChild(segment) {
+        for (const child of this.children) {
+          if (child.isParam || segment.startsWith(child.segment))
+            return child;
+        }
+        return void 0;
+      }
+      /**
+       * Finds a child node that matches the segment exactly.
+       * This method checks if there is a child node that matches the segment exactly.
+       * @param segment - The segment to find an exact match for among the children of this node.
+       * @returns A child node that matches the segment exactly, or undefined if no match is found.
+       */
+      findExactChild(segment) {
+        return this.children.find((c) => c.segment === segment);
+      }
+      /**
+       * Adds a child node to this node's children.
+       * This method adds a new child node to the list of children for this node.
+       * @param node - The child node to add to this node's children.
+       */
+      addChild(node) {
+        this.children.push(node);
+      }
+    };
+    __name(_RadixNode, "RadixNode");
+    RadixNode = _RadixNode;
+    _RadixTree = class _RadixTree {
+      constructor() {
+        this.root = new RadixNode("");
+      }
+      /**
+       * Inserts a path and its associated value into the Radix Tree.
+       * This method normalizes the path and inserts it into the tree, associating it with
+       * @param path - The path to insert into the tree.
+       * @param value - The value to associate with the path.
+       */
+      insert(path2, value) {
+        const segments = this.normalize(path2);
+        this.insertRecursive(this.root, segments, value);
+      }
+      /**
+       * Recursively inserts a path into the Radix Tree.
+       * This method traverses the tree and inserts the segments of the path, creating new nodes
+       * @param node - The node to start inserting from.
+       * @param segments - The segments of the path to insert.
+       * @param value - The value to associate with the path.
+       */
+      insertRecursive(node, segments, value) {
+        if (segments.length === 0) {
+          node.value = value;
+          return;
+        }
+        const segment = segments[0] ?? "";
+        let child = node.children.find(
+          (c) => c.isParam === segment.startsWith(":") && (c.isParam || c.segment === segment)
+        );
+        if (!child) {
+          child = new RadixNode(segment);
+          node.addChild(child);
+        }
+        this.insertRecursive(child, segments.slice(1), value);
+      }
+      /**
+       * Searches for a path in the Radix Tree.
+       * This method normalizes the path and searches for it in the tree, returning the node
+       * @param path - The path to search for in the Radix Tree.
+       * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
+       */
+      search(path2) {
+        const segments = this.normalize(path2);
+        return this.searchRecursive(this.root, segments, {});
+      }
+      /**
+       * Recursively searches for a path in the Radix Tree.
+       * This method traverses the tree and searches for the segments of the path, collecting parameters
+       * @param node - The node to start searching from.
+       * @param segments - The segments of the path to search for.
+       * @param params - The parameters collected during the search.
+       * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
+       */
+      searchRecursive(node, segments, params) {
+        if (segments.length === 0) {
+          if (node.value !== void 0) {
+            return {
+              node,
+              params
+            };
+          }
+          return void 0;
+        }
+        const [segment, ...rest] = segments;
+        for (const child of node.children) {
+          if (child.isParam) {
+            const paramName = child.paramName;
+            const childParams = {
+              ...params,
+              [paramName]: segment ?? ""
+            };
+            if (rest.length === 0) {
+              return {
+                node: child,
+                params: childParams
+              };
+            }
+            const result = this.searchRecursive(child, rest, childParams);
+            if (result)
+              return result;
+          } else if (segment === child.segment) {
+            if (rest.length === 0) {
+              return {
+                node: child,
+                params
+              };
+            }
+            const result = this.searchRecursive(child, rest, params);
+            if (result)
+              return result;
+          }
+        }
+        return void 0;
+      }
+      /**
+       * Normalizes a path into an array of segments.
+       * This method removes leading and trailing slashes, splits the path by slashes, and
+       * @param path - The path to normalize.
+       * @returns An array of normalized path segments.
+       */
+      normalize(path2) {
+        const segments = path2.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+        return ["", ...segments];
+      }
+    };
+    __name(_RadixTree, "RadixTree");
+    RadixTree = _RadixTree;
+  }
+});
+
+// src/internal/exceptions.ts
 var _ResponseException, ResponseException, _BadRequestException, BadRequestException, _UnauthorizedException, UnauthorizedException, _PaymentRequiredException, PaymentRequiredException, _ForbiddenException, ForbiddenException, _NotFoundException, NotFoundException, _MethodNotAllowedException, MethodNotAllowedException, _NotAcceptableException, NotAcceptableException, _RequestTimeoutException, RequestTimeoutException, _ConflictException, ConflictException, _UpgradeRequiredException, UpgradeRequiredException, _TooManyRequestsException, TooManyRequestsException, _InternalServerException, InternalServerException, _NotImplementedException, NotImplementedException, _BadGatewayException, BadGatewayException, _ServiceUnavailableException, ServiceUnavailableException, _GatewayTimeoutException, GatewayTimeoutException, _HttpVersionNotSupportedException, HttpVersionNotSupportedException, _VariantAlsoNegotiatesException, VariantAlsoNegotiatesException, _InsufficientStorageException, InsufficientStorageException, _LoopDetectedException, LoopDetectedException, _NotExtendedException, NotExtendedException, _NetworkAuthenticationRequiredException, NetworkAuthenticationRequiredException, _NetworkConnectTimeoutException, NetworkConnectTimeoutException;
 var init_exceptions = __esm({
-  "src/exceptions.ts"() {
+  "src/internal/exceptions.ts"() {
     "use strict";
     _ResponseException = class _ResponseException extends Error {
       constructor(statusOrMessage, message) {
@@ -832,7 +994,7 @@ var init_exceptions = __esm({
   }
 });
 
-// src/request.ts
+// src/internal/request.ts
 function createRendererEventMessage(event, payload) {
   return {
     type: RENDERER_EVENT_TYPE,
@@ -849,7 +1011,7 @@ function isRendererEventMessage(value) {
 }
 var _Request, Request, RENDERER_EVENT_TYPE;
 var init_request = __esm({
-  "src/request.ts"() {
+  "src/internal/request.ts"() {
     "use strict";
     init_app_injector();
     _Request = class _Request {
@@ -873,185 +1035,23 @@ var init_request = __esm({
   }
 });
 
-// src/utils/radix-tree.ts
-var _RadixNode, RadixNode, _RadixTree, RadixTree;
-var init_radix_tree = __esm({
-  "src/utils/radix-tree.ts"() {
-    "use strict";
-    _RadixNode = class _RadixNode {
-      /**
-       * Creates a new RadixNode.
-       * @param segment - The segment of the path this node represents.
-       */
-      constructor(segment) {
-        this.children = [];
-        this.segment = segment;
-        this.isParam = segment.startsWith(":");
-        if (this.isParam) {
-          this.paramName = segment.slice(1);
-        }
-      }
-      /**
-       * Matches a child node against a given segment.
-       * This method checks if the segment matches any of the children nodes.
-       * @param segment - The segment to match against the children of this node.
-       * @returns A child node that matches the segment, or undefined if no match is found.
-       */
-      matchChild(segment) {
-        for (const child of this.children) {
-          if (child.isParam || segment.startsWith(child.segment))
-            return child;
-        }
-        return void 0;
-      }
-      /**
-       * Finds a child node that matches the segment exactly.
-       * This method checks if there is a child node that matches the segment exactly.
-       * @param segment - The segment to find an exact match for among the children of this node.
-       * @returns A child node that matches the segment exactly, or undefined if no match is found.
-       */
-      findExactChild(segment) {
-        return this.children.find((c) => c.segment === segment);
-      }
-      /**
-       * Adds a child node to this node's children.
-       * This method adds a new child node to the list of children for this node.
-       * @param node - The child node to add to this node's children.
-       */
-      addChild(node) {
-        this.children.push(node);
-      }
-    };
-    __name(_RadixNode, "RadixNode");
-    RadixNode = _RadixNode;
-    _RadixTree = class _RadixTree {
-      constructor() {
-        this.root = new RadixNode("");
-      }
-      /**
-       * Inserts a path and its associated value into the Radix Tree.
-       * This method normalizes the path and inserts it into the tree, associating it with
-       * @param path - The path to insert into the tree.
-       * @param value - The value to associate with the path.
-       */
-      insert(path2, value) {
-        const segments = this.normalize(path2);
-        this.insertRecursive(this.root, segments, value);
-      }
-      /**
-       * Recursively inserts a path into the Radix Tree.
-       * This method traverses the tree and inserts the segments of the path, creating new nodes
-       * @param node - The node to start inserting from.
-       * @param segments - The segments of the path to insert.
-       * @param value - The value to associate with the path.
-       */
-      insertRecursive(node, segments, value) {
-        if (segments.length === 0) {
-          node.value = value;
-          return;
-        }
-        const segment = segments[0] ?? "";
-        let child = node.children.find(
-          (c) => c.isParam === segment.startsWith(":") && (c.isParam || c.segment === segment)
-        );
-        if (!child) {
-          child = new RadixNode(segment);
-          node.addChild(child);
-        }
-        this.insertRecursive(child, segments.slice(1), value);
-      }
-      /**
-       * Searches for a path in the Radix Tree.
-       * This method normalizes the path and searches for it in the tree, returning the node
-       * @param path - The path to search for in the Radix Tree.
-       * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
-       */
-      search(path2) {
-        const segments = this.normalize(path2);
-        return this.searchRecursive(this.root, segments, {});
-      }
-      /**
-       * Recursively searches for a path in the Radix Tree.
-       * This method traverses the tree and searches for the segments of the path, collecting parameters
-       * @param node - The node to start searching from.
-       * @param segments - The segments of the path to search for.
-       * @param params - The parameters collected during the search.
-       * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
-       */
-      searchRecursive(node, segments, params) {
-        if (segments.length === 0) {
-          if (node.value !== void 0) {
-            return {
-              node,
-              params
-            };
-          }
-          return void 0;
-        }
-        const [segment, ...rest] = segments;
-        for (const child of node.children) {
-          if (child.isParam) {
-            const paramName = child.paramName;
-            const childParams = {
-              ...params,
-              [paramName]: segment ?? ""
-            };
-            if (rest.length === 0) {
-              return {
-                node: child,
-                params: childParams
-              };
-            }
-            const result = this.searchRecursive(child, rest, childParams);
-            if (result)
-              return result;
-          } else if (segment === child.segment) {
-            if (rest.length === 0) {
-              return {
-                node: child,
-                params
-              };
-            }
-            const result = this.searchRecursive(child, rest, params);
-            if (result)
-              return result;
-          }
-        }
-        return void 0;
-      }
-      /**
-       * Normalizes a path into an array of segments.
-       * This method removes leading and trailing slashes, splits the path by slashes, and
-       * @param path - The path to normalize.
-       * @returns An array of normalized path segments.
-       */
-      normalize(path2) {
-        const segments = path2.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
-        return ["", ...segments];
-      }
-    };
-    __name(_RadixTree, "RadixTree");
-    RadixTree = _RadixTree;
-  }
-});
-
-// src/router.ts
+// src/internal/router.ts
 var router_exports = {};
 __export(router_exports, {
   Router: () => Router
 });
 var Router;
 var init_router = __esm({
-  "src/router.ts"() {
+  "src/internal/router.ts"() {
     "use strict";
     init_controller_decorator();
     init_injectable_decorator();
     init_method_decorator();
     init_injector_explorer();
-    init_exceptions();
-    init_request();
     init_logger();
     init_radix_tree();
+    init_exceptions();
+    init_request();
     Router = class {
       constructor() {
         this.routes = new RadixTree();
@@ -1295,67 +1295,12 @@ init_app_injector();
 init_token();
 init_router();
 
-// src/app.ts
+// src/internal/app.ts
 init_injectable_decorator();
 init_app_injector();
 init_injector_explorer();
-init_request();
-init_router();
+init_logger();
 import { app, BrowserWindow as BrowserWindow2, ipcMain, MessageChannelMain } from "electron/main";
-
-// src/socket.ts
-init_injectable_decorator();
-init_request();
-init_logger();
-var NoxSocket = class {
-  constructor() {
-    this.channels = /* @__PURE__ */ new Map();
-  }
-  register(senderId, requestChannel, socketChannel) {
-    this.channels.set(senderId, { request: requestChannel, socket: socketChannel });
-  }
-  get(senderId) {
-    return this.channels.get(senderId);
-  }
-  unregister(senderId) {
-    this.channels.delete(senderId);
-  }
-  getSenderIds() {
-    return [...this.channels.keys()];
-  }
-  emit(eventName, payload, targetSenderIds) {
-    const normalizedEvent = eventName.trim();
-    if (normalizedEvent.length === 0) {
-      throw new Error("Renderer event name must be a non-empty string.");
-    }
-    const recipients = targetSenderIds ?? this.getSenderIds();
-    let delivered = 0;
-    for (const senderId of recipients) {
-      const channel = this.channels.get(senderId);
-      if (!channel) {
-        Logger.warn(`No message channel found for sender ID: ${senderId} while emitting "${normalizedEvent}".`);
-        continue;
-      }
-      try {
-        channel.socket.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
-        delivered++;
-      } catch (error) {
-        Logger.error(`[Noxus] Failed to emit "${normalizedEvent}" to sender ${senderId}.`, error);
-      }
-    }
-    return delivered;
-  }
-  emitToRenderer(senderId, eventName, payload) {
-    return this.emit(eventName, payload, [senderId]) > 0;
-  }
-};
-__name(NoxSocket, "NoxSocket");
-NoxSocket = __decorateClass([
-  Injectable({ lifetime: "singleton" })
-], NoxSocket);
-
-// src/app.ts
-init_logger();
 
 // src/window/window-manager.ts
 init_injectable_decorator();
@@ -1526,7 +1471,62 @@ WindowManager = __decorateClass([
   Injectable({ lifetime: "singleton" })
 ], WindowManager);
 
-// src/app.ts
+// src/internal/app.ts
+init_request();
+init_router();
+
+// src/internal/socket.ts
+init_injectable_decorator();
+init_logger();
+init_request();
+var NoxSocket = class {
+  constructor() {
+    this.channels = /* @__PURE__ */ new Map();
+  }
+  register(senderId, requestChannel, socketChannel) {
+    this.channels.set(senderId, { request: requestChannel, socket: socketChannel });
+  }
+  get(senderId) {
+    return this.channels.get(senderId);
+  }
+  unregister(senderId) {
+    this.channels.delete(senderId);
+  }
+  getSenderIds() {
+    return [...this.channels.keys()];
+  }
+  emit(eventName, payload, targetSenderIds) {
+    const normalizedEvent = eventName.trim();
+    if (normalizedEvent.length === 0) {
+      throw new Error("Renderer event name must be a non-empty string.");
+    }
+    const recipients = targetSenderIds ?? this.getSenderIds();
+    let delivered = 0;
+    for (const senderId of recipients) {
+      const channel = this.channels.get(senderId);
+      if (!channel) {
+        Logger.warn(`No message channel found for sender ID: ${senderId} while emitting "${normalizedEvent}".`);
+        continue;
+      }
+      try {
+        channel.socket.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
+        delivered++;
+      } catch (error) {
+        Logger.error(`[Noxus] Failed to emit "${normalizedEvent}" to sender ${senderId}.`, error);
+      }
+    }
+    return delivered;
+  }
+  emitToRenderer(senderId, eventName, payload) {
+    return this.emit(eventName, payload, [senderId]) > 0;
+  }
+};
+__name(NoxSocket, "NoxSocket");
+NoxSocket = __decorateClass([
+  Injectable({ lifetime: "singleton" })
+], NoxSocket);
+
+// src/internal/app.ts
 var NoxApp = class {
   constructor() {
     this.router = inject(Router);
@@ -1668,10 +1668,10 @@ NoxApp = __decorateClass([
   Injectable({ lifetime: "singleton", deps: [Router, NoxSocket, WindowManager] })
 ], NoxApp);
 
-// src/bootstrap.ts
-import { app as app2 } from "electron/main";
+// src/internal/bootstrap.ts
 init_app_injector();
 init_injector_explorer();
+import { app as app2 } from "electron/main";
 async function bootstrapApplication(config = {}) {
   await app2.whenReady();
   const overrides = /* @__PURE__ */ new Map();
@@ -1703,7 +1703,7 @@ init_logger();
 init_forward_ref();
 init_request();
 
-// src/routes.ts
+// src/internal/routes.ts
 function defineRoutes(routes) {
   const paths = routes.map((r) => r.path.replace(/^\/+|\/+$/g, ""));
   const duplicates = paths.filter((p, i) => paths.indexOf(p) !== i);

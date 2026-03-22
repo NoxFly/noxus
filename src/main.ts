@@ -8,10 +8,10 @@
 
 export * from './DI/app-injector';
 export * from './DI/token';
-export * from './router';
-export * from './app';
-export * from './bootstrap';
-export * from './exceptions';
+export * from './internal/router';
+export * from './internal/app';
+export * from './internal/bootstrap';
+export * from './internal/exceptions';
 export * from './decorators/middleware.decorator';
 export * from './decorators/guards.decorator';
 export * from './decorators/controller.decorator';
@@ -20,7 +20,7 @@ export * from './decorators/method.decorator';
 export * from './utils/logger';
 export * from './utils/types';
 export * from './utils/forward-ref';
-export * from './request';
-export * from './socket';
+export * from './internal/request';
+export * from './internal/socket';
 export * from './window/window-manager';
-export * from './routes';
+export * from './internal/routes';

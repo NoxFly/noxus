@@ -1,11 +1,119 @@
-import { L as Lifetime, a as TokenKey } from './app-injector-Bz3Upc0y.js';
-export { A as AppInjector, F as ForwardRefFn, b as ForwardReference, I as IBinding, M as MaybeAsync, R as RootInjector, c as Token, T as Type, f as forwardRef, i as inject } from './app-injector-Bz3Upc0y.js';
-
 /**
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
  */
+interface Type<T> extends Function {
+    new (...args: any[]): T;
+}
+/**
+ * Represents a generic type that can be either a value or a promise resolving to that value.
+ */
+type MaybeAsync<T> = T | Promise<T>;
+
+
+/**
+ * A function that returns a type.
+ * Used for forward references to types that are not yet defined.
+ */
+interface ForwardRefFn<T = any> {
+    (): Type<T>;
+}
+/**
+ * A wrapper class for forward referenced types.
+ */
+declare class ForwardReference<T = any> {
+    readonly forwardRefFn: ForwardRefFn<T>;
+    constructor(forwardRefFn: ForwardRefFn<T>);
+}
+/**
+ * Creates a forward reference to a type.
+ * @param fn A function that returns the type.
+ * @returns A ForwardReference instance.
+ */
+declare function forwardRef<T = any>(fn: ForwardRefFn<T>): ForwardReference<T>;
+
+
+/**
+ * A DI token uniquely identifies a dependency.
+ * It can wrap a class (Type<T>) or be a named symbol token.
+ *
+ * Using tokens instead of reflect-metadata means dependencies are
+ * declared explicitly — no magic type inference, no emitDecoratorMetadata.
+ *
+ * @example
+ * // Class token (most common)
+ * const MY_SERVICE = token(MyService);
+ *
+ * // Named symbol token (for interfaces or non-class values)
+ * const DB_URL = token<string>('DB_URL');
+ */
+declare class Token<T> {
+    readonly target: Type<T> | string;
+    readonly description: string;
+    constructor(target: Type<T> | string);
+    toString(): string;
+}
+/**
+ * The key used to look up a class token in the registry.
+ * For class tokens, the key is the class constructor itself.
+ * For named tokens, the key is the Token instance.
+ */
+type TokenKey<T = unknown> = Type<T> | Token<T>;
+
+
+/**
+ * Lifetime of a binding in the DI container.
+ * - singleton: created once, shared for the lifetime of the app.
+ * - scope:     created once per request scope.
+ * - transient: new instance every time it is resolved.
+ */
+type Lifetime = 'singleton' | 'scope' | 'transient';
+/**
+ * Internal representation of a registered binding.
+ */
+interface IBinding<T = unknown> {
+    lifetime: Lifetime;
+    implementation: Type<T>;
+    /** Explicit constructor dependencies, declared by the class itself. */
+    deps: ReadonlyArray<TokenKey>;
+    instance?: T;
+}
+/**
+ * AppInjector is the core DI container.
+ * It no longer uses reflect-metadata — all dependency information
+ * comes from explicitly declared `deps` arrays on each binding.
+ */
+declare class AppInjector {
+    readonly name: string | null;
+    readonly bindings: Map<Type<unknown> | Token<unknown>, IBinding<unknown>>;
+    readonly singletons: Map<Type<unknown> | Token<unknown>, unknown>;
+    readonly scoped: Map<Type<unknown> | Token<unknown>, unknown>;
+    constructor(name?: string | null);
+    /**
+     * Creates a child scope for per-request lifetime resolution.
+     */
+    createScope(): AppInjector;
+    /**
+     * Registers a binding explicitly.
+     */
+    register<T>(key: TokenKey<T>, implementation: Type<T>, lifetime: Lifetime, deps?: ReadonlyArray<TokenKey>): void;
+    /**
+     * Resolves a dependency by token or class reference.
+     */
+    resolve<T>(target: TokenKey<T> | ForwardReference<T>): T;
+    private _resolveForwardRef;
+    private _instantiate;
+}
+/**
+ * The global root injector. All singletons live here.
+ */
+declare const RootInjector: AppInjector;
+/**
+ * Convenience function: resolve a token from the root injector.
+ */
+declare function inject<T>(t: TokenKey<T> | ForwardReference<T>): T;
+
 declare class ResponseException extends Error {
     readonly status: number;
     constructor(message?: string);
@@ -232,4 +340,4 @@ declare namespace Logger {
     };
 }
 
-export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TokenKey, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException };
+export { AppInjector, BadGatewayException, BadRequestException, ConflictException, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, HttpVersionNotSupportedException, type IBinding, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, RootInjector, ServiceUnavailableException, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, forwardRef, inject };

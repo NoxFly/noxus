@@ -23,18 +23,17 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var src_exports = {};
-__export(src_exports, {
+// src/renderer.ts
+var renderer_exports = {};
+__export(renderer_exports, {
   NoxRendererClient: () => NoxRendererClient,
   RENDERER_EVENT_TYPE: () => RENDERER_EVENT_TYPE,
   RendererEventRegistry: () => RendererEventRegistry,
   Request: () => Request,
   createRendererEventMessage: () => createRendererEventMessage,
-  exposeNoxusBridge: () => exposeNoxusBridge,
   isRendererEventMessage: () => isRendererEventMessage
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(renderer_exports);
 
 // src/utils/forward-ref.ts
 var _ForwardReference = class _ForwardReference {
@@ -153,7 +152,7 @@ __name(_AppInjector, "AppInjector");
 var AppInjector = _AppInjector;
 var RootInjector = new AppInjector("root");
 
-// src/request.ts
+// src/internal/request.ts
 var _Request = class _Request {
   constructor(event, senderId, id, method, path, body) {
     this.event = event;
@@ -187,53 +186,7 @@ function isRendererEventMessage(value) {
 }
 __name(isRendererEventMessage, "isRendererEventMessage");
 
-// src/preload-bridge.ts
-var import_renderer = require("electron/renderer");
-var DEFAULT_EXPOSE_NAME = "noxus";
-var DEFAULT_INIT_EVENT = "init-port";
-var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
-var DEFAULT_RESPONSE_CHANNEL = "port";
-function exposeNoxusBridge(options = {}) {
-  const {
-    exposeAs = DEFAULT_EXPOSE_NAME,
-    initMessageType = DEFAULT_INIT_EVENT,
-    requestChannel = DEFAULT_REQUEST_CHANNEL,
-    responseChannel = DEFAULT_RESPONSE_CHANNEL,
-    targetWindow = window
-  } = options;
-  const api = {
-    requestPort: /* @__PURE__ */ __name(() => {
-      import_renderer.ipcRenderer.send(requestChannel);
-      import_renderer.ipcRenderer.once(responseChannel, (event, message) => {
-        const ports = (event.ports ?? []).filter((port) => port !== void 0);
-        if (ports.length === 0) {
-          console.error("[Noxus] No MessagePort received from main process.");
-          return;
-        }
-        for (const port of ports) {
-          try {
-            port.start();
-          } catch (error) {
-            console.error("[Noxus] Failed to start MessagePort.", error);
-          }
-        }
-        targetWindow.postMessage(
-          {
-            type: initMessageType,
-            senderId: message?.senderId
-          },
-          "*",
-          ports
-        );
-      });
-    }, "requestPort")
-  };
-  import_renderer.contextBridge.exposeInMainWorld(exposeAs, api);
-  return api;
-}
-__name(exposeNoxusBridge, "exposeNoxusBridge");
-
-// src/renderer-events.ts
+// src/internal/renderer-events.ts
 var _RendererEventRegistry = class _RendererEventRegistry {
   constructor() {
     this.listeners = /* @__PURE__ */ new Map();
@@ -313,8 +266,8 @@ var _RendererEventRegistry = class _RendererEventRegistry {
 __name(_RendererEventRegistry, "RendererEventRegistry");
 var RendererEventRegistry = _RendererEventRegistry;
 
-// src/renderer-client.ts
-var DEFAULT_INIT_EVENT2 = "init-port";
+// src/internal/renderer-client.ts
+var DEFAULT_INIT_EVENT = "init-port";
 var DEFAULT_BRIDGE_NAMES = ["noxus", "ipcRenderer"];
 function defaultRequestId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -424,7 +377,7 @@ var _NoxRendererClient = class _NoxRendererClient {
     this.windowRef = options.windowRef ?? window;
     const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
     this.bridge = resolvedBridge ?? null;
-    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT2;
+    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
     this.generateRequestId = options.generateRequestId ?? defaultRequestId;
   }
   async setup() {
@@ -553,7 +506,6 @@ var NoxRendererClient = _NoxRendererClient;
   RendererEventRegistry,
   Request,
   createRendererEventMessage,
-  exposeNoxusBridge,
   isRendererEventMessage
 });
 /**
@@ -566,6 +518,7 @@ var NoxRendererClient = _NoxRendererClient;
  * @license MIT
  * @author NoxFly
  *
- * Entry point for renderer process and preload consumers.
+ * Entry point for renderer web consumers (Angular, React, Vue, Vanilla...).
+ * No Electron imports — safe to bundle with any web bundler.
  */
 //# sourceMappingURL=renderer.js.map

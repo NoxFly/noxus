@@ -4,12 +4,15 @@
  * @author NoxFly
  */
 
-import { getControllerMetadata } from './decorators/controller.decorator';
-import { Guard } from './decorators/guards.decorator';
-import { Injectable } from './decorators/injectable.decorator';
-import { getRouteMetadata, isAtomicHttpMethod } from './decorators/method.decorator';
-import { Middleware, NextFunction } from './decorators/middleware.decorator';
-import { InjectorExplorer } from './DI/injector-explorer';
+import { getControllerMetadata } from '../decorators/controller.decorator';
+import { Guard } from '../decorators/guards.decorator';
+import { Injectable } from '../decorators/injectable.decorator';
+import { getRouteMetadata, isAtomicHttpMethod } from '../decorators/method.decorator';
+import { Middleware, NextFunction } from '../decorators/middleware.decorator';
+import { InjectorExplorer } from '../DI/injector-explorer';
+import { Logger } from '../utils/logger';
+import { RadixTree } from '../utils/radix-tree';
+import { Type } from '../utils/types';
 import {
     BadRequestException,
     NotFoundException,
@@ -17,9 +20,6 @@ import {
     UnauthorizedException
 } from './exceptions';
 import { IBatchRequestItem, IBatchRequestPayload, IBatchResponsePayload, IResponse, Request } from './request';
-import { Logger } from './utils/logger';
-import { RadixTree } from './utils/radix-tree';
-import { Type } from './utils/types';
 
 export interface ILazyRoute {
     load: () => Promise<unknown>;

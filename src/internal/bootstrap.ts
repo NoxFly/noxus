@@ -5,11 +5,11 @@
  */
 
 import { app } from 'electron/main';
+import { inject, RootInjector } from '../DI/app-injector';
+import { InjectorExplorer } from '../DI/injector-explorer';
+import { TokenKey } from '../DI/token';
 import { NoxApp } from './app';
-import { inject, RootInjector } from './DI/app-injector';
-import { InjectorExplorer } from './DI/injector-explorer';
-import { TokenKey } from './DI/token';
-import { RouteDefinition } from "src/routes";
+import { RouteDefinition } from "./routes";
 
 /**
  * A singleton value override: provides an already-constructed instance
