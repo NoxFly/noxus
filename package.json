@@ -1,6 +1,6 @@
 {
     "name": "@noxfly/noxus",
-    "version": "3.0.0-dev.1",
+    "version": "3.0.0-dev.2",
     "main": "dist/main.js",
     "module": "dist/main.mjs",
     "types": "dist/main.d.ts",
@@ -36,6 +36,14 @@
             "types":   "./dist/child.d.ts",
             "import":  "./dist/child.mjs",
             "require": "./dist/child.js"
+        }
+    },
+    "typesVersions": {
+        "*": {
+            "main":     ["./dist/main.d.ts"],
+            "renderer": ["./dist/renderer.d.ts"],
+            "preload":  ["./dist/preload.d.ts"],
+            "child":    ["./dist/child.d.ts"]
         }
     },
     "scripts": {

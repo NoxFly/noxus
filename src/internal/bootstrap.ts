@@ -78,6 +78,7 @@ export async function bootstrapApplication(config: BootstrapConfig = {}): Promis
 
     // Build override map for the DI flush phase
     const overrides = new Map<TokenKey, unknown>();
+
     for (const { token, useValue } of config.singletons ?? []) {
         overrides.set(token, useValue);
         // Pre-register the binding so the injector knows the token exists

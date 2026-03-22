@@ -451,9 +451,9 @@ class UserRepository {
 
 ```ts
 // preload.ts
-import { createPreloadBridge } from '@noxfly/noxus';
+import { exposeNoxusBridge } from '@noxfly/noxus/renderer';
 
-createPreloadBridge(); // exposes window.__noxus__ to the renderer
+exposeNoxusBridge(); // exposes window.__noxus__ to the renderer
 ```
 
 ### IPC client

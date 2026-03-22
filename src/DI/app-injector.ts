@@ -77,10 +77,19 @@ export class AppInjector {
         }
 
         const k = keyOf(target) as TokenKey<unknown>;
+
+        if (this.singletons.has(k)) {
+            return this.singletons.get(k) as T;
+        }
+
         const binding = this.bindings.get(k);
 
         if (!binding) {
-            const name = target instanceof Token ? target.description : (target as Type<unknown>).name ?? 'unknown';
+            const name = target instanceof Token
+                ? target.description
+                : (target as Type<unknown>).name
+                ?? 'unknown';
+
             throw new Error(
                 `[Noxus DI] No binding found for "${name}".\n`
                 + `Did you forget to declare it in @Injectable({ deps }) or in bootstrapApplication({ singletons })?`,

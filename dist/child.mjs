@@ -118,6 +118,9 @@ var init_app_injector = __esm({
           return this._resolveForwardRef(target);
         }
         const k = keyOf(target);
+        if (this.singletons.has(k)) {
+          return this.singletons.get(k);
+        }
         const binding = this.bindings.get(k);
         if (!binding) {
           const name = target instanceof Token ? target.description : target.name ?? "unknown";
