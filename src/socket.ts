@@ -8,16 +8,16 @@
  * Centralizes MessagePort storage for renderer communication and handles
  * push-event delivery back to renderer processes.
  */
-import { Injectable } from 'src/decorators/injectable.decorator';
-import { createRendererEventMessage } from 'src/request';
-import { Logger } from 'src/utils/logger';
+import { Injectable } from './decorators/injectable.decorator';
+import { createRendererEventMessage } from './request';
+import { Logger } from './utils/logger';
 
 interface RendererChannels {
     request: Electron.MessageChannelMain;
     socket: Electron.MessageChannelMain;
 }
 
-@Injectable('singleton')
+@Injectable({ lifetime: 'singleton' })
 export class NoxSocket {
     private readonly channels = new Map<number, RendererChannels>();
 

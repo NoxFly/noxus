@@ -4,159 +4,148 @@
  * @author NoxFly
  */
 
-import 'reflect-metadata';
-import { INJECT_METADATA_KEY } from 'src/decorators/inject.decorator';
-import { InternalServerException } from 'src/exceptions';
-import { ForwardReference } from 'src/utils/forward-ref';
-import { Type } from 'src/utils/types';
+import { ForwardReference } from '../utils/forward-ref';
+import { Type } from '../utils/types';
+import { Token, TokenKey } from './token';
 
 /**
- * Represents a lifetime of a binding in the dependency injection system.
- * It can be one of the following:
- * - 'singleton': The instance is created once and shared across the application.
- * - 'scope': The instance is created once per scope (e.g., per request).
- * - 'transient': A new instance is created every time it is requested.
+ * Lifetime of a binding in the DI container.
+ * - singleton: created once, shared for the lifetime of the app.
+ * - scope:     created once per request scope.
+ * - transient: new instance every time it is resolved.
  */
 export type Lifetime = 'singleton' | 'scope' | 'transient';
 
 /**
- * Represents a binding in the dependency injection system.
- * It contains the lifetime of the binding, the implementation type, and optionally an instance.
+ * Internal representation of a registered binding.
  */
-export interface IBinding {
+export interface IBinding<T = unknown> {
     lifetime: Lifetime;
-    implementation: Type<unknown>;
-    instance?: InstanceType<Type<unknown>>;
+    implementation: Type<T>;
+    /** Explicit constructor dependencies, declared by the class itself. */
+    deps: ReadonlyArray<TokenKey>;
+    instance?: T;
+}
+
+function keyOf<T>(k: TokenKey<T>): Type<T> | Token<T> {
+    return k;
 }
 
 /**
- * AppInjector is the root dependency injection container.
- * It is used to register and resolve dependencies in the application.
- * It supports different lifetimes for dependencies:
- * This should not be manually instantiated, outside of the framework.
- * Use the `RootInjector` instance instead.
+ * AppInjector is the core DI container.
+ * It no longer uses reflect-metadata — all dependency information
+ * comes from explicitly declared `deps` arrays on each binding.
  */
 export class AppInjector {
-    public bindings = new Map<Type<unknown>, IBinding>();
-    public singletons = new Map<Type<unknown>, InstanceType<Type<unknown>>>();
-    public scoped = new Map<Type<unknown>, InstanceType<Type<unknown>>>();
+    public readonly bindings = new Map<Type<unknown> | Token<unknown>, IBinding<unknown>>();
+    public readonly singletons = new Map<Type<unknown> | Token<unknown>, unknown>();
+    public readonly scoped = new Map<Type<unknown> | Token<unknown>, unknown>();
 
-    constructor(
-        public readonly name: string | null = null,
-    ) {}
+    constructor(public readonly name: string | null = null) {}
 
     /**
-     * Typically used to create a dependency injection scope
-     * at the "scope" level (i.e., per-request lifetime).
-     *
-     * SHOULD NOT BE USED by anything else than the framework itself.
+     * Creates a child scope for per-request lifetime resolution.
      */
     public createScope(): AppInjector {
         const scope = new AppInjector();
-        scope.bindings = this.bindings; // pass injectable declarations
-        scope.singletons = this.singletons; // share parent's singletons to avoid recreating them
-        // do not keep parent's scoped instances
+        (scope as any).bindings = this.bindings;
+        (scope as any).singletons = this.singletons;
         return scope;
     }
 
     /**
-     * Called when resolving a dependency,
-     * i.e., retrieving the instance of a given class.
+     * Registers a binding explicitly.
      */
-    public resolve<T>(target: Type<T> | ForwardReference<T>): T {
-        if (target instanceof ForwardReference) {
-            return new Proxy({}, {
-                get: (obj, prop, receiver) => {
-                    const realType = target.forwardRefFn();
-                    const instance = this.resolve(realType) as any;
-                    const value = Reflect.get(instance, prop, receiver);
-                    
-                    return typeof value === 'function' ? value.bind(instance) : value;
-                },
-                set: (obj, prop, value, receiver) => {
-                     const realType = target.forwardRefFn();
-                     const instance = this.resolve(realType) as any;
-                     return Reflect.set(instance, prop, value, receiver);
-                },
-                getPrototypeOf: () => {
-                     const realType = target.forwardRefFn();
-                     return (realType as any).prototype;
-                }
-            }) as T;
-        }
-
-        const binding = this.bindings.get(target);
-
-        if(!binding) {
-            if(target === undefined) {
-                throw new InternalServerException(
-                    "Failed to resolve a dependency injection : Undefined target type.\n"
-                    + "This might be caused by a circular dependency."
-                );
-            }
-
-            const name = target.name || "unknown";
-
-            throw new InternalServerException(
-                `Failed to resolve a dependency injection : No binding for type ${name}.\n`
-                + `Did you forget to use @Injectable() decorator ?`
-            );
-        }
-
-        switch(binding.lifetime) {
-            case 'transient':
-                return this.instantiate(binding.implementation) as T;
-
-            case 'scope': {
-                if(this.scoped.has(target)) {
-                    return this.scoped.get(target) as T;
-                }
-
-                const instance = this.instantiate(binding.implementation);
-                this.scoped.set(target, instance);
-
-                return instance as T;
-            }
-
-            case 'singleton': {
-                if(binding.instance === undefined && this.name === 'root') {
-                    binding.instance = this.instantiate(binding.implementation);
-                    this.singletons.set(target, binding.instance);
-                }
-
-                return binding.instance as T;
-            }
+    public register<T>(
+        key: TokenKey<T>,
+        implementation: Type<T>,
+        lifetime: Lifetime,
+        deps: ReadonlyArray<TokenKey> = [],
+    ): void {
+        const k = keyOf(key) as TokenKey<unknown>;
+        if (!this.bindings.has(k)) {
+            this.bindings.set(k, { lifetime, implementation: implementation as Type<unknown>, deps });
         }
     }
 
     /**
-     * Instantiates a class, resolving its dependencies.
+     * Resolves a dependency by token or class reference.
      */
-    private instantiate<T extends Type<unknown>>(target: T): InstanceType<T> {
-        const paramTypes = Reflect.getMetadata('design:paramtypes', target) || [];
-        const injectParams = Reflect.getMetadata(INJECT_METADATA_KEY, target) || [];
+    public resolve<T>(target: TokenKey<T> | ForwardReference<T>): T {
+        if (target instanceof ForwardReference) {
+            return this._resolveForwardRef(target);
+        }
 
-        const params = paramTypes.map((paramType: any, index: number) => {
-            const overrideToken = injectParams[index];
-            const actualToken = overrideToken !== undefined ? overrideToken : paramType;
+        const k = keyOf(target) as TokenKey<unknown>;
+        const binding = this.bindings.get(k);
 
-            return this.resolve(actualToken);
-        });
+        if (!binding) {
+            const name = target instanceof Token ? target.description : (target as Type<unknown>).name ?? 'unknown';
+            throw new Error(
+                `[Noxus DI] No binding found for "${name}".\n`
+                + `Did you forget to declare it in @Injectable({ deps }) or in bootstrapApplication({ singletons })?`,
+            );
+        }
 
-        return new target(...params) as InstanceType<T>;
+        switch (binding.lifetime) {
+            case 'transient':
+                return this._instantiate(binding) as T;
+
+            case 'scope': {
+                if (this.scoped.has(k)) return this.scoped.get(k) as T;
+                const inst = this._instantiate(binding);
+                this.scoped.set(k, inst);
+                return inst as T;
+            }
+
+            case 'singleton': {
+                if (this.singletons.has(k)) return this.singletons.get(k) as T;
+                const inst = this._instantiate(binding);
+                this.singletons.set(k, inst);
+                if (binding.instance === undefined) {
+                    (binding as IBinding<unknown>).instance = inst as unknown;
+                }
+                return inst as T;
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+
+    private _resolveForwardRef<T>(ref: ForwardReference<T>): T {
+        return new Proxy({} as object, {
+            get: (_obj, prop, receiver) => {
+                const realType = ref.forwardRefFn();
+                const instance = this.resolve(realType) as Record<string | symbol, unknown>;
+                const value = Reflect.get(instance, prop, receiver);
+                return typeof value === 'function' ? (value as Function).bind(instance) : value;
+            },
+            set: (_obj, prop, value, receiver) => {
+                const realType = ref.forwardRefFn();
+                const instance = this.resolve(realType) as object;
+                return Reflect.set(instance, prop, value, receiver);
+            },
+            getPrototypeOf: () => {
+                const realType = ref.forwardRefFn();
+                return (realType as unknown as { prototype: object }).prototype;
+            },
+        }) as T;
+    }
+
+    private _instantiate<T>(binding: IBinding<T>): T {
+        const resolvedDeps = binding.deps.map((dep) => this.resolve(dep));
+        return new binding.implementation(...resolvedDeps) as T;
     }
 }
 
 /**
- * Injects a type from the dependency injection system.
- * This function is used to retrieve an instance of a type that has been registered in the dependency injection system.
- * It is typically used in the constructor of a class to inject dependencies.
- * @param t - The type to inject.
- * @returns An instance of the type.
- * @throws If the type is not registered in the dependency injection system.
+ * The global root injector. All singletons live here.
  */
-export function inject<T>(t: Type<T> | ForwardReference<T>): T {
+export const RootInjector = new AppInjector('root');
+
+/**
+ * Convenience function: resolve a token from the root injector.
+ */
+export function inject<T>(t: TokenKey<T> | ForwardReference<T>): T {
     return RootInjector.resolve(t);
 }
-
-export const RootInjector = new AppInjector('root');

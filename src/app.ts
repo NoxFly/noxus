@@ -4,46 +4,140 @@
  * @author NoxFly
  */
 
-import { app, BrowserWindow, ipcMain, MessageChannelMain } from "electron/main";
-import { Injectable } from "src/decorators/injectable.decorator";
-import { IMiddleware } from "src/decorators/middleware.decorator";
-import { inject } from "src/DI/app-injector";
-import { InjectorExplorer } from "src/DI/injector-explorer";
-import { IRequest, IResponse, Request } from "src/request";
-import { NoxSocket } from "src/socket";
-import { Router } from "src/router";
-import { Logger } from "src/utils/logger";
-import { Type } from "src/utils/types";
+import { app, BrowserWindow, ipcMain, MessageChannelMain } from 'electron/main';
+import { Injectable } from './decorators/injectable.decorator';
+import { Middleware } from './decorators/middleware.decorator';
+import { inject } from './DI/app-injector';
+import { InjectorExplorer } from './DI/injector-explorer';
+import { IResponse, Request } from './request';
+import { Router } from './router';
+import { NoxSocket } from './socket';
+import { Logger } from './utils/logger';
+import { Type } from './utils/types';
+import { WindowManager } from './window/window-manager';
+import { Guard } from "src/main";
 
 /**
- * The application service should implement this interface, as
- * the NoxApp class instance will use it to notify the given service
- * about application lifecycle events.
+ * Your application service should implement IApp.
+ * Noxus calls these lifecycle methods at the appropriate time.
+ *
+ * Unlike v2, IApp no longer receives a BrowserWindow in onReady.
+ * Use the injected WindowManager instead — it is more flexible and
+ * does not couple the lifecycle to a single pre-created window.
+ *
+ * @example
+ * @Injectable({ lifetime: 'singleton', deps: [WindowManager, MyService] })
+ * class AppService implements IApp {
+ *   constructor(private wm: WindowManager, private svc: MyService) {}
+ *
+ *   async onReady() {
+ *     const win = await this.wm.createSplash({ webPreferences: { preload: ... } });
+ *     win.loadFile('index.html');
+ *   }
+ *
+ *   async onActivated() { ... }
+ *   async dispose() { ... }
+ * }
  */
 export interface IApp {
     dispose(): Promise<void>;
-    onReady(mainWindow?: BrowserWindow): Promise<void>;
+    onReady(): Promise<void>;
     onActivated(): Promise<void>;
 }
 
-/**
- * NoxApp is the main application class that manages the application lifecycle,
- * handles IPC communication, and integrates with the Router.
- */
-@Injectable('singleton')
+@Injectable({ lifetime: 'singleton', deps: [Router, NoxSocket, WindowManager] })
 export class NoxApp {
-    private app: IApp | undefined;
-    private mainWindow: BrowserWindow | undefined;
+    private appService: IApp | undefined;
+
+    private readonly router = inject(Router);
+    private readonly socket = inject(NoxSocket);
+    public readonly windowManager = inject(WindowManager);
+
+    // -------------------------------------------------------------------------
+    // Initialisation
+    // -------------------------------------------------------------------------
+
+    public async init(): Promise<this> {
+        ipcMain.on('gimme-my-port', this.giveTheRendererAPort.bind(this));
+        app.once('activate', this.onAppActivated.bind(this));
+        app.once('window-all-closed', this.onAllWindowsClosed.bind(this));
+        console.log('');
+        return this;
+    }
+
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
 
     /**
+     * Registers a lazy route. The file behind this prefix is dynamically
+     * imported on the first IPC request that targets it.
      *
+     * The import function should NOT statically reference heavy modules —
+     * the whole point is to defer their loading.
+     *
+     * @example
+     * noxApp.lazy('auth', () => import('./modules/auth/auth.controller.js'));
+     * noxApp.lazy('reporting', () => import('./modules/reporting/index.js'));
      */
-    private readonly onRendererMessage = async (event: Electron.MessageEvent): Promise<void> => {
-        const { senderId, requestId, path, method, body }: IRequest = event.data;
+    public lazy(
+        pathPrefix: string,
+        load: () => Promise<unknown>,
+        guards: Guard[] = [],
+        middlewares: Middleware[] = [],
+    ): this {
+        this.router.registerLazyRoute(pathPrefix, load, guards, middlewares);
+        return this;
+    }
 
+    /**
+     * Eagerly loads a set of modules (controllers + services) before start().
+     * Use this for modules that provide services needed by your IApp.onReady().
+     *
+     * All imports run in parallel; DI is flushed with the two-phase guarantee.
+     */
+    public async load(importFns: Array<() => Promise<unknown>>): Promise<this> {
+        InjectorExplorer.beginAccumulate();
+        await Promise.all(importFns.map((fn) => fn()));
+        InjectorExplorer.flushAccumulated();
+        return this;
+    }
+
+    /**
+     * Registers a global middleware applied to every route.
+     */
+    public use(middleware: Middleware): this {
+        this.router.defineRootMiddleware(middleware);
+        return this;
+    }
+
+    /**
+     * Sets the application service (implements IApp) that receives lifecycle events.
+     * @param appClass - Class decorated with @Injectable that implements IApp.
+     */
+    public configure(appClass: Type<IApp>): this {
+        this.appService = inject(appClass);
+        return this;
+    }
+
+    /**
+     * Calls IApp.onReady(). Should be called after configure() and any lazy()
+     * registrations are set up.
+     */
+    public start(): this {
+        this.appService?.onReady();
+        return this;
+    }
+
+    // -------------------------------------------------------------------------
+    // IPC
+    // -------------------------------------------------------------------------
+
+    private readonly onRendererMessage = async (event: Electron.MessageEvent): Promise<void> => {
+        const { senderId, requestId, path, method, body }: import('./request').IRequest = event.data;
         const channels = this.socket.get(senderId);
 
-        if(!channels) {
+        if (!channels) {
             Logger.error(`No message channel found for sender ID: ${senderId}`);
             return;
         }
@@ -53,49 +147,21 @@ export class NoxApp {
             const response = await this.router.handle(request);
             channels.request.port1.postMessage(response);
         }
-        catch(err: any) {
+        catch (err: unknown) {
             const response: IResponse = {
                 requestId,
                 status: 500,
                 body: null,
-                error: err.message || 'Internal Server Error',
+                error: err instanceof Error ? err.message : 'Internal Server Error',
             };
-
             channels.request.port1.postMessage(response);
         }
     };
 
-    constructor(
-        private readonly router: Router,
-        private readonly socket: NoxSocket,
-    ) {}
-
-    /**
-     * Initializes the NoxApp instance.
-     * This method sets up the IPC communication, registers event listeners,
-     * and prepares the application for use.
-     */
-    public async init(): Promise<NoxApp> {
-        ipcMain.on('gimme-my-port', this.giveTheRendererAPort.bind(this));
-
-        app.once('activate', this.onAppActivated.bind(this));
-        app.once('window-all-closed', this.onAllWindowsClosed.bind(this));
-
-        console.log(''); // create a new line in the console to separate setup logs from the future logs
-
-        return this;
-    }
-
-    /**
-     * Handles the request from the renderer process.
-     * This method creates a Request object from the IPC event data,
-     * processes it through the Router, and sends the response back
-     * to the renderer process using the MessageChannel.
-     */
     private giveTheRendererAPort(event: Electron.IpcMainInvokeEvent): void {
         const senderId = event.sender.id;
 
-        if(this.socket.get(senderId)) {
+        if (this.socket.get(senderId)) {
             this.shutdownChannel(senderId);
         }
 
@@ -106,139 +172,46 @@ export class NoxApp {
         requestChannel.port1.start();
         socketChannel.port1.start();
 
-        this.socket.register(senderId, requestChannel, socketChannel);
+        event.sender.once('destroyed', () => this.shutdownChannel(senderId));
 
+        this.socket.register(senderId, requestChannel, socketChannel);
         event.sender.postMessage('port', { senderId }, [requestChannel.port2, socketChannel.port2]);
     }
 
-    /**
-     * MacOS specific behavior.
-     */
+    // -------------------------------------------------------------------------
+    // Lifecycle
+    // -------------------------------------------------------------------------
+
     private onAppActivated(): void {
-        if(process.platform === 'darwin' && BrowserWindow.getAllWindows().length === 0) {
-            this.app?.onActivated();
+        if (process.platform === 'darwin' && BrowserWindow.getAllWindows().length === 0) {
+            this.appService?.onActivated();
         }
     }
 
-    /**
-     * Shuts down the message channel for a specific sender ID.
-     * This method closes the IPC channel for the specified sender ID and
-     * removes it from the messagePorts map.
-     * @param channelSenderId - The ID of the sender channel to shut down.
-     * @param remove - Whether to remove the channel from the messagePorts map.
-     */
+    private async onAllWindowsClosed(): Promise<void> {
+        for (const senderId of this.socket.getSenderIds()) {
+            this.shutdownChannel(senderId);
+        }
+
+        Logger.info('All windows closed, shutting down application...');
+        await this.appService?.dispose();
+
+        if (process.platform !== 'darwin') app.quit();
+    }
+
     private shutdownChannel(channelSenderId: number): void {
         const channels = this.socket.get(channelSenderId);
 
-        if(!channels) {
-            Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
+        if (!channels) {
             return;
         }
 
         channels.request.port1.off('message', this.onRendererMessage);
         channels.request.port1.close();
         channels.request.port2.close();
-
         channels.socket.port1.close();
         channels.socket.port2.close();
 
         this.socket.unregister(channelSenderId);
-    }
-
-    /**
-     * Handles the application shutdown process.
-     * This method is called when all windows are closed, and it cleans up the message channels
-     */
-    private async onAllWindowsClosed(): Promise<void> {
-        for(const senderId of this.socket.getSenderIds()) {
-            this.shutdownChannel(senderId);
-        }
-
-        Logger.info('All windows closed, shutting down application...');
-        await this.app?.dispose();
-
-        if(process.platform !== 'darwin') {
-            app.quit();
-        }
-    }
-
-
-    // ---
-
-    /**
-     * Sets the main BrowserWindow that was created early by bootstrapApplication.
-     * This window will be passed to IApp.onReady when start() is called.
-     * @param window - The BrowserWindow created during bootstrap.
-     */
-    public setMainWindow(window: BrowserWindow): void {
-        this.mainWindow = window;
-    }
-
-    /**
-     * Registers a lazy-loaded route. The module behind this path prefix
-     * will only be dynamically imported when the first IPC request
-     * targets this prefix — like Angular's loadChildren.
-     *
-     * @example
-     * ```ts
-     * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
-     * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
-     * ```
-     *
-     * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
-     * @param loadModule - A function returning a dynamic import promise.
-     * @returns NoxApp instance for method chaining.
-     */
-    public lazy(pathPrefix: string, loadModule: () => Promise<unknown>): NoxApp {
-        this.router.registerLazyRoute(pathPrefix, loadModule);
-        return this;
-    }
-
-    /**
-     * Eagerly loads one or more modules with a two-phase DI guarantee.
-     * Use this when a service needed at startup lives inside a module
-     * (e.g. the Application service depends on LoaderService).
-     *
-     * All dynamic imports run in parallel; bindings are registered first,
-     * then singletons are resolved — safe regardless of import ordering.
-     *
-     * @param importFns - Functions returning dynamic import promises.
-     */
-    public async loadModules(importFns: Array<() => Promise<unknown>>): Promise<void> {
-        InjectorExplorer.beginAccumulate();
-        await Promise.all(importFns.map(fn => fn()));
-        InjectorExplorer.flushAccumulated();
-    }
-
-    /**
-     * Configures the NoxApp instance with the provided application class.
-     * This method allows you to set the application class that will handle lifecycle events.
-     * @param app - The application class to configure.
-     * @returns NoxApp instance for method chaining.
-     */
-    public configure(app: Type<IApp>): NoxApp {
-        this.app = inject(app);
-        return this;
-    }
-
-    /**
-     * Registers a middleware for the root of the application.
-     * This method allows you to define a middleware that will be applied to all requests
-     * @param middleware - The middleware class to register.
-     * @returns NoxApp instance for method chaining.
-     */
-    public use(middleware: Type<IMiddleware>): NoxApp {
-        this.router.defineRootMiddleware(middleware);
-        return this;
-    }
-
-    /**
-     * Should be called after the bootstrapApplication function is called.
-     * Passes the early-created BrowserWindow (if any) to the configured IApp service.
-     * @returns NoxApp instance for method chaining.
-     */
-    public start(): NoxApp {
-        this.app?.onReady(this.mainWindow);
-        return this;
     }
 }

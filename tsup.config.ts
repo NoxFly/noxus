@@ -6,7 +6,7 @@ const copyrights = `
  * @license MIT
  * @author NoxFly
  */
-`.trim()
+`.trim();
 
 export default defineConfig({
     entry: {
@@ -30,5 +30,5 @@ export default defineConfig({
     treeshake: false,
     banner: {
         js: copyrights,
-    }
+    },
 });

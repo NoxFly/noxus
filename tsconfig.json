@@ -4,7 +4,7 @@
         "rootDir": "./src",
         "baseUrl": "./",
         "moduleResolution": "node",
-        "target": "ES6",
+        "target": "ES2020",
         "module": "CommonJS",
         "forceConsistentCasingInFileNames": true,
         "strict": true,
@@ -13,22 +13,17 @@
         "noFallthroughCasesInSwitch": true,
         "sourceMap": true,
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
+        "emitDecoratorMetadata": false,
         "importHelpers": false,
         "esModuleInterop": true,
         "useDefineForClassFields": false,
         "noPropertyAccessFromIndexSignature": false,
         "noUncheckedIndexedAccess": true,
-        "skipLibCheck": true,
-        "types": ["reflect-metadata"],
-    },
-    "tsc-alias": {
-        "resolveFullPaths": true,
-        "verbose": false,
+        "skipLibCheck": true
     },
     "include": [
         "src/**/*.ts",
         "src/**/*.d.ts",
-        "node_modules/electron/electron.d.ts",
-    ],
+        "node_modules/electron/electron.d.ts"
+    ]
 }

@@ -5,7 +5,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron/renderer';
-import type { IPortRequester } from 'src/renderer-client';
+import type { IPortRequester } from './renderer-client';
 
 export interface NoxusPreloadAPI extends IPortRequester {}
 

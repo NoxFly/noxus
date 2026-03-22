@@ -10,8 +10,10 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -33,533 +35,169 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
-// src/main.ts
-var main_exports = {};
-__export(main_exports, {
-  AppInjector: () => AppInjector,
-  Authorize: () => Authorize,
-  BadGatewayException: () => BadGatewayException,
-  BadRequestException: () => BadRequestException,
-  CONTROLLER_METADATA_KEY: () => CONTROLLER_METADATA_KEY,
-  ConflictException: () => ConflictException,
-  Controller: () => Controller,
-  Delete: () => Delete,
-  ForbiddenException: () => ForbiddenException,
-  ForwardReference: () => ForwardReference,
-  GatewayTimeoutException: () => GatewayTimeoutException,
-  Get: () => Get,
-  HttpVersionNotSupportedException: () => HttpVersionNotSupportedException,
-  INJECTABLE_METADATA_KEY: () => INJECTABLE_METADATA_KEY,
-  INJECT_METADATA_KEY: () => INJECT_METADATA_KEY,
-  Inject: () => Inject,
-  Injectable: () => Injectable,
-  InsufficientStorageException: () => InsufficientStorageException,
-  InternalServerException: () => InternalServerException,
-  Logger: () => Logger,
-  LoopDetectedException: () => LoopDetectedException,
-  MODULE_METADATA_KEY: () => MODULE_METADATA_KEY,
-  MethodNotAllowedException: () => MethodNotAllowedException,
-  Module: () => Module,
-  NetworkAuthenticationRequiredException: () => NetworkAuthenticationRequiredException,
-  NetworkConnectTimeoutException: () => NetworkConnectTimeoutException,
-  NotAcceptableException: () => NotAcceptableException,
-  NotExtendedException: () => NotExtendedException,
-  NotFoundException: () => NotFoundException,
-  NotImplementedException: () => NotImplementedException,
-  NoxApp: () => NoxApp,
-  NoxSocket: () => NoxSocket,
-  Patch: () => Patch,
-  PaymentRequiredException: () => PaymentRequiredException,
-  Post: () => Post,
-  Put: () => Put,
-  RENDERER_EVENT_TYPE: () => RENDERER_EVENT_TYPE,
-  ROUTE_METADATA_KEY: () => ROUTE_METADATA_KEY,
-  Request: () => Request,
-  RequestTimeoutException: () => RequestTimeoutException,
-  ResponseException: () => ResponseException,
-  RootInjector: () => RootInjector,
-  Router: () => Router,
-  ServiceUnavailableException: () => ServiceUnavailableException,
-  TooManyRequestsException: () => TooManyRequestsException,
-  UnauthorizedException: () => UnauthorizedException,
-  UpgradeRequiredException: () => UpgradeRequiredException,
-  UseMiddlewares: () => UseMiddlewares,
-  VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
-  bootstrapApplication: () => bootstrapApplication,
-  createRendererEventMessage: () => createRendererEventMessage,
-  forwardRef: () => forwardRef,
-  getControllerMetadata: () => getControllerMetadata,
-  getGuardForController: () => getGuardForController,
-  getGuardForControllerAction: () => getGuardForControllerAction,
-  getInjectableMetadata: () => getInjectableMetadata,
-  getMiddlewaresForController: () => getMiddlewaresForController,
-  getMiddlewaresForControllerAction: () => getMiddlewaresForControllerAction,
-  getModuleMetadata: () => getModuleMetadata,
-  getRouteMetadata: () => getRouteMetadata,
-  hasInjectableMetadata: () => hasInjectableMetadata,
-  inject: () => inject,
-  isRendererEventMessage: () => isRendererEventMessage
-});
-module.exports = __toCommonJS(main_exports);
-
-// src/DI/app-injector.ts
-var import_reflect_metadata2 = require("reflect-metadata");
-
-// src/decorators/inject.decorator.ts
-var import_reflect_metadata = require("reflect-metadata");
-var INJECT_METADATA_KEY = "custom:inject";
-function Inject(token) {
-  return (target, propertyKey, parameterIndex) => {
-    const existingParameters = Reflect.getOwnMetadata(INJECT_METADATA_KEY, target) || [];
-    existingParameters[parameterIndex] = token;
-    Reflect.defineMetadata(INJECT_METADATA_KEY, existingParameters, target);
-  };
-}
-__name(Inject, "Inject");
-
-// src/exceptions.ts
-var _ResponseException = class _ResponseException extends Error {
-  constructor(statusOrMessage, message) {
-    let statusCode;
-    if (typeof statusOrMessage === "number") {
-      statusCode = statusOrMessage;
-    } else if (typeof statusOrMessage === "string") {
-      message = statusOrMessage;
-    }
-    super(message ?? "");
-    __publicField(this, "status", 0);
-    if (statusCode !== void 0) {
-      this.status = statusCode;
-    }
-    this.name = this.constructor.name.replace(/([A-Z])/g, " $1");
-  }
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+  for (var i = decorators.length - 1, decorator; i >= 0; i--)
+    if (decorator = decorators[i])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp(target, key, result);
+  return result;
 };
-__name(_ResponseException, "ResponseException");
-var ResponseException = _ResponseException;
-var _BadRequestException = class _BadRequestException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 400);
-  }
-};
-__name(_BadRequestException, "BadRequestException");
-var BadRequestException = _BadRequestException;
-var _UnauthorizedException = class _UnauthorizedException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 401);
-  }
-};
-__name(_UnauthorizedException, "UnauthorizedException");
-var UnauthorizedException = _UnauthorizedException;
-var _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 402);
-  }
-};
-__name(_PaymentRequiredException, "PaymentRequiredException");
-var PaymentRequiredException = _PaymentRequiredException;
-var _ForbiddenException = class _ForbiddenException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 403);
-  }
-};
-__name(_ForbiddenException, "ForbiddenException");
-var ForbiddenException = _ForbiddenException;
-var _NotFoundException = class _NotFoundException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 404);
-  }
-};
-__name(_NotFoundException, "NotFoundException");
-var NotFoundException = _NotFoundException;
-var _MethodNotAllowedException = class _MethodNotAllowedException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 405);
-  }
-};
-__name(_MethodNotAllowedException, "MethodNotAllowedException");
-var MethodNotAllowedException = _MethodNotAllowedException;
-var _NotAcceptableException = class _NotAcceptableException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 406);
-  }
-};
-__name(_NotAcceptableException, "NotAcceptableException");
-var NotAcceptableException = _NotAcceptableException;
-var _RequestTimeoutException = class _RequestTimeoutException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 408);
-  }
-};
-__name(_RequestTimeoutException, "RequestTimeoutException");
-var RequestTimeoutException = _RequestTimeoutException;
-var _ConflictException = class _ConflictException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 409);
-  }
-};
-__name(_ConflictException, "ConflictException");
-var ConflictException = _ConflictException;
-var _UpgradeRequiredException = class _UpgradeRequiredException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 426);
-  }
-};
-__name(_UpgradeRequiredException, "UpgradeRequiredException");
-var UpgradeRequiredException = _UpgradeRequiredException;
-var _TooManyRequestsException = class _TooManyRequestsException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 429);
-  }
-};
-__name(_TooManyRequestsException, "TooManyRequestsException");
-var TooManyRequestsException = _TooManyRequestsException;
-var _InternalServerException = class _InternalServerException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 500);
-  }
-};
-__name(_InternalServerException, "InternalServerException");
-var InternalServerException = _InternalServerException;
-var _NotImplementedException = class _NotImplementedException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 501);
-  }
-};
-__name(_NotImplementedException, "NotImplementedException");
-var NotImplementedException = _NotImplementedException;
-var _BadGatewayException = class _BadGatewayException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 502);
-  }
-};
-__name(_BadGatewayException, "BadGatewayException");
-var BadGatewayException = _BadGatewayException;
-var _ServiceUnavailableException = class _ServiceUnavailableException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 503);
-  }
-};
-__name(_ServiceUnavailableException, "ServiceUnavailableException");
-var ServiceUnavailableException = _ServiceUnavailableException;
-var _GatewayTimeoutException = class _GatewayTimeoutException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 504);
-  }
-};
-__name(_GatewayTimeoutException, "GatewayTimeoutException");
-var GatewayTimeoutException = _GatewayTimeoutException;
-var _HttpVersionNotSupportedException = class _HttpVersionNotSupportedException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 505);
-  }
-};
-__name(_HttpVersionNotSupportedException, "HttpVersionNotSupportedException");
-var HttpVersionNotSupportedException = _HttpVersionNotSupportedException;
-var _VariantAlsoNegotiatesException = class _VariantAlsoNegotiatesException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 506);
-  }
-};
-__name(_VariantAlsoNegotiatesException, "VariantAlsoNegotiatesException");
-var VariantAlsoNegotiatesException = _VariantAlsoNegotiatesException;
-var _InsufficientStorageException = class _InsufficientStorageException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 507);
-  }
-};
-__name(_InsufficientStorageException, "InsufficientStorageException");
-var InsufficientStorageException = _InsufficientStorageException;
-var _LoopDetectedException = class _LoopDetectedException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 508);
-  }
-};
-__name(_LoopDetectedException, "LoopDetectedException");
-var LoopDetectedException = _LoopDetectedException;
-var _NotExtendedException = class _NotExtendedException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 510);
-  }
-};
-__name(_NotExtendedException, "NotExtendedException");
-var NotExtendedException = _NotExtendedException;
-var _NetworkAuthenticationRequiredException = class _NetworkAuthenticationRequiredException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 511);
-  }
-};
-__name(_NetworkAuthenticationRequiredException, "NetworkAuthenticationRequiredException");
-var NetworkAuthenticationRequiredException = _NetworkAuthenticationRequiredException;
-var _NetworkConnectTimeoutException = class _NetworkConnectTimeoutException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 599);
-  }
-};
-__name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
-var NetworkConnectTimeoutException = _NetworkConnectTimeoutException;
 
 // src/utils/forward-ref.ts
-var _ForwardReference = class _ForwardReference {
-  constructor(forwardRefFn) {
-    __publicField(this, "forwardRefFn");
-    this.forwardRefFn = forwardRefFn;
-  }
-};
-__name(_ForwardReference, "ForwardReference");
-var ForwardReference = _ForwardReference;
 function forwardRef(fn) {
   return new ForwardReference(fn);
 }
-__name(forwardRef, "forwardRef");
+var _ForwardReference, ForwardReference;
+var init_forward_ref = __esm({
+  "src/utils/forward-ref.ts"() {
+    "use strict";
+    _ForwardReference = class _ForwardReference {
+      constructor(forwardRefFn) {
+        this.forwardRefFn = forwardRefFn;
+      }
+    };
+    __name(_ForwardReference, "ForwardReference");
+    ForwardReference = _ForwardReference;
+    __name(forwardRef, "forwardRef");
+  }
+});
+
+// src/DI/token.ts
+function token(target) {
+  return new Token(target);
+}
+var _Token, Token;
+var init_token = __esm({
+  "src/DI/token.ts"() {
+    "use strict";
+    _Token = class _Token {
+      constructor(target) {
+        this.target = target;
+        this.description = typeof target === "string" ? target : target.name;
+      }
+      toString() {
+        return `Token(${this.description})`;
+      }
+    };
+    __name(_Token, "Token");
+    Token = _Token;
+    __name(token, "token");
+  }
+});
 
 // src/DI/app-injector.ts
-var _AppInjector = class _AppInjector {
-  constructor(name = null) {
-    __publicField(this, "name");
-    __publicField(this, "bindings", /* @__PURE__ */ new Map());
-    __publicField(this, "singletons", /* @__PURE__ */ new Map());
-    __publicField(this, "scoped", /* @__PURE__ */ new Map());
-    this.name = name;
-  }
-  /**
-   * Typically used to create a dependency injection scope
-   * at the "scope" level (i.e., per-request lifetime).
-   *
-   * SHOULD NOT BE USED by anything else than the framework itself.
-   */
-  createScope() {
-    const scope = new _AppInjector();
-    scope.bindings = this.bindings;
-    scope.singletons = this.singletons;
-    return scope;
-  }
-  /**
-   * Called when resolving a dependency,
-   * i.e., retrieving the instance of a given class.
-   */
-  resolve(target) {
-    if (target instanceof ForwardReference) {
-      return new Proxy({}, {
-        get: /* @__PURE__ */ __name((obj, prop, receiver) => {
-          const realType = target.forwardRefFn();
-          const instance = this.resolve(realType);
-          const value = Reflect.get(instance, prop, receiver);
-          return typeof value === "function" ? value.bind(instance) : value;
-        }, "get"),
-        set: /* @__PURE__ */ __name((obj, prop, value, receiver) => {
-          const realType = target.forwardRefFn();
-          const instance = this.resolve(realType);
-          return Reflect.set(instance, prop, value, receiver);
-        }, "set"),
-        getPrototypeOf: /* @__PURE__ */ __name(() => {
-          const realType = target.forwardRefFn();
-          return realType.prototype;
-        }, "getPrototypeOf")
-      });
-    }
-    const binding = this.bindings.get(target);
-    if (!binding) {
-      if (target === void 0) {
-        throw new InternalServerException("Failed to resolve a dependency injection : Undefined target type.\nThis might be caused by a circular dependency.");
-      }
-      const name = target.name || "unknown";
-      throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${name}.
-Did you forget to use @Injectable() decorator ?`);
-    }
-    switch (binding.lifetime) {
-      case "transient":
-        return this.instantiate(binding.implementation);
-      case "scope": {
-        if (this.scoped.has(target)) {
-          return this.scoped.get(target);
-        }
-        const instance = this.instantiate(binding.implementation);
-        this.scoped.set(target, instance);
-        return instance;
-      }
-      case "singleton": {
-        if (binding.instance === void 0 && this.name === "root") {
-          binding.instance = this.instantiate(binding.implementation);
-          this.singletons.set(target, binding.instance);
-        }
-        return binding.instance;
-      }
-    }
-  }
-  /**
-   * Instantiates a class, resolving its dependencies.
-   */
-  instantiate(target) {
-    const paramTypes = Reflect.getMetadata("design:paramtypes", target) || [];
-    const injectParams = Reflect.getMetadata(INJECT_METADATA_KEY, target) || [];
-    const params = paramTypes.map((paramType, index) => {
-      const overrideToken = injectParams[index];
-      const actualToken = overrideToken !== void 0 ? overrideToken : paramType;
-      return this.resolve(actualToken);
-    });
-    return new target(...params);
-  }
-};
-__name(_AppInjector, "AppInjector");
-var AppInjector = _AppInjector;
+function keyOf(k) {
+  return k;
+}
 function inject(t) {
   return RootInjector.resolve(t);
 }
-__name(inject, "inject");
-var RootInjector = new AppInjector("root");
-
-// src/router.ts
-var import_reflect_metadata4 = require("reflect-metadata");
-
-// src/decorators/guards.decorator.ts
-function Authorize(...guardClasses) {
-  return (target, propertyKey) => {
-    let key;
-    if (propertyKey) {
-      const ctrlName = target.constructor.name;
-      const actionName = propertyKey;
-      key = `${ctrlName}.${actionName}`;
-    } else {
-      const ctrlName = target.name;
-      key = `${ctrlName}`;
-    }
-    if (authorizations.has(key)) {
-      throw new Error(`Guard(s) already registered for ${key}`);
-    }
-    authorizations.set(key, guardClasses);
-  };
-}
-__name(Authorize, "Authorize");
-function getGuardForController(controllerName) {
-  const key = `${controllerName}`;
-  return authorizations.get(key) ?? [];
-}
-__name(getGuardForController, "getGuardForController");
-function getGuardForControllerAction(controllerName, actionName) {
-  const key = `${controllerName}.${actionName}`;
-  return authorizations.get(key) ?? [];
-}
-__name(getGuardForControllerAction, "getGuardForControllerAction");
-var authorizations = /* @__PURE__ */ new Map();
-
-// src/decorators/injectable.metadata.ts
-var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
-function defineInjectableMetadata(target, lifetime) {
-  Reflect.defineMetadata(INJECTABLE_METADATA_KEY, lifetime, target);
-}
-__name(defineInjectableMetadata, "defineInjectableMetadata");
-function getInjectableMetadata(target) {
-  return Reflect.getMetadata(INJECTABLE_METADATA_KEY, target);
-}
-__name(getInjectableMetadata, "getInjectableMetadata");
-function hasInjectableMetadata(target) {
-  return Reflect.hasMetadata(INJECTABLE_METADATA_KEY, target);
-}
-__name(hasInjectableMetadata, "hasInjectableMetadata");
-
-// src/decorators/method.decorator.ts
-function createRouteDecorator(verb) {
-  return (path2) => {
-    return (target, propertyKey) => {
-      const existingRoutes = Reflect.getMetadata(ROUTE_METADATA_KEY, target.constructor) || [];
-      const metadata = {
-        method: verb,
-        path: path2.trim().replace(/^\/|\/$/g, ""),
-        handler: propertyKey,
-        guards: getGuardForControllerAction(target.constructor.__controllerName, propertyKey)
-      };
-      existingRoutes.push(metadata);
-      Reflect.defineMetadata(ROUTE_METADATA_KEY, existingRoutes, target.constructor);
+var _AppInjector, AppInjector, RootInjector;
+var init_app_injector = __esm({
+  "src/DI/app-injector.ts"() {
+    "use strict";
+    init_forward_ref();
+    init_token();
+    __name(keyOf, "keyOf");
+    _AppInjector = class _AppInjector {
+      constructor(name = null) {
+        this.name = name;
+        this.bindings = /* @__PURE__ */ new Map();
+        this.singletons = /* @__PURE__ */ new Map();
+        this.scoped = /* @__PURE__ */ new Map();
+      }
+      /**
+       * Creates a child scope for per-request lifetime resolution.
+       */
+      createScope() {
+        const scope = new _AppInjector();
+        scope.bindings = this.bindings;
+        scope.singletons = this.singletons;
+        return scope;
+      }
+      /**
+       * Registers a binding explicitly.
+       */
+      register(key, implementation, lifetime, deps = []) {
+        const k = keyOf(key);
+        if (!this.bindings.has(k)) {
+          this.bindings.set(k, { lifetime, implementation, deps });
+        }
+      }
+      /**
+       * Resolves a dependency by token or class reference.
+       */
+      resolve(target) {
+        if (target instanceof ForwardReference) {
+          return this._resolveForwardRef(target);
+        }
+        const k = keyOf(target);
+        const binding = this.bindings.get(k);
+        if (!binding) {
+          const name = target instanceof Token ? target.description : target.name ?? "unknown";
+          throw new Error(
+            `[Noxus DI] No binding found for "${name}".
+Did you forget to declare it in @Injectable({ deps }) or in bootstrapApplication({ singletons })?`
+          );
+        }
+        switch (binding.lifetime) {
+          case "transient":
+            return this._instantiate(binding);
+          case "scope": {
+            if (this.scoped.has(k)) return this.scoped.get(k);
+            const inst = this._instantiate(binding);
+            this.scoped.set(k, inst);
+            return inst;
+          }
+          case "singleton": {
+            if (this.singletons.has(k)) return this.singletons.get(k);
+            const inst = this._instantiate(binding);
+            this.singletons.set(k, inst);
+            if (binding.instance === void 0) {
+              binding.instance = inst;
+            }
+            return inst;
+          }
+        }
+      }
+      // -------------------------------------------------------------------------
+      _resolveForwardRef(ref) {
+        return new Proxy({}, {
+          get: /* @__PURE__ */ __name((_obj, prop, receiver) => {
+            const realType = ref.forwardRefFn();
+            const instance = this.resolve(realType);
+            const value = Reflect.get(instance, prop, receiver);
+            return typeof value === "function" ? value.bind(instance) : value;
+          }, "get"),
+          set: /* @__PURE__ */ __name((_obj, prop, value, receiver) => {
+            const realType = ref.forwardRefFn();
+            const instance = this.resolve(realType);
+            return Reflect.set(instance, prop, value, receiver);
+          }, "set"),
+          getPrototypeOf: /* @__PURE__ */ __name(() => {
+            const realType = ref.forwardRefFn();
+            return realType.prototype;
+          }, "getPrototypeOf")
+        });
+      }
+      _instantiate(binding) {
+        const resolvedDeps = binding.deps.map((dep) => this.resolve(dep));
+        return new binding.implementation(...resolvedDeps);
+      }
     };
-  };
-}
-__name(createRouteDecorator, "createRouteDecorator");
-function getRouteMetadata(target) {
-  return Reflect.getMetadata(ROUTE_METADATA_KEY, target) || [];
-}
-__name(getRouteMetadata, "getRouteMetadata");
-var Get = createRouteDecorator("GET");
-var Post = createRouteDecorator("POST");
-var Put = createRouteDecorator("PUT");
-var Patch = createRouteDecorator("PATCH");
-var Delete = createRouteDecorator("DELETE");
-var ROUTE_METADATA_KEY = Symbol("ROUTE_METADATA_KEY");
-
-// src/decorators/module.decorator.ts
-function Module(metadata) {
-  return (target) => {
-    const checkModule = /* @__PURE__ */ __name((arr, arrName) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(MODULE_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in ${arrName} must be decorated with @Module`);
-        }
-      }
-    }, "checkModule");
-    const checkInjectable = /* @__PURE__ */ __name((arr) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(INJECTABLE_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in providers must be decorated with @Injectable`);
-        }
-      }
-    }, "checkInjectable");
-    const checkController = /* @__PURE__ */ __name((arr) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(CONTROLLER_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in controllers must be decorated with @Controller`);
-        }
-      }
-    }, "checkController");
-    checkModule(metadata.imports, "imports");
-    checkModule(metadata.exports, "exports");
-    checkInjectable(metadata.providers);
-    checkController(metadata.controllers);
-    Reflect.defineMetadata(MODULE_METADATA_KEY, metadata, target);
-    Injectable("singleton")(target);
-  };
-}
-__name(Module, "Module");
-function getModuleMetadata(target) {
-  return Reflect.getMetadata(MODULE_METADATA_KEY, target);
-}
-__name(getModuleMetadata, "getModuleMetadata");
-var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
+    __name(_AppInjector, "AppInjector");
+    AppInjector = _AppInjector;
+    RootInjector = new AppInjector("root");
+    __name(inject, "inject");
+  }
+});
 
 // src/utils/logger.ts
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
 function getPrettyTimestamp() {
   const now = /* @__PURE__ */ new Date();
   return `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
 }
-__name(getPrettyTimestamp, "getPrettyTimestamp");
 function getLogPrefix(callee, messageType, color) {
   const timestamp = getPrettyTimestamp();
   const spaces = " ".repeat(10 - messageType.length);
@@ -572,7 +210,6 @@ function getLogPrefix(callee, messageType, color) {
   }
   return `${color}[APP] ${process.pid} - ${colReset}${timestamp}${spaces}${color}${messageType.toUpperCase()}${colReset} ${colCallee}[${callee}]${colReset}`;
 }
-__name(getLogPrefix, "getLogPrefix");
 function formatObject(prefix, arg, enableColor = true) {
   const json = JSON.stringify(arg, null, 2);
   let colStart = "";
@@ -586,7 +223,6 @@ function formatObject(prefix, arg, enableColor = true) {
   const prefixedJson = json.split("\n").map((line, idx) => idx === 0 ? `${colStart}${line}` : `${prefix} ${colLine}${line}`).join("\n") + colReset;
   return prefixedJson;
 }
-__name(formatObject, "formatObject");
 function formattedArgs(prefix, args, color) {
   let colReset = Logger.colors.initial;
   if (color === void 0) {
@@ -602,17 +238,14 @@ function formattedArgs(prefix, args, color) {
     return arg;
   });
 }
-__name(formattedArgs, "formattedArgs");
 function getCallee() {
   const stack = new Error().stack?.split("\n") ?? [];
   const caller = stack[3]?.trim().match(/at (.+?)(?:\..+)? .+$/)?.[1]?.replace("Object", "").replace(/^_/, "") || "App";
   return caller;
 }
-__name(getCallee, "getCallee");
 function canLog(level) {
   return logLevels.has(level);
 }
-__name(canLog, "canLog");
 function processLogQueue(filepath) {
   const state = fileStates.get(filepath);
   if (!state || state.isWriting || state.queue.length === 0) {
@@ -622,17 +255,13 @@ function processLogQueue(filepath) {
   const messagesToWrite = state.queue.join("\n") + "\n";
   state.queue = [];
   const dir = path.dirname(filepath);
-  fs.mkdir(dir, {
-    recursive: true
-  }, (err) => {
+  fs.mkdir(dir, { recursive: true }, (err) => {
     if (err) {
       console.error(`[Logger] Failed to create directory ${dir}`, err);
       state.isWriting = false;
       return;
     }
-    fs.appendFile(filepath, messagesToWrite, {
-      encoding: "utf-8"
-    }, (err2) => {
+    fs.appendFile(filepath, messagesToWrite, { encoding: "utf-8" }, (err2) => {
       state.isWriting = false;
       if (err2) {
         console.error(`[Logger] Failed to write log to ${filepath}`, err2);
@@ -643,19 +272,14 @@ function processLogQueue(filepath) {
     });
   });
 }
-__name(processLogQueue, "processLogQueue");
 function enqueue(filepath, message) {
   if (!fileStates.has(filepath)) {
-    fileStates.set(filepath, {
-      queue: [],
-      isWriting: false
-    });
+    fileStates.set(filepath, { queue: [], isWriting: false });
   }
   const state = fileStates.get(filepath);
   state.queue.push(message);
   processLogQueue(filepath);
 }
-__name(enqueue, "enqueue");
 function output(level, args) {
   if (!canLog(level)) {
     return;
@@ -676,363 +300,550 @@ function output(level, args) {
     }
   }
 }
-__name(output, "output");
-(function(Logger2) {
-  function setLogLevel(level) {
-    logLevels.clear();
-    if (Array.isArray(level)) {
-      for (const lvl of level) {
-        logLevels.add(lvl);
-      }
-    } else {
-      const targetRank = logLevelRank[level];
-      for (const [lvl, rank] of Object.entries(logLevelRank)) {
-        if (rank >= targetRank) {
-          logLevels.add(lvl);
+var fs, path, Logger, fileSettings, fileStates, logLevels, logLevelRank, logLevelColors, logLevelChannel;
+var init_logger = __esm({
+  "src/utils/logger.ts"() {
+    "use strict";
+    fs = __toESM(require("fs"));
+    path = __toESM(require("path"));
+    __name(getPrettyTimestamp, "getPrettyTimestamp");
+    __name(getLogPrefix, "getLogPrefix");
+    __name(formatObject, "formatObject");
+    __name(formattedArgs, "formattedArgs");
+    __name(getCallee, "getCallee");
+    __name(canLog, "canLog");
+    __name(processLogQueue, "processLogQueue");
+    __name(enqueue, "enqueue");
+    __name(output, "output");
+    ((Logger2) => {
+      function setLogLevel(level) {
+        logLevels.clear();
+        if (Array.isArray(level)) {
+          for (const lvl of level) {
+            logLevels.add(lvl);
+          }
+        } else {
+          const targetRank = logLevelRank[level];
+          for (const [lvl, rank] of Object.entries(logLevelRank)) {
+            if (rank >= targetRank) {
+              logLevels.add(lvl);
+            }
+          }
         }
       }
-    }
+      Logger2.setLogLevel = setLogLevel;
+      __name(setLogLevel, "setLogLevel");
+      function log(...args) {
+        output("log", args);
+      }
+      Logger2.log = log;
+      __name(log, "log");
+      function info(...args) {
+        output("info", args);
+      }
+      Logger2.info = info;
+      __name(info, "info");
+      function warn(...args) {
+        output("warn", args);
+      }
+      Logger2.warn = warn;
+      __name(warn, "warn");
+      function error(...args) {
+        output("error", args);
+      }
+      Logger2.error = error;
+      __name(error, "error");
+      function errorStack(...args) {
+        output("error", args);
+      }
+      Logger2.errorStack = errorStack;
+      __name(errorStack, "errorStack");
+      function debug(...args) {
+        output("debug", args);
+      }
+      Logger2.debug = debug;
+      __name(debug, "debug");
+      function comment(...args) {
+        output("comment", args);
+      }
+      Logger2.comment = comment;
+      __name(comment, "comment");
+      function critical(...args) {
+        output("critical", args);
+      }
+      Logger2.critical = critical;
+      __name(critical, "critical");
+      function enableFileLogging(filepath, levels = ["debug", "comment", "log", "info", "warn", "error", "critical"]) {
+        for (const level of levels) {
+          fileSettings.set(level, { filepath });
+        }
+      }
+      Logger2.enableFileLogging = enableFileLogging;
+      __name(enableFileLogging, "enableFileLogging");
+      function disableFileLogging(levels = ["debug", "comment", "log", "info", "warn", "error", "critical"]) {
+        for (const level of levels) {
+          fileSettings.delete(level);
+        }
+      }
+      Logger2.disableFileLogging = disableFileLogging;
+      __name(disableFileLogging, "disableFileLogging");
+      Logger2.colors = {
+        black: "\x1B[0;30m",
+        grey: "\x1B[0;37m",
+        red: "\x1B[0;31m",
+        green: "\x1B[0;32m",
+        brown: "\x1B[0;33m",
+        blue: "\x1B[0;34m",
+        purple: "\x1B[0;35m",
+        darkGrey: "\x1B[1;30m",
+        lightRed: "\x1B[1;31m",
+        lightGreen: "\x1B[1;32m",
+        yellow: "\x1B[1;33m",
+        lightBlue: "\x1B[1;34m",
+        magenta: "\x1B[1;35m",
+        cyan: "\x1B[1;36m",
+        white: "\x1B[1;37m",
+        initial: "\x1B[0m"
+      };
+    })(Logger || (Logger = {}));
+    fileSettings = /* @__PURE__ */ new Map();
+    fileStates = /* @__PURE__ */ new Map();
+    logLevels = /* @__PURE__ */ new Set();
+    logLevelRank = {
+      debug: 0,
+      comment: 1,
+      log: 2,
+      info: 3,
+      warn: 4,
+      error: 5,
+      critical: 6
+    };
+    logLevelColors = {
+      debug: Logger.colors.purple,
+      comment: Logger.colors.grey,
+      log: Logger.colors.green,
+      info: Logger.colors.blue,
+      warn: Logger.colors.brown,
+      error: Logger.colors.red,
+      critical: Logger.colors.lightRed
+    };
+    logLevelChannel = {
+      debug: console.debug,
+      comment: console.debug,
+      log: console.log,
+      info: console.info,
+      warn: console.warn,
+      error: console.error,
+      critical: console.error
+    };
+    Logger.setLogLevel("debug");
   }
-  __name(setLogLevel, "setLogLevel");
-  Logger2.setLogLevel = setLogLevel;
-  function log(...args) {
-    output("log", args);
-  }
-  __name(log, "log");
-  Logger2.log = log;
-  function info(...args) {
-    output("info", args);
-  }
-  __name(info, "info");
-  Logger2.info = info;
-  function warn(...args) {
-    output("warn", args);
-  }
-  __name(warn, "warn");
-  Logger2.warn = warn;
-  function error(...args) {
-    output("error", args);
-  }
-  __name(error, "error");
-  Logger2.error = error;
-  function errorStack(...args) {
-    output("error", args);
-  }
-  __name(errorStack, "errorStack");
-  Logger2.errorStack = errorStack;
-  function debug(...args) {
-    output("debug", args);
-  }
-  __name(debug, "debug");
-  Logger2.debug = debug;
-  function comment(...args) {
-    output("comment", args);
-  }
-  __name(comment, "comment");
-  Logger2.comment = comment;
-  function critical(...args) {
-    output("critical", args);
-  }
-  __name(critical, "critical");
-  Logger2.critical = critical;
-  function enableFileLogging(filepath, levels = [
-    "debug",
-    "comment",
-    "log",
-    "info",
-    "warn",
-    "error",
-    "critical"
-  ]) {
-    for (const level of levels) {
-      fileSettings.set(level, {
-        filepath
-      });
-    }
-  }
-  __name(enableFileLogging, "enableFileLogging");
-  Logger2.enableFileLogging = enableFileLogging;
-  function disableFileLogging(levels = [
-    "debug",
-    "comment",
-    "log",
-    "info",
-    "warn",
-    "error",
-    "critical"
-  ]) {
-    for (const level of levels) {
-      fileSettings.delete(level);
-    }
-  }
-  __name(disableFileLogging, "disableFileLogging");
-  Logger2.disableFileLogging = disableFileLogging;
-  Logger2.colors = {
-    black: "\x1B[0;30m",
-    grey: "\x1B[0;37m",
-    red: "\x1B[0;31m",
-    green: "\x1B[0;32m",
-    brown: "\x1B[0;33m",
-    blue: "\x1B[0;34m",
-    purple: "\x1B[0;35m",
-    darkGrey: "\x1B[1;30m",
-    lightRed: "\x1B[1;31m",
-    lightGreen: "\x1B[1;32m",
-    yellow: "\x1B[1;33m",
-    lightBlue: "\x1B[1;34m",
-    magenta: "\x1B[1;35m",
-    cyan: "\x1B[1;36m",
-    white: "\x1B[1;37m",
-    initial: "\x1B[0m"
-  };
-})(Logger || (Logger = {}));
-var fileSettings = /* @__PURE__ */ new Map();
-var fileStates = /* @__PURE__ */ new Map();
-var logLevels = /* @__PURE__ */ new Set();
-var logLevelRank = {
-  debug: 0,
-  comment: 1,
-  log: 2,
-  info: 3,
-  warn: 4,
-  error: 5,
-  critical: 6
-};
-var logLevelColors = {
-  debug: Logger.colors.purple,
-  comment: Logger.colors.grey,
-  log: Logger.colors.green,
-  info: Logger.colors.blue,
-  warn: Logger.colors.brown,
-  error: Logger.colors.red,
-  critical: Logger.colors.lightRed
-};
-var logLevelChannel = {
-  debug: console.debug,
-  comment: console.debug,
-  log: console.log,
-  info: console.info,
-  warn: console.warn,
-  error: console.error,
-  critical: console.error
-};
-Logger.setLogLevel("debug");
-var Logger;
+});
 
 // src/DI/injector-explorer.ts
-var _InjectorExplorer = class _InjectorExplorer {
-  /**
-   * Enqueues a class for deferred registration.
-   * Called by the @Injectable decorator at import time.
-   *
-   * If {@link processPending} has already been called (i.e. after bootstrap)
-   * and accumulation mode is not active, the class is registered immediately
-   * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
-   * work correctly.
-   *
-   * When accumulation mode is active (between {@link beginAccumulate} and
-   * {@link flushAccumulated}), classes are queued instead — preserving the
-   * two-phase binding/resolution guarantee for lazy-loaded modules.
-   */
-  static enqueue(target, lifetime) {
-    if (_InjectorExplorer.processed && !_InjectorExplorer.accumulating) {
-      _InjectorExplorer.registerImmediate(target, lifetime);
-      return;
-    }
-    _InjectorExplorer.pending.push({
-      target,
-      lifetime
-    });
-  }
-  /**
-   * Enters accumulation mode. While active, all decorated classes discovered
-   * via dynamic imports are queued in {@link pending} rather than registered
-   * immediately. Call {@link flushAccumulated} to process them with the
-   * full two-phase (bind-then-resolve) guarantee.
-   */
-  static beginAccumulate() {
-    _InjectorExplorer.accumulating = true;
-  }
-  /**
-   * Exits accumulation mode and processes every class queued since
-   * {@link beginAccumulate} was called. Uses the same two-phase strategy
-   * as {@link processPending} (register all bindings first, then resolve
-   * singletons / controllers) so import ordering within a lazy batch
-   * does not cause resolution failures.
-   */
-  static flushAccumulated() {
+var _InjectorExplorer, InjectorExplorer;
+var init_injector_explorer = __esm({
+  "src/DI/injector-explorer.ts"() {
+    "use strict";
+    init_app_injector();
+    init_logger();
+    _InjectorExplorer = class _InjectorExplorer {
+      // -------------------------------------------------------------------------
+      // Public API
+      // -------------------------------------------------------------------------
+      static enqueue(reg) {
+        if (_InjectorExplorer.processed && !_InjectorExplorer.accumulating) {
+          _InjectorExplorer._registerImmediate(reg);
+          return;
+        }
+        _InjectorExplorer.pending.push(reg);
+      }
+      /**
+       * Two-phase flush of all pending registrations collected at startup.
+       * Called by bootstrapApplication after app.whenReady().
+       */
+      static processPending(singletonOverrides) {
+        const queue = [..._InjectorExplorer.pending];
+        _InjectorExplorer.pending.length = 0;
+        _InjectorExplorer._phaseOne(queue);
+        _InjectorExplorer._phaseTwo(queue, singletonOverrides);
+        _InjectorExplorer.processed = true;
+      }
+      /** Enters accumulation mode for lazy-loaded batches. */
+      static beginAccumulate() {
+        _InjectorExplorer.accumulating = true;
+      }
+      /**
+       * Exits accumulation mode and flushes queued registrations
+       * with the same two-phase guarantee as processPending.
+       */
+      static flushAccumulated(routeGuards = [], routeMiddlewares = [], pathPrefix = "") {
+        _InjectorExplorer.accumulating = false;
+        const queue = [..._InjectorExplorer.pending];
+        _InjectorExplorer.pending.length = 0;
+        _InjectorExplorer._phaseOne(queue);
+        for (const reg of queue) {
+          if (reg.isController) reg.pathPrefix = pathPrefix;
+        }
+        _InjectorExplorer._phaseTwo(queue, void 0, routeGuards, routeMiddlewares);
+      }
+      // -------------------------------------------------------------------------
+      // Private helpers
+      // -------------------------------------------------------------------------
+      /** Phase 1: register all bindings without instantiating anything. */
+      static _phaseOne(queue) {
+        for (const reg of queue) {
+          RootInjector.register(reg.key, reg.implementation, reg.lifetime, reg.deps);
+        }
+      }
+      /** Phase 2: resolve singletons and register controllers in the router. */
+      static _phaseTwo(queue, overrides, routeGuards = [], routeMiddlewares = []) {
+        for (const reg of queue) {
+          if (overrides?.has(reg.key)) {
+            const override = overrides.get(reg.key);
+            RootInjector.singletons.set(reg.key, override);
+            Logger.log(`Registered ${reg.implementation.name} as singleton (overridden)`);
+            continue;
+          }
+          if (reg.lifetime === "singleton") {
+            RootInjector.resolve(reg.key);
+          }
+          if (reg.isController) {
+            const { Router: Router2 } = (init_router(), __toCommonJS(router_exports));
+            const router = RootInjector.resolve(Router2);
+            router.registerController(reg.implementation, reg.pathPrefix ?? "", routeGuards, routeMiddlewares);
+          } else if (reg.lifetime !== "singleton") {
+            Logger.log(`Registered ${reg.implementation.name} as ${reg.lifetime}`);
+          }
+        }
+      }
+      static _registerImmediate(reg) {
+        RootInjector.register(reg.key, reg.implementation, reg.lifetime, reg.deps);
+        if (reg.lifetime === "singleton") {
+          RootInjector.resolve(reg.key);
+        }
+        if (reg.isController) {
+          const { Router: Router2 } = (init_router(), __toCommonJS(router_exports));
+          const router = RootInjector.resolve(Router2);
+          router.registerController(reg.implementation);
+        }
+      }
+    };
+    __name(_InjectorExplorer, "InjectorExplorer");
+    _InjectorExplorer.pending = [];
+    _InjectorExplorer.processed = false;
     _InjectorExplorer.accumulating = false;
-    const queue = [
-      ..._InjectorExplorer.pending
-    ];
-    _InjectorExplorer.pending.length = 0;
-    for (const { target, lifetime } of queue) {
-      if (!RootInjector.bindings.has(target)) {
-        RootInjector.bindings.set(target, {
-          implementation: target,
-          lifetime
-        });
-      }
-    }
-    for (const { target, lifetime } of queue) {
-      _InjectorExplorer.processRegistration(target, lifetime);
-    }
+    InjectorExplorer = _InjectorExplorer;
   }
-  /**
-   * Processes all pending registrations in two phases:
-   * 1. Register all bindings (no instantiation) so every dependency is known.
-   * 2. Resolve singletons, register controllers and log module readiness.
-   *
-   * This two-phase approach makes the system resilient to import ordering:
-   * all bindings exist before any singleton is instantiated.
-   */
-  static processPending() {
-    const queue = _InjectorExplorer.pending;
-    for (const { target, lifetime } of queue) {
-      if (!RootInjector.bindings.has(target)) {
-        RootInjector.bindings.set(target, {
-          implementation: target,
-          lifetime
-        });
-      }
-    }
-    for (const { target, lifetime } of queue) {
-      _InjectorExplorer.processRegistration(target, lifetime);
-    }
-    queue.length = 0;
-    _InjectorExplorer.processed = true;
-  }
-  /**
-   * Registers a single class immediately (post-bootstrap path).
-   * Used for classes discovered via late dynamic imports.
-   */
-  static registerImmediate(target, lifetime) {
-    if (RootInjector.bindings.has(target)) {
-      return;
-    }
-    RootInjector.bindings.set(target, {
-      implementation: target,
-      lifetime
-    });
-    _InjectorExplorer.processRegistration(target, lifetime);
-  }
-  /**
-   * Performs phase-2 work for a single registration: resolve singletons,
-   * register controllers, and log module readiness.
-   */
-  static processRegistration(target, lifetime) {
-    if (lifetime === "singleton") {
-      RootInjector.resolve(target);
-    }
-    if (getModuleMetadata(target)) {
-      Logger.log(`${target.name} dependencies initialized`);
-      return;
-    }
-    const controllerMeta = getControllerMetadata(target);
-    if (controllerMeta) {
-      const router = RootInjector.resolve(Router);
-      router?.registerController(target);
-      return;
-    }
-    if (getRouteMetadata(target).length > 0) {
-      return;
-    }
-    if (getInjectableMetadata(target)) {
-      Logger.log(`Registered ${target.name} as ${lifetime}`);
-    }
-  }
-};
-__name(_InjectorExplorer, "InjectorExplorer");
-__publicField(_InjectorExplorer, "pending", []);
-__publicField(_InjectorExplorer, "processed", false);
-__publicField(_InjectorExplorer, "accumulating", false);
-var InjectorExplorer = _InjectorExplorer;
-
-// src/decorators/injectable.decorator.ts
-function Injectable(lifetime = "scope") {
-  return (target) => {
-    if (typeof target !== "function" || !target.prototype) {
-      throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
-    }
-    defineInjectableMetadata(target, lifetime);
-    InjectorExplorer.enqueue(target, lifetime);
-  };
-}
-__name(Injectable, "Injectable");
+});
 
 // src/decorators/controller.decorator.ts
-function Controller(path2) {
+function Controller(options = {}) {
   return (target) => {
-    const data = {
-      path: path2,
-      guards: getGuardForController(target.name)
+    const meta = {
+      deps: options.deps ?? []
     };
-    Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
-    Injectable("scope")(target);
+    controllerMetaMap.set(target, meta);
+    InjectorExplorer.enqueue({
+      key: target,
+      implementation: target,
+      lifetime: "scope",
+      deps: options.deps ?? [],
+      isController: true
+    });
   };
 }
-__name(Controller, "Controller");
 function getControllerMetadata(target) {
-  return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
+  return controllerMetaMap.get(target);
 }
-__name(getControllerMetadata, "getControllerMetadata");
-var CONTROLLER_METADATA_KEY = Symbol("CONTROLLER_METADATA_KEY");
+var controllerMetaMap;
+var init_controller_decorator = __esm({
+  "src/decorators/controller.decorator.ts"() {
+    "use strict";
+    init_injector_explorer();
+    controllerMetaMap = /* @__PURE__ */ new WeakMap();
+    __name(Controller, "Controller");
+    __name(getControllerMetadata, "getControllerMetadata");
+  }
+});
 
-// src/decorators/middleware.decorator.ts
-function UseMiddlewares(mdlw) {
-  return (target, propertyKey) => {
-    let key;
-    if (propertyKey) {
-      const ctrlName = target.constructor.name;
-      const actionName = propertyKey;
-      key = `${ctrlName}.${actionName}`;
-    } else {
-      const ctrlName = target.name;
-      key = `${ctrlName}`;
+// src/decorators/injectable.decorator.ts
+function Injectable(options = {}) {
+  const { lifetime = "scope", deps = [] } = options;
+  return (target) => {
+    if (typeof target !== "function" || !target.prototype) {
+      throw new Error(`@Injectable can only be applied to classes, not ${typeof target}`);
     }
-    if (middlewares.has(key)) {
-      throw new Error(`Middlewares(s) already registered for ${key}`);
-    }
-    middlewares.set(key, mdlw);
+    const key = target;
+    InjectorExplorer.enqueue({
+      key,
+      implementation: key,
+      lifetime,
+      deps,
+      isController: false
+    });
   };
 }
-__name(UseMiddlewares, "UseMiddlewares");
-function getMiddlewaresForController(controllerName) {
-  const key = `${controllerName}`;
-  return middlewares.get(key) ?? [];
+var init_injectable_decorator = __esm({
+  "src/decorators/injectable.decorator.ts"() {
+    "use strict";
+    init_injector_explorer();
+    init_token();
+    __name(Injectable, "Injectable");
+  }
+});
+
+// src/decorators/method.decorator.ts
+function isAtomicHttpMethod(m) {
+  return typeof m === "string" && ATOMIC_METHODS.has(m);
 }
-__name(getMiddlewaresForController, "getMiddlewaresForController");
-function getMiddlewaresForControllerAction(controllerName, actionName) {
-  const key = `${controllerName}.${actionName}`;
-  return middlewares.get(key) ?? [];
+function createRouteDecorator(verb) {
+  return (path2, options = {}) => {
+    return (target, propertyKey) => {
+      const ctor = target.constructor;
+      const existing = routeMetaMap.get(ctor) ?? [];
+      existing.push({
+        method: verb,
+        path: (path2 ?? "").trim().replace(/^\/|\/$/g, ""),
+        handler: propertyKey,
+        guards: options.guards ?? [],
+        middlewares: options.middlewares ?? []
+      });
+      routeMetaMap.set(ctor, existing);
+    };
+  };
 }
-__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
-var middlewares = /* @__PURE__ */ new Map();
+function getRouteMetadata(target) {
+  return routeMetaMap.get(target) ?? [];
+}
+var ATOMIC_METHODS, routeMetaMap, Get, Post, Put, Patch, Delete;
+var init_method_decorator = __esm({
+  "src/decorators/method.decorator.ts"() {
+    "use strict";
+    ATOMIC_METHODS = /* @__PURE__ */ new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+    __name(isAtomicHttpMethod, "isAtomicHttpMethod");
+    routeMetaMap = /* @__PURE__ */ new WeakMap();
+    __name(createRouteDecorator, "createRouteDecorator");
+    __name(getRouteMetadata, "getRouteMetadata");
+    Get = createRouteDecorator("GET");
+    Post = createRouteDecorator("POST");
+    Put = createRouteDecorator("PUT");
+    Patch = createRouteDecorator("PATCH");
+    Delete = createRouteDecorator("DELETE");
+  }
+});
+
+// src/exceptions.ts
+var _ResponseException, ResponseException, _BadRequestException, BadRequestException, _UnauthorizedException, UnauthorizedException, _PaymentRequiredException, PaymentRequiredException, _ForbiddenException, ForbiddenException, _NotFoundException, NotFoundException, _MethodNotAllowedException, MethodNotAllowedException, _NotAcceptableException, NotAcceptableException, _RequestTimeoutException, RequestTimeoutException, _ConflictException, ConflictException, _UpgradeRequiredException, UpgradeRequiredException, _TooManyRequestsException, TooManyRequestsException, _InternalServerException, InternalServerException, _NotImplementedException, NotImplementedException, _BadGatewayException, BadGatewayException, _ServiceUnavailableException, ServiceUnavailableException, _GatewayTimeoutException, GatewayTimeoutException, _HttpVersionNotSupportedException, HttpVersionNotSupportedException, _VariantAlsoNegotiatesException, VariantAlsoNegotiatesException, _InsufficientStorageException, InsufficientStorageException, _LoopDetectedException, LoopDetectedException, _NotExtendedException, NotExtendedException, _NetworkAuthenticationRequiredException, NetworkAuthenticationRequiredException, _NetworkConnectTimeoutException, NetworkConnectTimeoutException;
+var init_exceptions = __esm({
+  "src/exceptions.ts"() {
+    "use strict";
+    _ResponseException = class _ResponseException extends Error {
+      constructor(statusOrMessage, message) {
+        let statusCode;
+        if (typeof statusOrMessage === "number") {
+          statusCode = statusOrMessage;
+        } else if (typeof statusOrMessage === "string") {
+          message = statusOrMessage;
+        }
+        super(message ?? "");
+        this.status = 0;
+        if (statusCode !== void 0) {
+          this.status = statusCode;
+        }
+        this.name = this.constructor.name.replace(/([A-Z])/g, " $1");
+      }
+    };
+    __name(_ResponseException, "ResponseException");
+    ResponseException = _ResponseException;
+    _BadRequestException = class _BadRequestException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 400;
+      }
+    };
+    __name(_BadRequestException, "BadRequestException");
+    BadRequestException = _BadRequestException;
+    _UnauthorizedException = class _UnauthorizedException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 401;
+      }
+    };
+    __name(_UnauthorizedException, "UnauthorizedException");
+    UnauthorizedException = _UnauthorizedException;
+    _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 402;
+      }
+    };
+    __name(_PaymentRequiredException, "PaymentRequiredException");
+    PaymentRequiredException = _PaymentRequiredException;
+    _ForbiddenException = class _ForbiddenException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 403;
+      }
+    };
+    __name(_ForbiddenException, "ForbiddenException");
+    ForbiddenException = _ForbiddenException;
+    _NotFoundException = class _NotFoundException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 404;
+      }
+    };
+    __name(_NotFoundException, "NotFoundException");
+    NotFoundException = _NotFoundException;
+    _MethodNotAllowedException = class _MethodNotAllowedException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 405;
+      }
+    };
+    __name(_MethodNotAllowedException, "MethodNotAllowedException");
+    MethodNotAllowedException = _MethodNotAllowedException;
+    _NotAcceptableException = class _NotAcceptableException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 406;
+      }
+    };
+    __name(_NotAcceptableException, "NotAcceptableException");
+    NotAcceptableException = _NotAcceptableException;
+    _RequestTimeoutException = class _RequestTimeoutException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 408;
+      }
+    };
+    __name(_RequestTimeoutException, "RequestTimeoutException");
+    RequestTimeoutException = _RequestTimeoutException;
+    _ConflictException = class _ConflictException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 409;
+      }
+    };
+    __name(_ConflictException, "ConflictException");
+    ConflictException = _ConflictException;
+    _UpgradeRequiredException = class _UpgradeRequiredException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 426;
+      }
+    };
+    __name(_UpgradeRequiredException, "UpgradeRequiredException");
+    UpgradeRequiredException = _UpgradeRequiredException;
+    _TooManyRequestsException = class _TooManyRequestsException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 429;
+      }
+    };
+    __name(_TooManyRequestsException, "TooManyRequestsException");
+    TooManyRequestsException = _TooManyRequestsException;
+    _InternalServerException = class _InternalServerException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 500;
+      }
+    };
+    __name(_InternalServerException, "InternalServerException");
+    InternalServerException = _InternalServerException;
+    _NotImplementedException = class _NotImplementedException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 501;
+      }
+    };
+    __name(_NotImplementedException, "NotImplementedException");
+    NotImplementedException = _NotImplementedException;
+    _BadGatewayException = class _BadGatewayException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 502;
+      }
+    };
+    __name(_BadGatewayException, "BadGatewayException");
+    BadGatewayException = _BadGatewayException;
+    _ServiceUnavailableException = class _ServiceUnavailableException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 503;
+      }
+    };
+    __name(_ServiceUnavailableException, "ServiceUnavailableException");
+    ServiceUnavailableException = _ServiceUnavailableException;
+    _GatewayTimeoutException = class _GatewayTimeoutException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 504;
+      }
+    };
+    __name(_GatewayTimeoutException, "GatewayTimeoutException");
+    GatewayTimeoutException = _GatewayTimeoutException;
+    _HttpVersionNotSupportedException = class _HttpVersionNotSupportedException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 505;
+      }
+    };
+    __name(_HttpVersionNotSupportedException, "HttpVersionNotSupportedException");
+    HttpVersionNotSupportedException = _HttpVersionNotSupportedException;
+    _VariantAlsoNegotiatesException = class _VariantAlsoNegotiatesException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 506;
+      }
+    };
+    __name(_VariantAlsoNegotiatesException, "VariantAlsoNegotiatesException");
+    VariantAlsoNegotiatesException = _VariantAlsoNegotiatesException;
+    _InsufficientStorageException = class _InsufficientStorageException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 507;
+      }
+    };
+    __name(_InsufficientStorageException, "InsufficientStorageException");
+    InsufficientStorageException = _InsufficientStorageException;
+    _LoopDetectedException = class _LoopDetectedException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 508;
+      }
+    };
+    __name(_LoopDetectedException, "LoopDetectedException");
+    LoopDetectedException = _LoopDetectedException;
+    _NotExtendedException = class _NotExtendedException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 510;
+      }
+    };
+    __name(_NotExtendedException, "NotExtendedException");
+    NotExtendedException = _NotExtendedException;
+    _NetworkAuthenticationRequiredException = class _NetworkAuthenticationRequiredException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 511;
+      }
+    };
+    __name(_NetworkAuthenticationRequiredException, "NetworkAuthenticationRequiredException");
+    NetworkAuthenticationRequiredException = _NetworkAuthenticationRequiredException;
+    _NetworkConnectTimeoutException = class _NetworkConnectTimeoutException extends ResponseException {
+      constructor() {
+        super(...arguments);
+        this.status = 599;
+      }
+    };
+    __name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
+    NetworkConnectTimeoutException = _NetworkConnectTimeoutException;
+  }
+});
 
 // src/request.ts
-var import_reflect_metadata3 = require("reflect-metadata");
-var _Request = class _Request {
-  constructor(event, senderId, id, method, path2, body) {
-    __publicField(this, "event");
-    __publicField(this, "senderId");
-    __publicField(this, "id");
-    __publicField(this, "method");
-    __publicField(this, "path");
-    __publicField(this, "body");
-    __publicField(this, "context", RootInjector.createScope());
-    __publicField(this, "params", {});
-    this.event = event;
-    this.senderId = senderId;
-    this.id = id;
-    this.method = method;
-    this.path = path2;
-    this.body = body;
-    this.path = path2.replace(/^\/|\/$/g, "");
-  }
-};
-__name(_Request, "Request");
-var Request = _Request;
-var RENDERER_EVENT_TYPE = "noxus:event";
 function createRendererEventMessage(event, payload) {
   return {
     type: RENDERER_EVENT_TYPE,
@@ -1040,7 +851,6 @@ function createRendererEventMessage(event, payload) {
     payload
   };
 }
-__name(createRendererEventMessage, "createRendererEventMessage");
 function isRendererEventMessage(value) {
   if (value === null || typeof value !== "object") {
     return false;
@@ -1048,637 +858,528 @@ function isRendererEventMessage(value) {
   const possibleMessage = value;
   return possibleMessage.type === RENDERER_EVENT_TYPE && typeof possibleMessage.event === "string";
 }
-__name(isRendererEventMessage, "isRendererEventMessage");
+var _Request, Request, RENDERER_EVENT_TYPE;
+var init_request = __esm({
+  "src/request.ts"() {
+    "use strict";
+    init_app_injector();
+    _Request = class _Request {
+      constructor(event, senderId, id, method, path2, body) {
+        this.event = event;
+        this.senderId = senderId;
+        this.id = id;
+        this.method = method;
+        this.path = path2;
+        this.body = body;
+        this.context = RootInjector.createScope();
+        this.params = {};
+        this.path = path2.replace(/^\/|\/$/g, "");
+      }
+    };
+    __name(_Request, "Request");
+    Request = _Request;
+    RENDERER_EVENT_TYPE = "noxus:event";
+    __name(createRendererEventMessage, "createRendererEventMessage");
+    __name(isRendererEventMessage, "isRendererEventMessage");
+  }
+});
 
 // src/utils/radix-tree.ts
-var _a;
-var RadixNode = (_a = class {
-  /**
-   * Creates a new RadixNode.
-   * @param segment - The segment of the path this node represents.
-   */
-  constructor(segment) {
-    __publicField(this, "segment");
-    __publicField(this, "children", []);
-    __publicField(this, "value");
-    __publicField(this, "isParam");
-    __publicField(this, "paramName");
-    this.segment = segment;
-    this.isParam = segment.startsWith(":");
-    if (this.isParam) {
-      this.paramName = segment.slice(1);
-    }
-  }
-  /**
-   * Matches a child node against a given segment.
-   * This method checks if the segment matches any of the children nodes.
-   * @param segment - The segment to match against the children of this node.
-   * @returns A child node that matches the segment, or undefined if no match is found.
-   */
-  matchChild(segment) {
-    for (const child of this.children) {
-      if (child.isParam || segment.startsWith(child.segment)) return child;
-    }
-    return void 0;
-  }
-  /**
-   * Finds a child node that matches the segment exactly.
-   * This method checks if there is a child node that matches the segment exactly.
-   * @param segment - The segment to find an exact match for among the children of this node.
-   * @returns A child node that matches the segment exactly, or undefined if no match is found.
-   */
-  findExactChild(segment) {
-    return this.children.find((c) => c.segment === segment);
-  }
-  /**
-   * Adds a child node to this node's children.
-   * This method adds a new child node to the list of children for this node.
-   * @param node - The child node to add to this node's children.
-   */
-  addChild(node) {
-    this.children.push(node);
-  }
-}, __name(_a, "RadixNode"), _a);
-var _RadixTree = class _RadixTree {
-  constructor() {
-    __publicField(this, "root", new RadixNode(""));
-  }
-  /**
-   * Inserts a path and its associated value into the Radix Tree.
-   * This method normalizes the path and inserts it into the tree, associating it with
-   * @param path - The path to insert into the tree.
-   * @param value - The value to associate with the path.
-   */
-  insert(path2, value) {
-    const segments = this.normalize(path2);
-    this.insertRecursive(this.root, segments, value);
-  }
-  /**
-   * Recursively inserts a path into the Radix Tree.
-   * This method traverses the tree and inserts the segments of the path, creating new nodes
-   * @param node - The node to start inserting from.
-   * @param segments - The segments of the path to insert.
-   * @param value - The value to associate with the path.
-   */
-  insertRecursive(node, segments, value) {
-    if (segments.length === 0) {
-      node.value = value;
-      return;
-    }
-    const segment = segments[0] ?? "";
-    let child = node.children.find((c) => c.isParam === segment.startsWith(":") && (c.isParam || c.segment === segment));
-    if (!child) {
-      child = new RadixNode(segment);
-      node.addChild(child);
-    }
-    this.insertRecursive(child, segments.slice(1), value);
-  }
-  /**
-   * Searches for a path in the Radix Tree.
-   * This method normalizes the path and searches for it in the tree, returning the node
-   * @param path - The path to search for in the Radix Tree.
-   * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
-   */
-  search(path2) {
-    const segments = this.normalize(path2);
-    return this.searchRecursive(this.root, segments, {});
-  }
-  /**
-   * Recursively searches for a path in the Radix Tree.
-   * This method traverses the tree and searches for the segments of the path, collecting parameters
-   * @param node - The node to start searching from.
-   * @param segments - The segments of the path to search for.
-   * @param params - The parameters collected during the search.
-   * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
-   */
-  searchRecursive(node, segments, params) {
-    if (segments.length === 0) {
-      if (node.value !== void 0) {
-        return {
-          node,
-          params
-        };
-      }
-      return void 0;
-    }
-    const [segment, ...rest] = segments;
-    for (const child of node.children) {
-      if (child.isParam) {
-        const paramName = child.paramName;
-        const childParams = {
-          ...params,
-          [paramName]: segment ?? ""
-        };
-        if (rest.length === 0) {
-          return {
-            node: child,
-            params: childParams
-          };
+var _RadixNode, RadixNode, _RadixTree, RadixTree;
+var init_radix_tree = __esm({
+  "src/utils/radix-tree.ts"() {
+    "use strict";
+    _RadixNode = class _RadixNode {
+      /**
+       * Creates a new RadixNode.
+       * @param segment - The segment of the path this node represents.
+       */
+      constructor(segment) {
+        this.children = [];
+        this.segment = segment;
+        this.isParam = segment.startsWith(":");
+        if (this.isParam) {
+          this.paramName = segment.slice(1);
         }
-        const result = this.searchRecursive(child, rest, childParams);
-        if (result) return result;
-      } else if (segment === child.segment) {
-        if (rest.length === 0) {
-          return {
-            node: child,
-            params
-          };
-        }
-        const result = this.searchRecursive(child, rest, params);
-        if (result) return result;
       }
-    }
-    return void 0;
+      /**
+       * Matches a child node against a given segment.
+       * This method checks if the segment matches any of the children nodes.
+       * @param segment - The segment to match against the children of this node.
+       * @returns A child node that matches the segment, or undefined if no match is found.
+       */
+      matchChild(segment) {
+        for (const child of this.children) {
+          if (child.isParam || segment.startsWith(child.segment))
+            return child;
+        }
+        return void 0;
+      }
+      /**
+       * Finds a child node that matches the segment exactly.
+       * This method checks if there is a child node that matches the segment exactly.
+       * @param segment - The segment to find an exact match for among the children of this node.
+       * @returns A child node that matches the segment exactly, or undefined if no match is found.
+       */
+      findExactChild(segment) {
+        return this.children.find((c) => c.segment === segment);
+      }
+      /**
+       * Adds a child node to this node's children.
+       * This method adds a new child node to the list of children for this node.
+       * @param node - The child node to add to this node's children.
+       */
+      addChild(node) {
+        this.children.push(node);
+      }
+    };
+    __name(_RadixNode, "RadixNode");
+    RadixNode = _RadixNode;
+    _RadixTree = class _RadixTree {
+      constructor() {
+        this.root = new RadixNode("");
+      }
+      /**
+       * Inserts a path and its associated value into the Radix Tree.
+       * This method normalizes the path and inserts it into the tree, associating it with
+       * @param path - The path to insert into the tree.
+       * @param value - The value to associate with the path.
+       */
+      insert(path2, value) {
+        const segments = this.normalize(path2);
+        this.insertRecursive(this.root, segments, value);
+      }
+      /**
+       * Recursively inserts a path into the Radix Tree.
+       * This method traverses the tree and inserts the segments of the path, creating new nodes
+       * @param node - The node to start inserting from.
+       * @param segments - The segments of the path to insert.
+       * @param value - The value to associate with the path.
+       */
+      insertRecursive(node, segments, value) {
+        if (segments.length === 0) {
+          node.value = value;
+          return;
+        }
+        const segment = segments[0] ?? "";
+        let child = node.children.find(
+          (c) => c.isParam === segment.startsWith(":") && (c.isParam || c.segment === segment)
+        );
+        if (!child) {
+          child = new RadixNode(segment);
+          node.addChild(child);
+        }
+        this.insertRecursive(child, segments.slice(1), value);
+      }
+      /**
+       * Searches for a path in the Radix Tree.
+       * This method normalizes the path and searches for it in the tree, returning the node
+       * @param path - The path to search for in the Radix Tree.
+       * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
+       */
+      search(path2) {
+        const segments = this.normalize(path2);
+        return this.searchRecursive(this.root, segments, {});
+      }
+      /**
+       * Recursively searches for a path in the Radix Tree.
+       * This method traverses the tree and searches for the segments of the path, collecting parameters
+       * @param node - The node to start searching from.
+       * @param segments - The segments of the path to search for.
+       * @param params - The parameters collected during the search.
+       * @returns An ISearchResult containing the node and parameters if a match is found, otherwise undefined.
+       */
+      searchRecursive(node, segments, params) {
+        if (segments.length === 0) {
+          if (node.value !== void 0) {
+            return {
+              node,
+              params
+            };
+          }
+          return void 0;
+        }
+        const [segment, ...rest] = segments;
+        for (const child of node.children) {
+          if (child.isParam) {
+            const paramName = child.paramName;
+            const childParams = {
+              ...params,
+              [paramName]: segment ?? ""
+            };
+            if (rest.length === 0) {
+              return {
+                node: child,
+                params: childParams
+              };
+            }
+            const result = this.searchRecursive(child, rest, childParams);
+            if (result)
+              return result;
+          } else if (segment === child.segment) {
+            if (rest.length === 0) {
+              return {
+                node: child,
+                params
+              };
+            }
+            const result = this.searchRecursive(child, rest, params);
+            if (result)
+              return result;
+          }
+        }
+        return void 0;
+      }
+      /**
+       * Normalizes a path into an array of segments.
+       * This method removes leading and trailing slashes, splits the path by slashes, and
+       * @param path - The path to normalize.
+       * @returns An array of normalized path segments.
+       */
+      normalize(path2) {
+        const segments = path2.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+        return ["", ...segments];
+      }
+    };
+    __name(_RadixTree, "RadixTree");
+    RadixTree = _RadixTree;
   }
-  /**
-   * Normalizes a path into an array of segments.
-   * This method removes leading and trailing slashes, splits the path by slashes, and
-   * @param path - The path to normalize.
-   * @returns An array of normalized path segments.
-   */
-  normalize(path2) {
-    const segments = path2.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
-    return [
-      "",
-      ...segments
-    ];
-  }
-};
-__name(_RadixTree, "RadixTree");
-var RadixTree = _RadixTree;
+});
 
 // src/router.ts
-function _ts_decorate(decorators, target, key, desc) {
-  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-__name(_ts_decorate, "_ts_decorate");
-var ATOMIC_HTTP_METHODS = /* @__PURE__ */ new Set([
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE"
-]);
-function isAtomicHttpMethod(method) {
-  return typeof method === "string" && ATOMIC_HTTP_METHODS.has(method);
-}
-__name(isAtomicHttpMethod, "isAtomicHttpMethod");
-var _Router = class _Router {
-  constructor() {
-    __publicField(this, "routes", new RadixTree());
-    __publicField(this, "rootMiddlewares", []);
-    __publicField(this, "lazyRoutes", /* @__PURE__ */ new Map());
-  }
-  /**
-   * Registers a controller class with the router.
-   * This method extracts the route metadata from the controller class and registers it in the routing tree.
-   * It also handles the guards and middlewares associated with the controller.
-   * @param controllerClass - The controller class to register.
-   */
-  registerController(controllerClass) {
-    const controllerMeta = getControllerMetadata(controllerClass);
-    const controllerGuards = getGuardForController(controllerClass.name);
-    const controllerMiddlewares = getMiddlewaresForController(controllerClass.name);
-    if (!controllerMeta) throw new Error(`Missing @Controller decorator on ${controllerClass.name}`);
-    const routeMetadata = getRouteMetadata(controllerClass);
-    for (const def of routeMetadata) {
-      const fullPath = `${controllerMeta.path}/${def.path}`.replace(/\/+/g, "/");
-      const routeGuards = getGuardForControllerAction(controllerClass.name, def.handler);
-      const routeMiddlewares = getMiddlewaresForControllerAction(controllerClass.name, def.handler);
-      const guards = /* @__PURE__ */ new Set([
-        ...controllerGuards,
-        ...routeGuards
-      ]);
-      const middlewares2 = /* @__PURE__ */ new Set([
-        ...controllerMiddlewares,
-        ...routeMiddlewares
-      ]);
-      const routeDef = {
-        method: def.method,
-        path: fullPath,
-        controller: controllerClass,
-        handler: def.handler,
-        guards: [
-          ...guards
-        ],
-        middlewares: [
-          ...middlewares2
-        ]
-      };
-      this.routes.insert(fullPath + "/" + def.method, routeDef);
-      const hasActionGuards = routeDef.guards.length > 0;
-      const actionGuardsInfo = hasActionGuards ? "<" + routeDef.guards.map((g) => g.name).join("|") + ">" : "";
-      Logger.log(`Mapped {${routeDef.method} /${fullPath}}${actionGuardsInfo} route`);
-    }
-    const hasCtrlGuards = controllerMeta.guards.length > 0;
-    const controllerGuardsInfo = hasCtrlGuards ? "<" + controllerMeta.guards.map((g) => g.name).join("|") + ">" : "";
-    Logger.log(`Mapped ${controllerClass.name}${controllerGuardsInfo} controller's routes`);
-    return this;
-  }
-  /**
-   * Registers a lazy route. The module behind this route prefix will only
-   * be imported (and its controllers/services registered in DI) the first
-   * time a request targets this prefix.
-   *
-   * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
-   * @param loadModule - A function that returns a dynamic import promise.
-   */
-  registerLazyRoute(pathPrefix, loadModule) {
-    const normalized = pathPrefix.replace(/^\/+|\/+$/g, "");
-    this.lazyRoutes.set(normalized, {
-      loadModule,
-      loading: null,
-      loaded: false
-    });
-    Logger.log(`Registered lazy route prefix {${normalized}}`);
-    return this;
-  }
-  /**
-   * Defines a middleware for the root of the application.
-   * This method allows you to register a middleware that will be applied to all requests
-   * to the application, regardless of the controller or action.
-   * @param middleware - The middleware class to register.
-   */
-  defineRootMiddleware(middleware) {
-    this.rootMiddlewares.push(middleware);
-    return this;
-  }
-  /**
-   * Shuts down the message channel for a specific sender ID.
-   * This method closes the IPC channel for the specified sender ID and
-   * removes it from the messagePorts map.
-   * @param channelSenderId - The ID of the sender channel to shut down.
-   */
-  async handle(request) {
-    if (request.method === "BATCH") {
-      return this.handleBatch(request);
-    }
-    return this.handleAtomic(request);
-  }
-  async handleAtomic(request) {
-    Logger.comment(`>     ${request.method} /${request.path}`);
-    const t0 = performance.now();
-    const response = {
-      requestId: request.id,
-      status: 200,
-      body: null
-    };
-    let isCritical = false;
-    try {
-      const routeDef = await this.findRoute(request);
-      await this.resolveController(request, response, routeDef);
-      if (response.status > 400) {
-        throw new ResponseException(response.status, response.error);
+var router_exports = {};
+__export(router_exports, {
+  Router: () => Router
+});
+var Router;
+var init_router = __esm({
+  "src/router.ts"() {
+    "use strict";
+    init_controller_decorator();
+    init_injectable_decorator();
+    init_method_decorator();
+    init_injector_explorer();
+    init_exceptions();
+    init_request();
+    init_logger();
+    init_radix_tree();
+    Router = class {
+      constructor() {
+        this.routes = new RadixTree();
+        this.rootMiddlewares = [];
+        this.lazyRoutes = /* @__PURE__ */ new Map();
       }
-    } catch (error) {
-      response.body = void 0;
-      if (error instanceof ResponseException) {
-        response.status = error.status;
-        response.error = error.message;
-        response.stack = error.stack;
-      } else if (error instanceof Error) {
-        isCritical = true;
-        response.status = 500;
-        response.error = error.message || "Internal Server Error";
-        response.stack = error.stack || "No stack trace available";
-      } else {
-        isCritical = true;
-        response.status = 500;
-        response.error = "Unknown error occurred";
-        response.stack = "No stack trace available";
+      // -------------------------------------------------------------------------
+      // Registration
+      // -------------------------------------------------------------------------
+      registerController(controllerClass, pathPrefix, routeGuards = [], routeMiddlewares = []) {
+        const meta = getControllerMetadata(controllerClass);
+        if (!meta) {
+          throw new Error(`[Noxus] Missing @Controller decorator on ${controllerClass.name}`);
+        }
+        const routeMeta = getRouteMetadata(controllerClass);
+        for (const def of routeMeta) {
+          const fullPath = `${pathPrefix}/${def.path}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+          const guards = [.../* @__PURE__ */ new Set([...routeGuards, ...def.guards])];
+          const middlewares = [.../* @__PURE__ */ new Set([...routeMiddlewares, ...def.middlewares])];
+          const routeDef = {
+            method: def.method,
+            path: fullPath,
+            controller: controllerClass,
+            handler: def.handler,
+            guards,
+            middlewares
+          };
+          this.routes.insert(fullPath + "/" + def.method, routeDef);
+          const guardInfo = guards.length ? `<${guards.map((g) => g.name).join("|")}>` : "";
+          Logger.log(`Mapped {${def.method} /${fullPath}}${guardInfo} route`);
+        }
+        const ctrlGuardInfo = routeGuards.length ? `<${routeGuards.map((g) => g.name).join("|")}>` : "";
+        Logger.log(`Mapped ${controllerClass.name}${ctrlGuardInfo} controller's routes`);
+        return this;
       }
-    } finally {
-      const t1 = performance.now();
-      const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
-      if (response.status < 400) {
-        Logger.log(message);
-      } else if (response.status < 500) {
-        Logger.warn(message);
-      } else {
-        if (isCritical) {
-          Logger.critical(message);
+      registerLazyRoute(pathPrefix, load, guards = [], middlewares = []) {
+        const normalized = pathPrefix.replace(/^\/+|\/+$/g, "");
+        this.lazyRoutes.set(normalized, { load, guards, middlewares, loading: null, loaded: false });
+        Logger.log(`Registered lazy route prefix {${normalized}}`);
+        return this;
+      }
+      defineRootMiddleware(middleware) {
+        this.rootMiddlewares.push(middleware);
+        return this;
+      }
+      // -------------------------------------------------------------------------
+      // Request handling
+      // -------------------------------------------------------------------------
+      async handle(request) {
+        return request.method === "BATCH" ? this.handleBatch(request) : this.handleAtomic(request);
+      }
+      async handleAtomic(request) {
+        Logger.comment(`>     ${request.method} /${request.path}`);
+        const t0 = performance.now();
+        const response = { requestId: request.id, status: 200, body: null };
+        let isCritical = false;
+        try {
+          const routeDef = await this.findRoute(request);
+          await this.resolveController(request, response, routeDef);
+          if (response.status >= 400) throw new ResponseException(response.status, response.error);
+        } catch (error) {
+          this.fillErrorResponse(response, error, (c) => {
+            isCritical = c;
+          });
+        } finally {
+          this.logResponse(request, response, performance.now() - t0, isCritical);
+          return response;
+        }
+      }
+      async handleBatch(request) {
+        Logger.comment(`>     ${request.method} /${request.path}`);
+        const t0 = performance.now();
+        const response = {
+          requestId: request.id,
+          status: 200,
+          body: { responses: [] }
+        };
+        let isCritical = false;
+        try {
+          const payload = this.normalizeBatchPayload(request.body);
+          response.body.responses = await Promise.all(
+            payload.requests.map((item, i) => {
+              const id = item.requestId ?? `${request.id}:${i}`;
+              return this.handleAtomic(new Request(request.event, request.senderId, id, item.method, item.path, item.body));
+            })
+          );
+        } catch (error) {
+          this.fillErrorResponse(response, error, (c) => {
+            isCritical = c;
+          });
+        } finally {
+          this.logResponse(request, response, performance.now() - t0, isCritical);
+          return response;
+        }
+      }
+      // -------------------------------------------------------------------------
+      // Route resolution
+      // -------------------------------------------------------------------------
+      tryFindRoute(request) {
+        const matched = this.routes.search(request.path);
+        if (!matched?.node || matched.node.children.length === 0) return void 0;
+        return matched.node.findExactChild(request.method)?.value;
+      }
+      async findRoute(request) {
+        const direct = this.tryFindRoute(request);
+        if (direct) return direct;
+        await this.tryLoadLazyRoute(request.path);
+        const afterLazy = this.tryFindRoute(request);
+        if (afterLazy) return afterLazy;
+        throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+      }
+      async tryLoadLazyRoute(requestPath) {
+        const firstSegment = requestPath.replace(/^\/+/, "").split("/")[0] ?? "";
+        for (const [prefix, entry] of this.lazyRoutes) {
+          if (entry.loaded) continue;
+          const normalized = requestPath.replace(/^\/+/, "");
+          if (normalized === prefix || normalized.startsWith(prefix + "/") || firstSegment === prefix) {
+            if (!entry.loading) entry.loading = this.loadLazyModule(prefix, entry);
+            await entry.loading;
+            return;
+          }
+        }
+      }
+      async loadLazyModule(prefix, entry) {
+        const t0 = performance.now();
+        InjectorExplorer.beginAccumulate();
+        await entry.load?.();
+        entry.loading = null;
+        entry.load = null;
+        InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
+        entry.loaded = true;
+        Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
+      }
+      // -------------------------------------------------------------------------
+      // Pipeline
+      // -------------------------------------------------------------------------
+      async resolveController(request, response, routeDef) {
+        const instance = request.context.resolve(routeDef.controller);
+        Object.assign(request.params, this.extractParams(request.path, routeDef.path));
+        await this.runPipeline(request, response, routeDef, instance);
+      }
+      async runPipeline(request, response, routeDef, controllerInstance) {
+        const middlewares = [.../* @__PURE__ */ new Set([...this.rootMiddlewares, ...routeDef.middlewares])];
+        const mwMax = middlewares.length - 1;
+        const guardMax = mwMax + routeDef.guards.length;
+        let index = -1;
+        const dispatch = /* @__PURE__ */ __name(async (i) => {
+          if (i <= index) throw new Error("next() called multiple times");
+          index = i;
+          if (i <= mwMax) {
+            await this.runMiddleware(request, response, dispatch.bind(null, i + 1), middlewares[i]);
+            if (response.status >= 400) throw new ResponseException(response.status, response.error);
+            return;
+          }
+          if (i <= guardMax) {
+            await this.runGuard(request, routeDef.guards[i - middlewares.length]);
+            await dispatch(i + 1);
+            return;
+          }
+          const action = controllerInstance[routeDef.handler];
+          response.body = await action.call(controllerInstance, request, response);
+          if (response.body === void 0) response.body = {};
+        }, "dispatch");
+        await dispatch(0);
+      }
+      async runMiddleware(request, response, next, middleware) {
+        await middleware(request, response, next);
+      }
+      async runGuard(request, guard) {
+        if (!await guard(request)) {
+          throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+        }
+      }
+      // -------------------------------------------------------------------------
+      // Utilities
+      // -------------------------------------------------------------------------
+      extractParams(actual, template) {
+        const aParts = actual.split("/");
+        const tParts = template.split("/");
+        const params = {};
+        tParts.forEach((part, i) => {
+          if (part.startsWith(":")) params[part.slice(1)] = aParts[i] ?? "";
+        });
+        return params;
+      }
+      normalizeBatchPayload(body) {
+        if (body === null || typeof body !== "object") {
+          throw new BadRequestException("Batch payload must be an object containing a requests array.");
+        }
+        const { requests } = body;
+        if (!Array.isArray(requests)) throw new BadRequestException("Batch payload must define a requests array.");
+        return { requests: requests.map((e, i) => this.normalizeBatchItem(e, i)) };
+      }
+      normalizeBatchItem(entry, index) {
+        if (entry === null || typeof entry !== "object") throw new BadRequestException(`Batch request at index ${index} must be an object.`);
+        const { requestId, path: path2, method, body } = entry;
+        if (requestId !== void 0 && typeof requestId !== "string") throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
+        if (typeof path2 !== "string" || !path2.length) throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
+        if (typeof method !== "string") throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
+        const normalized = method.toUpperCase();
+        if (!isAtomicHttpMethod(normalized)) throw new BadRequestException(`Batch request at index ${index} uses unsupported method ${method}.`);
+        return { requestId, path: path2, method: normalized, body };
+      }
+      fillErrorResponse(response, error, setCritical) {
+        response.body = void 0;
+        if (error instanceof ResponseException) {
+          response.status = error.status;
+          response.error = error.message;
+          response.stack = error.stack;
+        } else if (error instanceof Error) {
+          setCritical(true);
+          response.status = 500;
+          response.error = error.message || "Internal Server Error";
+          response.stack = error.stack;
         } else {
-          Logger.error(message);
+          setCritical(true);
+          response.status = 500;
+          response.error = "Unknown error occurred";
         }
       }
-      if (response.error !== void 0) {
-        if (isCritical) {
-          Logger.critical(response.error);
-        } else {
-          Logger.error(response.error);
+      logResponse(request, response, ms, isCritical) {
+        const msg = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(ms)}ms${Logger.colors.initial}`;
+        if (response.status < 400) Logger.log(msg);
+        else if (response.status < 500) Logger.warn(msg);
+        else isCritical ? Logger.critical(msg) : Logger.error(msg);
+        if (response.error) {
+          isCritical ? Logger.critical(response.error) : Logger.error(response.error);
+          if (response.stack) Logger.errorStack(response.stack);
         }
-        if (response.stack !== void 0) {
-          Logger.errorStack(response.stack);
-        }
-      }
-      return response;
-    }
-  }
-  async handleBatch(request) {
-    Logger.comment(`>     ${request.method} /${request.path}`);
-    const t0 = performance.now();
-    const response = {
-      requestId: request.id,
-      status: 200,
-      body: {
-        responses: []
       }
     };
-    let isCritical = false;
-    try {
-      const payload = this.normalizeBatchPayload(request.body);
-      const batchPromises = payload.requests.map((item, index) => {
-        const subRequestId = item.requestId ?? `${request.id}:${index}`;
-        const atomicRequest = new Request(request.event, request.senderId, subRequestId, item.method, item.path, item.body);
-        return this.handleAtomic(atomicRequest);
-      });
-      response.body.responses = await Promise.all(batchPromises);
-    } catch (error) {
-      response.body = void 0;
-      if (error instanceof ResponseException) {
-        response.status = error.status;
-        response.error = error.message;
-        response.stack = error.stack;
-      } else if (error instanceof Error) {
-        isCritical = true;
-        response.status = 500;
-        response.error = error.message || "Internal Server Error";
-        response.stack = error.stack || "No stack trace available";
-      } else {
-        isCritical = true;
-        response.status = 500;
-        response.error = "Unknown error occurred";
-        response.stack = "No stack trace available";
-      }
-    } finally {
-      const t1 = performance.now();
-      const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
-      if (response.status < 400) {
-        Logger.log(message);
-      } else if (response.status < 500) {
-        Logger.warn(message);
-      } else {
-        if (isCritical) {
-          Logger.critical(message);
-        } else {
-          Logger.error(message);
-        }
-      }
-      if (response.error !== void 0) {
-        if (isCritical) {
-          Logger.critical(response.error);
-        } else {
-          Logger.error(response.error);
-        }
-        if (response.stack !== void 0) {
-          Logger.errorStack(response.stack);
-        }
-      }
-      return response;
-    }
+    __name(Router, "Router");
+    Router = __decorateClass([
+      Injectable({ lifetime: "singleton" })
+    ], Router);
   }
-  normalizeBatchPayload(body) {
-    if (body === null || typeof body !== "object") {
-      throw new BadRequestException("Batch payload must be an object containing a requests array.");
-    }
-    const possiblePayload = body;
-    const { requests } = possiblePayload;
-    if (!Array.isArray(requests)) {
-      throw new BadRequestException("Batch payload must define a requests array.");
-    }
-    const normalizedRequests = requests.map((entry, index) => this.normalizeBatchItem(entry, index));
-    return {
-      requests: normalizedRequests
-    };
-  }
-  normalizeBatchItem(entry, index) {
-    if (entry === null || typeof entry !== "object") {
-      throw new BadRequestException(`Batch request at index ${index} must be an object.`);
-    }
-    const { requestId, path: path2, method, body } = entry;
-    if (requestId !== void 0 && typeof requestId !== "string") {
-      throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
-    }
-    if (typeof path2 !== "string" || path2.length === 0) {
-      throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
-    }
-    if (typeof method !== "string") {
-      throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
-    }
-    const normalizedMethod = method.toUpperCase();
-    if (!isAtomicHttpMethod(normalizedMethod)) {
-      throw new BadRequestException(`Batch request at index ${index} uses the unsupported method ${method}.`);
-    }
-    return {
-      requestId,
-      path: path2,
-      method: normalizedMethod,
-      body
-    };
-  }
-  /**
-   * Finds the route definition for a given request.
-   * This method searches the routing tree for a matching route based on the request's path and method.
-   * If no matching route is found, it throws a NotFoundException.
-   * @param request - The Request object containing the method and path to search for.
-   * @returns The IRouteDefinition for the matched route.
-   */
-  /**
-  * Attempts to find a route definition for the given request.
-  * Returns undefined instead of throwing when the route is not found,
-  * so the caller can try lazy-loading first.
-  */
-  tryFindRoute(request) {
-    const matchedRoutes = this.routes.search(request.path);
-    if (matchedRoutes?.node === void 0 || matchedRoutes.node.children.length === 0) {
-      return void 0;
-    }
-    const routeDef = matchedRoutes.node.findExactChild(request.method);
-    return routeDef?.value;
-  }
-  /**
-   * Finds the route definition for a given request.
-   * If no eagerly-registered route matches, attempts to load a lazy module
-   * whose prefix matches the request path, then retries.
-   */
-  async findRoute(request) {
-    const direct = this.tryFindRoute(request);
-    if (direct) return direct;
-    await this.tryLoadLazyRoute(request.path);
-    const afterLazy = this.tryFindRoute(request);
-    if (afterLazy) return afterLazy;
-    throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
-  }
-  /**
-   * Given a request path, checks whether a lazy route prefix matches
-   * and triggers the dynamic import if it hasn't been loaded yet.
-   */
-  async tryLoadLazyRoute(requestPath) {
-    const firstSegment = requestPath.replace(/^\/+/, "").split("/")[0] ?? "";
-    for (const [prefix, entry] of this.lazyRoutes) {
-      if (entry.loaded) continue;
-      const normalizedPath = requestPath.replace(/^\/+/, "");
-      if (normalizedPath === prefix || normalizedPath.startsWith(prefix + "/") || firstSegment === prefix) {
-        if (!entry.loading) {
-          entry.loading = this.loadLazyModule(prefix, entry);
-        }
-        await entry.loading;
-        return;
-      }
-    }
-  }
-  /**
-   * Dynamically imports a lazy module and registers its decorated classes
-   * (controllers, services) in the DI container using the two-phase strategy.
-   */
-  async loadLazyModule(prefix, entry) {
-    const t0 = performance.now();
-    InjectorExplorer.beginAccumulate();
-    await entry.loadModule();
-    InjectorExplorer.flushAccumulated();
-    entry.loaded = true;
-    const t1 = performance.now();
-    Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(t1 - t0)}ms`);
-  }
-  /**
-   * Resolves the controller for a given route definition.
-   * This method creates an instance of the controller class and prepares the request parameters.
-   * It also runs the request pipeline, which includes executing middlewares and guards.
-   * @param request - The Request object containing the request data.
-   * @param response - The IResponse object to populate with the response data.
-   * @param routeDef - The IRouteDefinition for the matched route.
-   * @return A Promise that resolves when the controller action has been executed.
-   * @throws UnauthorizedException if the request is not authorized by the guards.
-   */
-  async resolveController(request, response, routeDef) {
-    const controllerInstance = request.context.resolve(routeDef.controller);
-    Object.assign(request.params, this.extractParams(request.path, routeDef.path));
-    await this.runRequestPipeline(request, response, routeDef, controllerInstance);
-  }
-  /**
-   * Runs the request pipeline for a given request.
-   * This method executes the middlewares and guards associated with the route,
-   * and finally calls the controller action.
-   * @param request - The Request object containing the request data.
-   * @param response - The IResponse object to populate with the response data.
-   * @param routeDef - The IRouteDefinition for the matched route.
-   * @param controllerInstance - The instance of the controller class.
-   * @return A Promise that resolves when the request pipeline has been executed.
-   * @throws ResponseException if the response status is not successful.
-   */
-  async runRequestPipeline(request, response, routeDef, controllerInstance) {
-    const middlewares2 = [
-      .../* @__PURE__ */ new Set([
-        ...this.rootMiddlewares,
-        ...routeDef.middlewares
-      ])
-    ];
-    const middlewareMaxIndex = middlewares2.length - 1;
-    const guardsMaxIndex = middlewareMaxIndex + routeDef.guards.length;
-    let index = -1;
-    const dispatch = /* @__PURE__ */ __name(async (i) => {
-      if (i <= index) throw new Error("next() called multiple times");
-      index = i;
-      if (i <= middlewareMaxIndex) {
-        const nextFn = dispatch.bind(null, i + 1);
-        await this.runMiddleware(request, response, nextFn, middlewares2[i]);
-        if (response.status >= 400) {
-          throw new ResponseException(response.status, response.error);
-        }
-        return;
-      }
-      if (i <= guardsMaxIndex) {
-        const guardIndex = i - middlewares2.length;
-        const guardType = routeDef.guards[guardIndex];
-        await this.runGuard(request, guardType);
-        await dispatch(i + 1);
-        return;
-      }
-      const action = controllerInstance[routeDef.handler];
-      response.body = await action.call(controllerInstance, request, response);
-      if (response.body === void 0) {
-        response.body = {};
-      }
-    }, "dispatch");
-    await dispatch(0);
-  }
-  /**
-   * Runs a middleware function in the request pipeline.
-   * This method creates an instance of the middleware and invokes its `invoke` method,
-   * passing the request, response, and next function.
-   * @param request - The Request object containing the request data.
-   * @param response - The IResponse object to populate with the response data.
-   * @param next - The NextFunction to call to continue the middleware chain.
-   * @param middlewareType - The type of the middleware to run.
-   * @return A Promise that resolves when the middleware has been executed.
-   */
-  async runMiddleware(request, response, next, middlewareType) {
-    const middleware = request.context.resolve(middlewareType);
-    await middleware.invoke(request, response, next);
-  }
-  /**
-   * Runs a guard to check if the request is authorized.
-   * This method creates an instance of the guard and calls its `canActivate` method.
-   * If the guard returns false, it throws an UnauthorizedException.
-   * @param request - The Request object containing the request data.
-   * @param guardType - The type of the guard to run.
-   * @return A Promise that resolves if the guard allows the request, or throws an UnauthorizedException if not.
-   * @throws UnauthorizedException if the guard denies access to the request.
-   */
-  async runGuard(request, guardType) {
-    const guard = request.context.resolve(guardType);
-    const allowed = await guard.canActivate(request);
-    if (!allowed) throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
-  }
-  /**
-   * Extracts parameters from the actual request path based on the template path.
-   * This method splits the actual path and the template path into segments,
-   * then maps the segments to parameters based on the template.
-   * @param actual - The actual request path.
-   * @param template - The template path to extract parameters from.
-   * @returns An object containing the extracted parameters.
-   */
-  extractParams(actual, template) {
-    const aParts = actual.split("/");
-    const tParts = template.split("/");
-    const params = {};
-    tParts.forEach((part, i) => {
-      if (part.startsWith(":")) {
-        params[part.slice(1)] = aParts[i] ?? "";
-      }
-    });
-    return params;
-  }
-};
-__name(_Router, "Router");
-var Router = _Router;
-Router = _ts_decorate([
-  Injectable("singleton")
-], Router);
+});
+
+// src/main.ts
+var main_exports = {};
+__export(main_exports, {
+  AppInjector: () => AppInjector,
+  BadGatewayException: () => BadGatewayException,
+  BadRequestException: () => BadRequestException,
+  ConflictException: () => ConflictException,
+  Controller: () => Controller,
+  Delete: () => Delete,
+  ForbiddenException: () => ForbiddenException,
+  ForwardReference: () => ForwardReference,
+  GatewayTimeoutException: () => GatewayTimeoutException,
+  Get: () => Get,
+  HttpVersionNotSupportedException: () => HttpVersionNotSupportedException,
+  Injectable: () => Injectable,
+  InsufficientStorageException: () => InsufficientStorageException,
+  InternalServerException: () => InternalServerException,
+  Logger: () => Logger,
+  LoopDetectedException: () => LoopDetectedException,
+  MethodNotAllowedException: () => MethodNotAllowedException,
+  NetworkAuthenticationRequiredException: () => NetworkAuthenticationRequiredException,
+  NetworkConnectTimeoutException: () => NetworkConnectTimeoutException,
+  NotAcceptableException: () => NotAcceptableException,
+  NotExtendedException: () => NotExtendedException,
+  NotFoundException: () => NotFoundException,
+  NotImplementedException: () => NotImplementedException,
+  NoxApp: () => NoxApp,
+  NoxSocket: () => NoxSocket,
+  Patch: () => Patch,
+  PaymentRequiredException: () => PaymentRequiredException,
+  Post: () => Post,
+  Put: () => Put,
+  RENDERER_EVENT_TYPE: () => RENDERER_EVENT_TYPE,
+  Request: () => Request,
+  RequestTimeoutException: () => RequestTimeoutException,
+  ResponseException: () => ResponseException,
+  RootInjector: () => RootInjector,
+  Router: () => Router,
+  ServiceUnavailableException: () => ServiceUnavailableException,
+  Token: () => Token,
+  TooManyRequestsException: () => TooManyRequestsException,
+  UnauthorizedException: () => UnauthorizedException,
+  UpgradeRequiredException: () => UpgradeRequiredException,
+  VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
+  WindowManager: () => WindowManager,
+  bootstrapApplication: () => bootstrapApplication,
+  createRendererEventMessage: () => createRendererEventMessage,
+  defineRoutes: () => defineRoutes,
+  forwardRef: () => forwardRef,
+  getControllerMetadata: () => getControllerMetadata,
+  getRouteMetadata: () => getRouteMetadata,
+  inject: () => inject,
+  isAtomicHttpMethod: () => isAtomicHttpMethod,
+  isRendererEventMessage: () => isRendererEventMessage,
+  token: () => token
+});
+module.exports = __toCommonJS(main_exports);
+init_app_injector();
+init_token();
+init_router();
 
 // src/app.ts
-var import_main = require("electron/main");
+var import_main2 = require("electron/main");
+init_injectable_decorator();
+init_app_injector();
+init_injector_explorer();
+init_request();
+init_router();
 
 // src/socket.ts
-function _ts_decorate2(decorators, target, key, desc) {
-  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-__name(_ts_decorate2, "_ts_decorate");
-var _NoxSocket = class _NoxSocket {
+init_injectable_decorator();
+init_request();
+init_logger();
+var NoxSocket = class {
   constructor() {
-    __publicField(this, "channels", /* @__PURE__ */ new Map());
+    this.channels = /* @__PURE__ */ new Map();
   }
   register(senderId, requestChannel, socketChannel) {
-    this.channels.set(senderId, {
-      request: requestChannel,
-      socket: socketChannel
-    });
+    this.channels.set(senderId, { request: requestChannel, socket: socketChannel });
   }
   get(senderId) {
     return this.channels.get(senderId);
@@ -1687,9 +1388,7 @@ var _NoxSocket = class _NoxSocket {
     this.channels.delete(senderId);
   }
   getSenderIds() {
-    return [
-      ...this.channels.keys()
-    ];
+    return [...this.channels.keys()];
   }
   emit(eventName, payload, targetSenderIds) {
     const normalizedEvent = eventName.trim();
@@ -1714,39 +1413,196 @@ var _NoxSocket = class _NoxSocket {
     return delivered;
   }
   emitToRenderer(senderId, eventName, payload) {
-    return this.emit(eventName, payload, [
-      senderId
-    ]) > 0;
+    return this.emit(eventName, payload, [senderId]) > 0;
   }
 };
-__name(_NoxSocket, "NoxSocket");
-var NoxSocket = _NoxSocket;
-NoxSocket = _ts_decorate2([
-  Injectable("singleton")
+__name(NoxSocket, "NoxSocket");
+NoxSocket = __decorateClass([
+  Injectable({ lifetime: "singleton" })
 ], NoxSocket);
 
 // src/app.ts
-function _ts_decorate3(decorators, target, key, desc) {
-  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-__name(_ts_decorate3, "_ts_decorate");
-function _ts_metadata(k, v) {
-  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-}
-__name(_ts_metadata, "_ts_metadata");
-var _NoxApp = class _NoxApp {
-  constructor(router, socket) {
-    __publicField(this, "router");
-    __publicField(this, "socket");
-    __publicField(this, "app");
-    __publicField(this, "mainWindow");
-    /**
-     *
-     */
-    __publicField(this, "onRendererMessage", /* @__PURE__ */ __name(async (event) => {
+init_logger();
+
+// src/window/window-manager.ts
+var import_main = require("electron/main");
+init_injectable_decorator();
+init_logger();
+var WindowManager = class {
+  constructor() {
+    this._windows = /* @__PURE__ */ new Map();
+  }
+  // -------------------------------------------------------------------------
+  // Creation
+  // -------------------------------------------------------------------------
+  /**
+   * Creates a BrowserWindow, optionally performs an animated expand to the
+   * work area, and registers it in the manager.
+   *
+   * If expandToWorkArea is true:
+   * 1. The window is created at the given initial size (defaults to 600×600, centered).
+   * 2. An animated setBounds expands it to the full work area.
+   * 3. The returned promise resolves only after the animation, so callers
+   *    can safely call win.loadFile() without the viewbox freeze.
+   *
+   * @param config Window configuration.
+   * @param isMain Mark this window as the main window (accessible via getMain()).
+   */
+  async create(config, isMain = false) {
+    const {
+      expandToWorkArea = false,
+      expandAnimationDuration = 600,
+      ...bwOptions
+    } = config;
+    const win = new import_main.BrowserWindow({ show: false, ...bwOptions });
+    this._register(win, isMain);
+    if (expandToWorkArea) {
+      await this._expandToWorkArea(win, expandAnimationDuration);
+    }
+    win.once("ready-to-show", () => win.show());
+    Logger.log(`[WindowManager] Created window #${win.id}${isMain ? " (main)" : ""}`);
+    return win;
+  }
+  /**
+   * Creates the initial "splash" window that is shown immediately after
+   * app.whenReady(). It is displayed instantly (show: true, no preload
+   * loading) and then expanded to the work area with animation.
+   *
+   * After the animation completes you can call win.loadFile() without
+   * experiencing the viewbox freeze.
+   *
+   * This is the recommended way to get pixels on screen as fast as possible.
+   *
+   * @example
+   * const win = await wm.createSplash({
+   *   webPreferences: { preload: path.join(__dirname, 'preload.js') }
+   * });
+   * win.loadFile('index.html');
+   */
+  async createSplash(options = {}) {
+    const { animationDuration = 600, ...bwOptions } = options;
+    const win = new import_main.BrowserWindow({
+      width: 600,
+      height: 600,
+      center: true,
+      frame: false,
+      show: true,
+      ...bwOptions
+    });
+    this._register(win, true);
+    Logger.log(`[WindowManager] Splash window #${win.id} created`);
+    await this._expandToWorkArea(win, animationDuration);
+    return win;
+  }
+  // -------------------------------------------------------------------------
+  // Accessors
+  // -------------------------------------------------------------------------
+  /** Returns all currently open windows. */
+  getAll() {
+    return [...this._windows.values()];
+  }
+  /** Returns the window designated as main, or undefined. */
+  getMain() {
+    return this._mainWindowId !== void 0 ? this._windows.get(this._mainWindowId) : void 0;
+  }
+  /** Returns a window by its Electron id, or undefined. */
+  getById(id) {
+    return this._windows.get(id);
+  }
+  /** Returns the number of open windows. */
+  get count() {
+    return this._windows.size;
+  }
+  // -------------------------------------------------------------------------
+  // Actions
+  // -------------------------------------------------------------------------
+  /** Closes and destroys a window by id. */
+  close(id) {
+    const win = this._windows.get(id);
+    if (!win) {
+      Logger.warn(`[WindowManager] Window #${id} not found`);
+      return;
+    }
+    win.destroy();
+  }
+  /** Closes all windows. */
+  closeAll() {
+    for (const win of this._windows.values()) {
+      win.destroy();
+    }
+  }
+  /**
+   * Sends a message to a specific window via webContents.send.
+   * @param id Target window id.
+   * @param channel IPC channel name.
+   * @param args Payload.
+   */
+  send(id, channel, ...args) {
+    const win = this._windows.get(id);
+    if (!win || win.isDestroyed()) {
+      Logger.warn(`[WindowManager] Cannot send to window #${id}: not found or destroyed`);
+      return;
+    }
+    win.webContents.send(channel, ...args);
+  }
+  /**
+   * Broadcasts a message to all open windows.
+   */
+  broadcast(channel, ...args) {
+    for (const win of this._windows.values()) {
+      if (!win.isDestroyed()) win.webContents.send(channel, ...args);
+    }
+  }
+  // -------------------------------------------------------------------------
+  // Private
+  // -------------------------------------------------------------------------
+  _register(win, isMain) {
+    this._windows.set(win.id, win);
+    if (isMain && this._mainWindowId === void 0) {
+      this._mainWindowId = win.id;
+    }
+    win.once("closed", () => {
+      this._windows.delete(win.id);
+      if (this._mainWindowId === win.id) this._mainWindowId = void 0;
+      Logger.log(`[WindowManager] Window #${win.id} closed`);
+    });
+  }
+  /**
+   * Animates the window to the full work area of the primary display.
+   * Resolves only after the animation is complete, so that content loaded
+   * afterward gets the correct surface size (no viewbox freeze).
+   */
+  _expandToWorkArea(win, animationDuration) {
+    return new Promise((resolve) => {
+      const { x, y, width, height } = import_main.screen.getPrimaryDisplay().workArea;
+      win.setBounds({ x, y, width, height }, true);
+      let resolved = false;
+      const done = /* @__PURE__ */ __name(() => {
+        if (resolved) return;
+        resolved = true;
+        win.removeListener("resize", done);
+        resolve();
+      }, "done");
+      win.once("resize", done);
+      setTimeout(done, animationDuration + 100);
+    });
+  }
+};
+__name(WindowManager, "WindowManager");
+WindowManager = __decorateClass([
+  Injectable({ lifetime: "singleton" })
+], WindowManager);
+
+// src/app.ts
+var NoxApp = class {
+  constructor() {
+    this.router = inject(Router);
+    this.socket = inject(NoxSocket);
+    this.windowManager = inject(WindowManager);
+    // -------------------------------------------------------------------------
+    // IPC
+    // -------------------------------------------------------------------------
+    this.onRendererMessage = /* @__PURE__ */ __name(async (event) => {
       const { senderId, requestId, path: path2, method, body } = event.data;
       const channels = this.socket.get(senderId);
       if (!channels) {
@@ -1762,69 +1618,108 @@ var _NoxApp = class _NoxApp {
           requestId,
           status: 500,
           body: null,
-          error: err.message || "Internal Server Error"
+          error: err instanceof Error ? err.message : "Internal Server Error"
         };
         channels.request.port1.postMessage(response);
       }
-    }, "onRendererMessage"));
-    this.router = router;
-    this.socket = socket;
+    }, "onRendererMessage");
   }
-  /**
-   * Initializes the NoxApp instance.
-   * This method sets up the IPC communication, registers event listeners,
-   * and prepares the application for use.
-   */
+  // -------------------------------------------------------------------------
+  // Initialisation
+  // -------------------------------------------------------------------------
   async init() {
-    import_main.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
-    import_main.app.once("activate", this.onAppActivated.bind(this));
-    import_main.app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
+    import_main2.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
+    import_main2.app.once("activate", this.onAppActivated.bind(this));
+    import_main2.app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
     console.log("");
     return this;
   }
+  // -------------------------------------------------------------------------
+  // Public API
+  // -------------------------------------------------------------------------
   /**
-   * Handles the request from the renderer process.
-   * This method creates a Request object from the IPC event data,
-   * processes it through the Router, and sends the response back
-   * to the renderer process using the MessageChannel.
+   * Registers a lazy route. The file behind this prefix is dynamically
+   * imported on the first IPC request that targets it.
+   *
+   * The import function should NOT statically reference heavy modules —
+   * the whole point is to defer their loading.
+   *
+   * @example
+   * noxApp.lazy('auth', () => import('./modules/auth/auth.controller.js'));
+   * noxApp.lazy('reporting', () => import('./modules/reporting/index.js'));
    */
+  lazy(pathPrefix, load, guards = [], middlewares = []) {
+    this.router.registerLazyRoute(pathPrefix, load, guards, middlewares);
+    return this;
+  }
+  /**
+   * Eagerly loads a set of modules (controllers + services) before start().
+   * Use this for modules that provide services needed by your IApp.onReady().
+   *
+   * All imports run in parallel; DI is flushed with the two-phase guarantee.
+   */
+  async load(importFns) {
+    InjectorExplorer.beginAccumulate();
+    await Promise.all(importFns.map((fn) => fn()));
+    InjectorExplorer.flushAccumulated();
+    return this;
+  }
+  /**
+   * Registers a global middleware applied to every route.
+   */
+  use(middleware) {
+    this.router.defineRootMiddleware(middleware);
+    return this;
+  }
+  /**
+   * Sets the application service (implements IApp) that receives lifecycle events.
+   * @param appClass - Class decorated with @Injectable that implements IApp.
+   */
+  configure(appClass) {
+    this.appService = inject(appClass);
+    return this;
+  }
+  /**
+   * Calls IApp.onReady(). Should be called after configure() and any lazy()
+   * registrations are set up.
+   */
+  start() {
+    this.appService?.onReady();
+    return this;
+  }
   giveTheRendererAPort(event) {
     const senderId = event.sender.id;
     if (this.socket.get(senderId)) {
       this.shutdownChannel(senderId);
     }
-    const requestChannel = new import_main.MessageChannelMain();
-    const socketChannel = new import_main.MessageChannelMain();
+    const requestChannel = new import_main2.MessageChannelMain();
+    const socketChannel = new import_main2.MessageChannelMain();
     requestChannel.port1.on("message", this.onRendererMessage);
     requestChannel.port1.start();
     socketChannel.port1.start();
+    event.sender.once("destroyed", () => this.shutdownChannel(senderId));
     this.socket.register(senderId, requestChannel, socketChannel);
-    event.sender.postMessage("port", {
-      senderId
-    }, [
-      requestChannel.port2,
-      socketChannel.port2
-    ]);
+    event.sender.postMessage("port", { senderId }, [requestChannel.port2, socketChannel.port2]);
   }
-  /**
-   * MacOS specific behavior.
-   */
+  // -------------------------------------------------------------------------
+  // Lifecycle
+  // -------------------------------------------------------------------------
   onAppActivated() {
-    if (process.platform === "darwin" && import_main.BrowserWindow.getAllWindows().length === 0) {
-      this.app?.onActivated();
+    if (process.platform === "darwin" && import_main2.BrowserWindow.getAllWindows().length === 0) {
+      this.appService?.onActivated();
     }
   }
-  /**
-   * Shuts down the message channel for a specific sender ID.
-   * This method closes the IPC channel for the specified sender ID and
-   * removes it from the messagePorts map.
-   * @param channelSenderId - The ID of the sender channel to shut down.
-   * @param remove - Whether to remove the channel from the messagePorts map.
-   */
+  async onAllWindowsClosed() {
+    for (const senderId of this.socket.getSenderIds()) {
+      this.shutdownChannel(senderId);
+    }
+    Logger.info("All windows closed, shutting down application...");
+    await this.appService?.dispose();
+    if (process.platform !== "darwin") import_main2.app.quit();
+  }
   shutdownChannel(channelSenderId) {
     const channels = this.socket.get(channelSenderId);
     if (!channels) {
-      Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
       return;
     }
     channels.request.port1.off("message", this.onRendererMessage);
@@ -1834,139 +1729,67 @@ var _NoxApp = class _NoxApp {
     channels.socket.port2.close();
     this.socket.unregister(channelSenderId);
   }
-  /**
-   * Handles the application shutdown process.
-   * This method is called when all windows are closed, and it cleans up the message channels
-   */
-  async onAllWindowsClosed() {
-    for (const senderId of this.socket.getSenderIds()) {
-      this.shutdownChannel(senderId);
-    }
-    Logger.info("All windows closed, shutting down application...");
-    await this.app?.dispose();
-    if (process.platform !== "darwin") {
-      import_main.app.quit();
-    }
-  }
-  // ---
-  /**
-   * Sets the main BrowserWindow that was created early by bootstrapApplication.
-   * This window will be passed to IApp.onReady when start() is called.
-   * @param window - The BrowserWindow created during bootstrap.
-   */
-  setMainWindow(window) {
-    this.mainWindow = window;
-  }
-  /**
-   * Registers a lazy-loaded route. The module behind this path prefix
-   * will only be dynamically imported when the first IPC request
-   * targets this prefix — like Angular's loadChildren.
-   *
-   * @example
-   * ```ts
-   * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
-   * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
-   * ```
-   *
-   * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
-   * @param loadModule - A function returning a dynamic import promise.
-   * @returns NoxApp instance for method chaining.
-   */
-  lazy(pathPrefix, loadModule) {
-    this.router.registerLazyRoute(pathPrefix, loadModule);
-    return this;
-  }
-  /**
-   * Eagerly loads one or more modules with a two-phase DI guarantee.
-   * Use this when a service needed at startup lives inside a module
-   * (e.g. the Application service depends on LoaderService).
-   *
-   * All dynamic imports run in parallel; bindings are registered first,
-   * then singletons are resolved — safe regardless of import ordering.
-   *
-   * @param importFns - Functions returning dynamic import promises.
-   */
-  async loadModules(importFns) {
-    InjectorExplorer.beginAccumulate();
-    await Promise.all(importFns.map((fn) => fn()));
-    InjectorExplorer.flushAccumulated();
-  }
-  /**
-   * Configures the NoxApp instance with the provided application class.
-   * This method allows you to set the application class that will handle lifecycle events.
-   * @param app - The application class to configure.
-   * @returns NoxApp instance for method chaining.
-   */
-  configure(app3) {
-    this.app = inject(app3);
-    return this;
-  }
-  /**
-   * Registers a middleware for the root of the application.
-   * This method allows you to define a middleware that will be applied to all requests
-   * @param middleware - The middleware class to register.
-   * @returns NoxApp instance for method chaining.
-   */
-  use(middleware) {
-    this.router.defineRootMiddleware(middleware);
-    return this;
-  }
-  /**
-   * Should be called after the bootstrapApplication function is called.
-   * Passes the early-created BrowserWindow (if any) to the configured IApp service.
-   * @returns NoxApp instance for method chaining.
-   */
-  start() {
-    this.app?.onReady(this.mainWindow);
-    return this;
-  }
 };
-__name(_NoxApp, "NoxApp");
-var NoxApp = _NoxApp;
-NoxApp = _ts_decorate3([
-  Injectable("singleton"),
-  _ts_metadata("design:type", Function),
-  _ts_metadata("design:paramtypes", [
-    typeof Router === "undefined" ? Object : Router,
-    typeof NoxSocket === "undefined" ? Object : NoxSocket
-  ])
+__name(NoxApp, "NoxApp");
+NoxApp = __decorateClass([
+  Injectable({ lifetime: "singleton", deps: [Router, NoxSocket, WindowManager] })
 ], NoxApp);
 
 // src/bootstrap.ts
-var import_main2 = require("electron/main");
-async function bootstrapApplication(rootModule, options) {
-  if (rootModule && !getModuleMetadata(rootModule)) {
-    throw new Error(`Root module must be decorated with @Module`);
+var import_main3 = require("electron/main");
+init_app_injector();
+init_injector_explorer();
+async function bootstrapApplication(config = {}) {
+  await import_main3.app.whenReady();
+  const overrides = /* @__PURE__ */ new Map();
+  for (const { token: token2, useValue } of config.singletons ?? []) {
+    overrides.set(token2, useValue);
+    RootInjector.singletons.set(token2, useValue);
   }
-  await import_main2.app.whenReady();
-  let mainWindow;
-  if (options?.window) {
-    mainWindow = new import_main2.BrowserWindow(options.window);
-    mainWindow.once("ready-to-show", () => {
-      mainWindow?.show();
-    });
-    const primaryDisplay = import_main2.screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.workAreaSize;
-    if (options.window.minWidth && options.window.minHeight) {
-      mainWindow.setSize(Math.min(width, options.window.minWidth), Math.min(height, options.window.minHeight), true);
+  InjectorExplorer.processPending(overrides);
+  const noxApp = inject(NoxApp);
+  if (config.routes?.length) {
+    for (const route of config.routes) {
+      noxApp.lazy(route.path, route.load, route.guards, route.middlewares);
     }
   }
-  InjectorExplorer.processPending();
-  const noxApp = inject(NoxApp);
-  if (mainWindow) {
-    noxApp.setMainWindow(mainWindow);
+  if (config.eagerLoad?.length) {
+    await noxApp.load(config.eagerLoad);
   }
   await noxApp.init();
   return noxApp;
 }
 __name(bootstrapApplication, "bootstrapApplication");
+
+// src/main.ts
+init_exceptions();
+init_controller_decorator();
+init_injectable_decorator();
+init_method_decorator();
+init_logger();
+init_forward_ref();
+init_request();
+
+// src/routes.ts
+function defineRoutes(routes) {
+  const paths = routes.map((r) => r.path.replace(/^\/+|\/+$/g, ""));
+  const duplicates = paths.filter((p, i) => paths.indexOf(p) !== i);
+  if (duplicates.length > 0) {
+    throw new Error(
+      `[Noxus] Duplicate route prefixes detected: ${[...new Set(duplicates)].map((d) => `"${d}"`).join(", ")}`
+    );
+  }
+  return routes.map((r) => ({
+    ...r,
+    path: r.path.replace(/^\/+|\/+$/g, "")
+  }));
+}
+__name(defineRoutes, "defineRoutes");
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AppInjector,
-  Authorize,
   BadGatewayException,
   BadRequestException,
-  CONTROLLER_METADATA_KEY,
   ConflictException,
   Controller,
   Delete,
@@ -1975,17 +1798,12 @@ __name(bootstrapApplication, "bootstrapApplication");
   GatewayTimeoutException,
   Get,
   HttpVersionNotSupportedException,
-  INJECTABLE_METADATA_KEY,
-  INJECT_METADATA_KEY,
-  Inject,
   Injectable,
   InsufficientStorageException,
   InternalServerException,
   Logger,
   LoopDetectedException,
-  MODULE_METADATA_KEY,
   MethodNotAllowedException,
-  Module,
   NetworkAuthenticationRequiredException,
   NetworkConnectTimeoutException,
   NotAcceptableException,
@@ -1999,36 +1817,39 @@ __name(bootstrapApplication, "bootstrapApplication");
   Post,
   Put,
   RENDERER_EVENT_TYPE,
-  ROUTE_METADATA_KEY,
   Request,
   RequestTimeoutException,
   ResponseException,
   RootInjector,
   Router,
   ServiceUnavailableException,
+  Token,
   TooManyRequestsException,
   UnauthorizedException,
   UpgradeRequiredException,
-  UseMiddlewares,
   VariantAlsoNegotiatesException,
+  WindowManager,
   bootstrapApplication,
   createRendererEventMessage,
+  defineRoutes,
   forwardRef,
   getControllerMetadata,
-  getGuardForController,
-  getGuardForControllerAction,
-  getInjectableMetadata,
-  getMiddlewaresForController,
-  getMiddlewaresForControllerAction,
-  getModuleMetadata,
   getRouteMetadata,
-  hasInjectableMetadata,
   inject,
-  isRendererEventMessage
+  isAtomicHttpMethod,
+  isRendererEventMessage,
+  token
 });
 /**
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
+ */
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ *
+ * Entry point for Electron main-process consumers.
  */
 //# sourceMappingURL=main.js.map

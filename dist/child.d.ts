@@ -1,5 +1,5 @@
-import { L as Lifetime } from './app-injector-B3MvgV3k.js';
-export { A as AppInjector, F as ForwardRefFn, a as ForwardReference, I as IBinding, M as MaybeAsync, R as RootInjector, T as Type, f as forwardRef, i as inject } from './app-injector-B3MvgV3k.js';
+import { L as Lifetime, a as TokenKey } from './app-injector-Bz3Upc0y.js';
+export { A as AppInjector, F as ForwardRefFn, b as ForwardReference, I as IBinding, M as MaybeAsync, R as RootInjector, c as Token, T as Type, f as forwardRef, i as inject } from './app-injector-Bz3Upc0y.js';
 
 /**
  * @copyright 2025 NoxFly
@@ -81,29 +81,55 @@ declare class NetworkConnectTimeoutException extends ResponseException {
     readonly status = 599;
 }
 
-declare const INJECTABLE_METADATA_KEY: unique symbol;
-declare function getInjectableMetadata(target: Function): Lifetime | undefined;
-declare function hasInjectableMetadata(target: Function): boolean;
 
-
+interface InjectableOptions {
+    /**
+     * Lifetime of this injectable.
+     * @default 'scope'
+     */
+    lifetime?: Lifetime;
+    /**
+     * Explicit list of constructor dependencies, in the same order as the constructor parameters.
+     * Each entry is either a class constructor or a Token created with token().
+     *
+     * This replaces reflect-metadata / emitDecoratorMetadata entirely.
+     *
+     * @example
+     * @Injectable({ lifetime: 'singleton', deps: [MyRepo, DB_URL] })
+     * class MyService {
+     *   constructor(private repo: MyRepo, private dbUrl: string) {}
+     * }
+     */
+    deps?: ReadonlyArray<TokenKey>;
+}
 /**
- * The Injectable decorator marks a class as injectable.
- * It allows the class to be registered in the dependency injection system.
- * A class decorated with @Injectable can be injected into other classes
- * either from the constructor of the class that needs it of from the `inject` function.
- * @param lifetime - The lifetime of the injectable. Can be 'singleton', 'scope', or 'transient'.
- */
-declare function Injectable(lifetime?: Lifetime): ClassDecorator;
-
-
-declare const INJECT_METADATA_KEY = "custom:inject";
-/**
- * Decorator to manually inject a dependency.
- * Useful for handling circular dependencies with `forwardRef` or injecting specific tokens.
+ * Marks a class as injectable into the Noxus DI container.
  *
- * @param token The token or forward reference to inject.
+ * Unlike the v2 @Injectable, this decorator:
+ * - Does NOT require reflect-metadata or emitDecoratorMetadata.
+ * - Requires you to declare deps explicitly when the class has constructor parameters.
+ * - Supports standalone usage — no module declaration needed.
+ *
+ * @example
+ * // No dependencies
+ * @Injectable()
+ * class Logger {}
+ *
+ * // With dependencies
+ * @Injectable({ lifetime: 'singleton', deps: [Logger, MyRepo] })
+ * class MyService {
+ *   constructor(private logger: Logger, private repo: MyRepo) {}
+ * }
+ *
+ * // With a named token
+ * const DB_URL = token<string>('DB_URL');
+ *
+ * @Injectable({ deps: [DB_URL] })
+ * class DbService {
+ *   constructor(private url: string) {}
+ * }
  */
-declare function Inject(token: any): ParameterDecorator;
+declare function Injectable(options?: InjectableOptions): ClassDecorator;
 
 /**
  * Logger is a utility class for logging messages to the console.
@@ -206,4 +232,4 @@ declare namespace Logger {
     };
 }
 
-export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, Inject, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, getInjectableMetadata, hasInjectableMetadata };
+export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TokenKey, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException };

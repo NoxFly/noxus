@@ -4,8 +4,8 @@
  * @author NoxFly
  */
 
-import { IBatchRequestItem, IBatchResponsePayload, IRequest, IResponse } from 'src/request';
-import { RendererEventRegistry } from 'src/renderer-events';
+import { IBatchRequestItem, IBatchResponsePayload, IRequest, IResponse } from './request';
+import { RendererEventRegistry } from './renderer-events';
 
 export interface IPortRequester {
     requestPort(): void;

@@ -4,9 +4,9 @@
  * @author NoxFly
  */
 
-import 'reflect-metadata';
-import { AtomicHttpMethod, HttpMethod } from 'src/decorators/method.decorator';
-import { AppInjector, RootInjector } from 'src/DI/app-injector';
+
+import { AtomicHttpMethod, HttpMethod } from './decorators/method.decorator';
+import { AppInjector, RootInjector } from './DI/app-injector';
 
 /**
  * The Request class represents an HTTP request in the Noxus framework.

@@ -1,6 +1,6 @@
-import { I as IRendererEventMessage, a as IResponse, b as IRequest, c as IBatchRequestItem, d as IBatchResponsePayload } from './request-Dx_5Prte.mjs';
-export { A as AtomicHttpMethod, H as HttpMethod, e as IBatchRequestPayload, f as RENDERER_EVENT_TYPE, R as Request, g as createRendererEventMessage, i as isRendererEventMessage } from './request-Dx_5Prte.mjs';
-import './app-injector-B3MvgV3k.mjs';
+import { I as IRendererEventMessage, a as IResponse, b as IRequest, c as IBatchRequestItem, d as IBatchResponsePayload } from './request-qJ9EiDZc.mjs';
+export { A as AtomicHttpMethod, H as HttpMethod, e as IBatchRequestPayload, R as RENDERER_EVENT_TYPE, f as Request, g as createRendererEventMessage, i as isRendererEventMessage } from './request-qJ9EiDZc.mjs';
+import './app-injector-Bz3Upc0y.mjs';
 
 /**
  * @copyright 2025 NoxFly

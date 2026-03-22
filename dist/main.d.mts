@@ -1,9 +1,9 @@
-import { M as MaybeAsync, T as Type } from './app-injector-B3MvgV3k.mjs';
-export { A as AppInjector, F as ForwardRefFn, a as ForwardReference, I as IBinding, L as Lifetime, R as RootInjector, f as forwardRef, i as inject } from './app-injector-B3MvgV3k.mjs';
-import { R as Request, a as IResponse, h as IGuard } from './request-Dx_5Prte.mjs';
-export { A as AtomicHttpMethod, j as Authorize, D as Delete, G as Get, H as HttpMethod, c as IBatchRequestItem, e as IBatchRequestPayload, d as IBatchResponsePayload, I as IRendererEventMessage, b as IRequest, m as IRouteMetadata, p as Patch, P as Post, o as Put, f as RENDERER_EVENT_TYPE, q as ROUTE_METADATA_KEY, g as createRendererEventMessage, k as getGuardForController, l as getGuardForControllerAction, n as getRouteMetadata, i as isRendererEventMessage } from './request-Dx_5Prte.mjs';
+import { T as Type, a as TokenKey } from './app-injector-Bz3Upc0y.mjs';
+export { A as AppInjector, F as ForwardRefFn, b as ForwardReference, I as IBinding, L as Lifetime, M as MaybeAsync, R as RootInjector, c as Token, f as forwardRef, i as inject, t as token } from './app-injector-Bz3Upc0y.mjs';
+import { f as Request, a as IResponse, G as Guard, M as Middleware } from './request-qJ9EiDZc.mjs';
+export { A as AtomicHttpMethod, D as Delete, h as Get, H as HttpMethod, c as IBatchRequestItem, e as IBatchRequestPayload, d as IBatchResponsePayload, I as IRendererEventMessage, b as IRequest, j as IRouteMetadata, k as IRouteOptions, N as NextFunction, P as Patch, l as Post, m as Put, R as RENDERER_EVENT_TYPE, g as createRendererEventMessage, n as getRouteMetadata, o as isAtomicHttpMethod, i as isRendererEventMessage } from './request-qJ9EiDZc.mjs';
 import { BrowserWindow } from 'electron/main';
-export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, Inject, Injectable, InsufficientStorageException, InternalServerException, LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, getInjectableMetadata, hasInjectableMetadata } from './child.mjs';
+export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, Injectable, InjectableOptions, InsufficientStorageException, InternalServerException, LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException } from './child.mjs';
 
 /**
  * @copyright 2025 NoxFly
@@ -11,199 +11,371 @@ export { BadGatewayException, BadRequestException, ConflictException, ForbiddenE
  * @author NoxFly
  */
 
-/**
- * NextFunction is a function that is called to continue the middleware chain.
- * It returns an Promise that emits when the next middleware is done.
- */
-type NextFunction = () => Promise<void>;
-/**
- * IMiddleware interface defines a middleware that can be used in the application.
- * It has an `invoke` method that takes a request, a response, and a next function.
- * The `invoke` method can return a MaybeAsync, which means it can return either a value or a Promise.
- *
- * Use it on a class that should be registered as a middleware in the application.
- */
-interface IMiddleware {
-    invoke(request: Request, response: IResponse, next: NextFunction): MaybeAsync<void>;
-}
-/**
- * UseMiddlewares decorator can be used to register middlewares for a controller or a controller action.
- *
- * @param mdlw - The middlewares list to register for the controller or the controller action.
- */
-declare function UseMiddlewares(mdlw: Type<IMiddleware>[]): ClassDecorator & MethodDecorator;
-/**
- * Gets the middlewares for a controller or a controller action.
- * This function retrieves the middlewares registered with the UseMiddlewares decorator.
- * It returns an array of middleware classes that can be used to process requests for the specified controller.
- * @param controllerName The name of the controller to get the middlewares for.
- * @returns An array of middlewares for the controller.
- */
-declare function getMiddlewaresForController(controllerName: string): Type<IMiddleware>[];
-/**
- * Gets the middlewares for a controller action.
- * This function retrieves the middlewares registered with the UseMiddlewares decorator for a specific action in a controller.
- * It returns an array of middleware classes that can be used to process requests for the specified controller action.
- * @param controllerName The name of the controller to get the middlewares for.
- * @param actionName The name of the action to get the middlewares for.
- * @returns An array of middlewares for the controller action.
- */
-declare function getMiddlewaresForControllerAction(controllerName: string, actionName: string): Type<IMiddleware>[];
-
-
-/**
- * A lazy route entry maps a path prefix to a dynamic import function.
- * The module is loaded on the first request matching the prefix.
- */
 interface ILazyRoute {
-    /** Path prefix (e.g. "auth", "printing"). Matched against the first segment(s) of the request path. */
-    path: string;
-    /** Dynamic import function returning the module file. */
-    loadModule: () => Promise<unknown>;
+    load: () => Promise<unknown>;
+    guards: Guard[];
+    middlewares: Middleware[];
+    loading: Promise<void> | null;
+    loaded: boolean;
 }
-/**
- * IRouteDefinition interface defines the structure of a route in the application.
- * It includes the HTTP method, path, controller class, handler method name,
- * guards, and middlewares associated with the route.
- */
 interface IRouteDefinition {
     method: string;
     path: string;
-    controller: Type<any>;
+    controller: Type<unknown>;
     handler: string;
-    guards: Type<IGuard>[];
-    middlewares: Type<IMiddleware>[];
+    guards: Guard[];
+    middlewares: Middleware[];
 }
-/**
- * This type defines a function that represents an action in a controller.
- * It takes a Request and an IResponse as parameters and returns a value or a Promise.
- */
-type ControllerAction = (request: Request, response: IResponse) => any;
-/**
- * Router class is responsible for managing the application's routing.
- * It registers controllers, handles requests, and manages middlewares and guards.
- */
+type ControllerAction = (request: Request, response: IResponse) => unknown;
 declare class Router {
     private readonly routes;
     private readonly rootMiddlewares;
     private readonly lazyRoutes;
-    /**
-     * Registers a controller class with the router.
-     * This method extracts the route metadata from the controller class and registers it in the routing tree.
-     * It also handles the guards and middlewares associated with the controller.
-     * @param controllerClass - The controller class to register.
-     */
-    registerController(controllerClass: Type<unknown>): Router;
-    /**
-     * Registers a lazy route. The module behind this route prefix will only
-     * be imported (and its controllers/services registered in DI) the first
-     * time a request targets this prefix.
-     *
-     * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
-     * @param loadModule - A function that returns a dynamic import promise.
-     */
-    registerLazyRoute(pathPrefix: string, loadModule: () => Promise<unknown>): Router;
-    /**
-     * Defines a middleware for the root of the application.
-     * This method allows you to register a middleware that will be applied to all requests
-     * to the application, regardless of the controller or action.
-     * @param middleware - The middleware class to register.
-     */
-    defineRootMiddleware(middleware: Type<IMiddleware>): Router;
-    /**
-     * Shuts down the message channel for a specific sender ID.
-     * This method closes the IPC channel for the specified sender ID and
-     * removes it from the messagePorts map.
-     * @param channelSenderId - The ID of the sender channel to shut down.
-     */
+    registerController(controllerClass: Type<unknown>, pathPrefix: string, routeGuards?: Guard[], routeMiddlewares?: Middleware[]): this;
+    registerLazyRoute(pathPrefix: string, load: () => Promise<unknown>, guards?: Guard[], middlewares?: Middleware[]): this;
+    defineRootMiddleware(middleware: Middleware): this;
     handle(request: Request): Promise<IResponse>;
     private handleAtomic;
     private handleBatch;
+    private tryFindRoute;
+    private findRoute;
+    private tryLoadLazyRoute;
+    private loadLazyModule;
+    private resolveController;
+    private runPipeline;
+    private runMiddleware;
+    private runGuard;
+    private extractParams;
     private normalizeBatchPayload;
     private normalizeBatchItem;
-    /**
-     * Finds the route definition for a given request.
-     * This method searches the routing tree for a matching route based on the request's path and method.
-     * If no matching route is found, it throws a NotFoundException.
-     * @param request - The Request object containing the method and path to search for.
-     * @returns The IRouteDefinition for the matched route.
-     */
-    /**
-     * Attempts to find a route definition for the given request.
-     * Returns undefined instead of throwing when the route is not found,
-     * so the caller can try lazy-loading first.
-     */
-    private tryFindRoute;
-    /**
-     * Finds the route definition for a given request.
-     * If no eagerly-registered route matches, attempts to load a lazy module
-     * whose prefix matches the request path, then retries.
-     */
-    private findRoute;
-    /**
-     * Given a request path, checks whether a lazy route prefix matches
-     * and triggers the dynamic import if it hasn't been loaded yet.
-     */
-    private tryLoadLazyRoute;
-    /**
-     * Dynamically imports a lazy module and registers its decorated classes
-     * (controllers, services) in the DI container using the two-phase strategy.
-     */
-    private loadLazyModule;
-    /**
-     * Resolves the controller for a given route definition.
-     * This method creates an instance of the controller class and prepares the request parameters.
-     * It also runs the request pipeline, which includes executing middlewares and guards.
-     * @param request - The Request object containing the request data.
-     * @param response - The IResponse object to populate with the response data.
-     * @param routeDef - The IRouteDefinition for the matched route.
-     * @return A Promise that resolves when the controller action has been executed.
-     * @throws UnauthorizedException if the request is not authorized by the guards.
-     */
-    private resolveController;
-    /**
-     * Runs the request pipeline for a given request.
-     * This method executes the middlewares and guards associated with the route,
-     * and finally calls the controller action.
-     * @param request - The Request object containing the request data.
-     * @param response - The IResponse object to populate with the response data.
-     * @param routeDef - The IRouteDefinition for the matched route.
-     * @param controllerInstance - The instance of the controller class.
-     * @return A Promise that resolves when the request pipeline has been executed.
-     * @throws ResponseException if the response status is not successful.
-     */
-    private runRequestPipeline;
-    /**
-     * Runs a middleware function in the request pipeline.
-     * This method creates an instance of the middleware and invokes its `invoke` method,
-     * passing the request, response, and next function.
-     * @param request - The Request object containing the request data.
-     * @param response - The IResponse object to populate with the response data.
-     * @param next - The NextFunction to call to continue the middleware chain.
-     * @param middlewareType - The type of the middleware to run.
-     * @return A Promise that resolves when the middleware has been executed.
-     */
-    private runMiddleware;
-    /**
-     * Runs a guard to check if the request is authorized.
-     * This method creates an instance of the guard and calls its `canActivate` method.
-     * If the guard returns false, it throws an UnauthorizedException.
-     * @param request - The Request object containing the request data.
-     * @param guardType - The type of the guard to run.
-     * @return A Promise that resolves if the guard allows the request, or throws an UnauthorizedException if not.
-     * @throws UnauthorizedException if the guard denies access to the request.
-     */
-    private runGuard;
-    /**
-     * Extracts parameters from the actual request path based on the template path.
-     * This method splits the actual path and the template path into segments,
-     * then maps the segments to parameters based on the template.
-     * @param actual - The actual request path.
-     * @param template - The template path to extract parameters from.
-     * @returns An object containing the extracted parameters.
-     */
-    private extractParams;
+    private fillErrorResponse;
+    private logResponse;
 }
+
+
+interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
+    /**
+     * If true, the window expands to fill the work area after creation
+     * using an animated setBounds. The content is loaded only after
+     * the animation completes, preventing the viewbox freeze issue.
+     * @default false
+     */
+    expandToWorkArea?: boolean;
+    /**
+     * Duration in ms to wait for the setBounds animation to complete
+     * before loading content. Only used when expandToWorkArea is true.
+     * @default 600
+     */
+    expandAnimationDuration?: number;
+}
+interface WindowRecord {
+    window: BrowserWindow;
+    id: number;
+}
+/**
+ * WindowManager is a singleton service that centralizes BrowserWindow lifecycle.
+ *
+ * Features:
+ * - Creates and tracks all application windows.
+ * - Handles the animated expand-to-work-area pattern correctly,
+ *   loading content only after the animation ends to avoid the viewbox freeze.
+ * - Provides convenience methods to get windows by id, get the main window, etc.
+ * - Automatically removes windows from the registry on close.
+ *
+ * @example
+ * // In your IApp.onReady():
+ * const wm = inject(WindowManager);
+ *
+ * const win = await wm.create({
+ *   width: 600, height: 600, center: true,
+ *   expandToWorkArea: true,
+ *   webPreferences: { preload: path.join(__dirname, 'preload.js') },
+ * });
+ *
+ * win.loadFile('index.html');
+ */
+declare class WindowManager {
+    private readonly _windows;
+    private _mainWindowId;
+    /**
+     * Creates a BrowserWindow, optionally performs an animated expand to the
+     * work area, and registers it in the manager.
+     *
+     * If expandToWorkArea is true:
+     * 1. The window is created at the given initial size (defaults to 600×600, centered).
+     * 2. An animated setBounds expands it to the full work area.
+     * 3. The returned promise resolves only after the animation, so callers
+     *    can safely call win.loadFile() without the viewbox freeze.
+     *
+     * @param config Window configuration.
+     * @param isMain Mark this window as the main window (accessible via getMain()).
+     */
+    create(config: WindowConfig, isMain?: boolean): Promise<BrowserWindow>;
+    /**
+     * Creates the initial "splash" window that is shown immediately after
+     * app.whenReady(). It is displayed instantly (show: true, no preload
+     * loading) and then expanded to the work area with animation.
+     *
+     * After the animation completes you can call win.loadFile() without
+     * experiencing the viewbox freeze.
+     *
+     * This is the recommended way to get pixels on screen as fast as possible.
+     *
+     * @example
+     * const win = await wm.createSplash({
+     *   webPreferences: { preload: path.join(__dirname, 'preload.js') }
+     * });
+     * win.loadFile('index.html');
+     */
+    createSplash(options?: Electron.BrowserWindowConstructorOptions & {
+        animationDuration?: number;
+    }): Promise<BrowserWindow>;
+    /** Returns all currently open windows. */
+    getAll(): BrowserWindow[];
+    /** Returns the window designated as main, or undefined. */
+    getMain(): BrowserWindow | undefined;
+    /** Returns a window by its Electron id, or undefined. */
+    getById(id: number): BrowserWindow | undefined;
+    /** Returns the number of open windows. */
+    get count(): number;
+    /** Closes and destroys a window by id. */
+    close(id: number): void;
+    /** Closes all windows. */
+    closeAll(): void;
+    /**
+     * Sends a message to a specific window via webContents.send.
+     * @param id Target window id.
+     * @param channel IPC channel name.
+     * @param args Payload.
+     */
+    send(id: number, channel: string, ...args: unknown[]): void;
+    /**
+     * Broadcasts a message to all open windows.
+     */
+    broadcast(channel: string, ...args: unknown[]): void;
+    private _register;
+    /**
+     * Animates the window to the full work area of the primary display.
+     * Resolves only after the animation is complete, so that content loaded
+     * afterward gets the correct surface size (no viewbox freeze).
+     */
+    private _expandToWorkArea;
+}
+
+
+/**
+ * Your application service should implement IApp.
+ * Noxus calls these lifecycle methods at the appropriate time.
+ *
+ * Unlike v2, IApp no longer receives a BrowserWindow in onReady.
+ * Use the injected WindowManager instead — it is more flexible and
+ * does not couple the lifecycle to a single pre-created window.
+ *
+ * @example
+ * @Injectable({ lifetime: 'singleton', deps: [WindowManager, MyService] })
+ * class AppService implements IApp {
+ *   constructor(private wm: WindowManager, private svc: MyService) {}
+ *
+ *   async onReady() {
+ *     const win = await this.wm.createSplash({ webPreferences: { preload: ... } });
+ *     win.loadFile('index.html');
+ *   }
+ *
+ *   async onActivated() { ... }
+ *   async dispose() { ... }
+ * }
+ */
+interface IApp {
+    dispose(): Promise<void>;
+    onReady(): Promise<void>;
+    onActivated(): Promise<void>;
+}
+declare class NoxApp {
+    private appService;
+    private readonly router;
+    private readonly socket;
+    readonly windowManager: WindowManager;
+    init(): Promise<this>;
+    /**
+     * Registers a lazy route. The file behind this prefix is dynamically
+     * imported on the first IPC request that targets it.
+     *
+     * The import function should NOT statically reference heavy modules —
+     * the whole point is to defer their loading.
+     *
+     * @example
+     * noxApp.lazy('auth', () => import('./modules/auth/auth.controller.js'));
+     * noxApp.lazy('reporting', () => import('./modules/reporting/index.js'));
+     */
+    lazy(pathPrefix: string, load: () => Promise<unknown>, guards?: Guard[], middlewares?: Middleware[]): this;
+    /**
+     * Eagerly loads a set of modules (controllers + services) before start().
+     * Use this for modules that provide services needed by your IApp.onReady().
+     *
+     * All imports run in parallel; DI is flushed with the two-phase guarantee.
+     */
+    load(importFns: Array<() => Promise<unknown>>): Promise<this>;
+    /**
+     * Registers a global middleware applied to every route.
+     */
+    use(middleware: Middleware): this;
+    /**
+     * Sets the application service (implements IApp) that receives lifecycle events.
+     * @param appClass - Class decorated with @Injectable that implements IApp.
+     */
+    configure(appClass: Type<IApp>): this;
+    /**
+     * Calls IApp.onReady(). Should be called after configure() and any lazy()
+     * registrations are set up.
+     */
+    start(): this;
+    private readonly onRendererMessage;
+    private giveTheRendererAPort;
+    private onAppActivated;
+    private onAllWindowsClosed;
+    private shutdownChannel;
+}
+
+
+/**
+ * A single route entry in the application routing table.
+ */
+interface RouteDefinition {
+    /**
+     * The path prefix for this route (e.g. 'users', 'orders').
+     * All actions defined in the controller will be prefixed with this path.
+     */
+    path: string;
+    /**
+     * Dynamic import function returning the controller file.
+     * The controller is loaded lazily on the first IPC request targeting this prefix.
+     *
+     * @example
+     * load: () => import('./modules/users/users.controller')
+     */
+    load: () => Promise<unknown>;
+    /**
+     * Guards applied to every action in this controller.
+     * Merged with action-level guards.
+     */
+    guards?: Guard[];
+    /**
+     * Middlewares applied to every action in this controller.
+     * Merged with action-level middlewares.
+     */
+    middlewares?: Middleware[];
+}
+/**
+ * Defines the application routing table.
+ * Each entry maps a path prefix to a lazily-loaded controller.
+ *
+ * This is the single source of truth for routing — no path is declared
+ * in @Controller(), preventing duplicate route prefixes across controllers.
+ *
+ * @example
+ * export const routes = defineRoutes([
+ *     {
+ *         path: 'users',
+ *         load: () => import('./modules/users/users.controller'),
+ *         guards: [authGuard],
+ *     },
+ *     {
+ *         path: 'orders',
+ *         load: () => import('./modules/orders/orders.controller'),
+ *         guards: [authGuard],
+ *         middlewares: [logMiddleware],
+ *     },
+ * ]);
+ */
+declare function defineRoutes(routes: RouteDefinition[]): RouteDefinition[];
+
+
+/**
+ * A singleton value override: provides an already-constructed instance
+ * for a given token, bypassing the DI factory.
+ *
+ * Useful for injecting external singletons (e.g. a database connection,
+ * a logger already configured, a third-party SDK wrapper) that cannot
+ * or should not be constructed by the DI container.
+ *
+ * @example
+ * { token: MikroORM, useValue: await MikroORM.init(config) }
+ * { token: DB_URL,   useValue: process.env.DATABASE_URL }
+ */
+interface SingletonOverride<T = unknown> {
+    token: TokenKey<T>;
+    useValue: T;
+}
+/**
+ * Configuration object for bootstrapApplication.
+ */
+interface BootstrapConfig {
+    /**
+     * Application routing table, produced by defineRoutes().
+     * All lazy routes are registered before the app starts.
+     */
+    routes?: RouteDefinition[];
+    /**
+     * Pre-built singleton instances to inject into the DI container
+     * before the application starts.
+     *
+     * This replaces the v2 module/provider declaration pattern for
+     * external singletons.
+     *
+     * @example
+     * singletons: [
+     *   { token: MikroORM, useValue: await MikroORM.init(ormConfig) },
+     *   { token: DB_URL,   useValue: process.env.DATABASE_URL! },
+     * ]
+     */
+    singletons?: SingletonOverride[];
+    /**
+     * Controllers and services to eagerly load before NoxApp.start() is called.
+     * Each entry is a dynamic import function — files are imported in parallel.
+     *
+     * Use this only for things needed at startup (e.g. if your IApp service
+     * depends on a service in an otherwise lazy module).
+     *
+     * Everything else should be registered via noxApp.lazy().
+     *
+     * @example
+     * eagerLoad: [
+     *   () => import('./modules/auth/auth.controller.js'),
+     * ]
+     */
+    eagerLoad?: Array<() => Promise<unknown>>;
+}
+/**
+ * Bootstraps the Noxus application.
+ */
+declare function bootstrapApplication(config?: BootstrapConfig): Promise<NoxApp>;
+
+
+interface ControllerOptions {
+    /**
+     * Explicit constructor dependencies.
+     */
+    deps?: ReadonlyArray<TokenKey>;
+}
+interface IControllerMetadata {
+    deps: ReadonlyArray<TokenKey>;
+}
+/**
+ * Marks a class as a Noxus controller.
+ * Controllers are always scope-scoped injectables.
+ * The route prefix and guards/middlewares are declared in defineRoutes(), not here.
+ *
+ * @example
+ * @Controller({ deps: [UserService] })
+ * export class UserController {
+ *   constructor(private svc: UserService) {}
+ *
+ *   @Get('byId/:userId')
+ *   getUserById(req: Request) { ... }
+ * }
+ */
+declare function Controller(options?: ControllerOptions): ClassDecorator;
+declare function getControllerMetadata(target: object): IControllerMetadata | undefined;
 
 interface RendererChannels {
     request: Electron.MessageChannelMain;
@@ -219,184 +391,4 @@ declare class NoxSocket {
     emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
 }
 
-
-/**
- * The application service should implement this interface, as
- * the NoxApp class instance will use it to notify the given service
- * about application lifecycle events.
- */
-interface IApp {
-    dispose(): Promise<void>;
-    onReady(mainWindow?: BrowserWindow): Promise<void>;
-    onActivated(): Promise<void>;
-}
-/**
- * NoxApp is the main application class that manages the application lifecycle,
- * handles IPC communication, and integrates with the Router.
- */
-declare class NoxApp {
-    private readonly router;
-    private readonly socket;
-    private app;
-    private mainWindow;
-    /**
-     *
-     */
-    private readonly onRendererMessage;
-    constructor(router: Router, socket: NoxSocket);
-    /**
-     * Initializes the NoxApp instance.
-     * This method sets up the IPC communication, registers event listeners,
-     * and prepares the application for use.
-     */
-    init(): Promise<NoxApp>;
-    /**
-     * Handles the request from the renderer process.
-     * This method creates a Request object from the IPC event data,
-     * processes it through the Router, and sends the response back
-     * to the renderer process using the MessageChannel.
-     */
-    private giveTheRendererAPort;
-    /**
-     * MacOS specific behavior.
-     */
-    private onAppActivated;
-    /**
-     * Shuts down the message channel for a specific sender ID.
-     * This method closes the IPC channel for the specified sender ID and
-     * removes it from the messagePorts map.
-     * @param channelSenderId - The ID of the sender channel to shut down.
-     * @param remove - Whether to remove the channel from the messagePorts map.
-     */
-    private shutdownChannel;
-    /**
-     * Handles the application shutdown process.
-     * This method is called when all windows are closed, and it cleans up the message channels
-     */
-    private onAllWindowsClosed;
-    /**
-     * Sets the main BrowserWindow that was created early by bootstrapApplication.
-     * This window will be passed to IApp.onReady when start() is called.
-     * @param window - The BrowserWindow created during bootstrap.
-     */
-    setMainWindow(window: BrowserWindow): void;
-    /**
-     * Registers a lazy-loaded route. The module behind this path prefix
-     * will only be dynamically imported when the first IPC request
-     * targets this prefix — like Angular's loadChildren.
-     *
-     * @example
-     * ```ts
-     * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
-     * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
-     * ```
-     *
-     * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
-     * @param loadModule - A function returning a dynamic import promise.
-     * @returns NoxApp instance for method chaining.
-     */
-    lazy(pathPrefix: string, loadModule: () => Promise<unknown>): NoxApp;
-    /**
-     * Eagerly loads one or more modules with a two-phase DI guarantee.
-     * Use this when a service needed at startup lives inside a module
-     * (e.g. the Application service depends on LoaderService).
-     *
-     * All dynamic imports run in parallel; bindings are registered first,
-     * then singletons are resolved — safe regardless of import ordering.
-     *
-     * @param importFns - Functions returning dynamic import promises.
-     */
-    loadModules(importFns: Array<() => Promise<unknown>>): Promise<void>;
-    /**
-     * Configures the NoxApp instance with the provided application class.
-     * This method allows you to set the application class that will handle lifecycle events.
-     * @param app - The application class to configure.
-     * @returns NoxApp instance for method chaining.
-     */
-    configure(app: Type<IApp>): NoxApp;
-    /**
-     * Registers a middleware for the root of the application.
-     * This method allows you to define a middleware that will be applied to all requests
-     * @param middleware - The middleware class to register.
-     * @returns NoxApp instance for method chaining.
-     */
-    use(middleware: Type<IMiddleware>): NoxApp;
-    /**
-     * Should be called after the bootstrapApplication function is called.
-     * Passes the early-created BrowserWindow (if any) to the configured IApp service.
-     * @returns NoxApp instance for method chaining.
-     */
-    start(): NoxApp;
-}
-
-
-/**
- * Options for bootstrapping the Noxus application.
- */
-interface BootstrapOptions {
-    /**
-     * If provided, Noxus creates a BrowserWindow immediately after Electron is ready,
-     * before any DI processing occurs. This window is passed to the configured
-     * IApp service via onReady(). It allows the user to see a window as fast as possible,
-     * even before the application is fully initialized.
-     */
-    window?: Electron.BrowserWindowConstructorOptions;
-}
-/**
- * Bootstraps the Noxus application.
- * This function initializes the application by creating an instance of NoxApp,
- * registering the root module, and starting the application.
- *
- * When {@link BootstrapOptions.window} is provided, a BrowserWindow is created
- * immediately after Electron readiness — before DI resolution — so the user
- * sees a window as quickly as possible.
- *
- * @param rootModule - The root module of the application, decorated with @Module.
- * @param options - Optional bootstrap configuration.
- * @return A promise that resolves to the NoxApp instance.
- * @throws Error if the root module is not decorated with @Module, or if the electron process could not start.
- */
-declare function bootstrapApplication(rootModule?: Type<any> | null, options?: BootstrapOptions): Promise<NoxApp>;
-
-
-/**
- * The configuration that waits a controller's decorator.
- */
-interface IControllerMetadata {
-    path: string;
-    guards: Type<IGuard>[];
-}
-/**
- * Controller decorator is used to define a controller in the application.
- * It is a kind of node in the routing tree, that can contains routes and middlewares.
- *
- * @param path - The path for the controller.
- */
-declare function Controller(path: string): ClassDecorator;
-/**
- * Gets the controller metadata for a given target class.
- * This metadata includes the path and guards defined by the @Controller decorator.
- * @param target - The target class to get the controller metadata from.
- * @returns The controller metadata if it exists, otherwise undefined.
- */
-declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
-declare const CONTROLLER_METADATA_KEY: unique symbol;
-
-
-interface IModuleMetadata {
-    imports?: Type<unknown>[];
-    exports?: Type<unknown>[];
-    providers?: Type<unknown>[];
-    controllers?: Type<unknown>[];
-}
-/**
- * Module decorator is used to define a module in the application.
- * It is a kind of node in the routing tree, that can contains controllers, services, and other modules.
- *
- * @param metadata - The metadata for the module.
- */
-declare function Module(metadata: IModuleMetadata): ClassDecorator;
-declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
-declare const MODULE_METADATA_KEY: unique symbol;
-
-export { type BootstrapOptions, CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type ILazyRoute, type IMiddleware, type IModuleMetadata, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, Request, Router, Type, UseMiddlewares, bootstrapApplication, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };
+export { type BootstrapConfig, Controller, type ControllerAction, type ControllerOptions, Guard, type IApp, type IControllerMetadata, type ILazyRoute, IResponse, type IRouteDefinition, Middleware, NoxApp, NoxSocket, Request, type RouteDefinition, Router, type SingletonOverride, TokenKey, Type, type WindowConfig, WindowManager, type WindowRecord, bootstrapApplication, defineRoutes, getControllerMetadata };

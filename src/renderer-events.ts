@@ -8,7 +8,7 @@
  * Lightweight event registry to help renderer processes subscribe to
  * push messages sent by the main process through Noxus.
  */
-import { IRendererEventMessage, isRendererEventMessage } from 'src/request';
+import { IRendererEventMessage, isRendererEventMessage } from './request';
 
 export type RendererEventHandler<TPayload = unknown> = (payload: TPayload) => void;
 

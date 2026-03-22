@@ -4,252 +4,155 @@
  * @author NoxFly
  */
 
-import 'reflect-metadata';
-import { getControllerMetadata } from 'src/decorators/controller.decorator';
-import { getGuardForController, getGuardForControllerAction, IGuard } from 'src/decorators/guards.decorator';
-import { Injectable } from 'src/decorators/injectable.decorator';
-import { AtomicHttpMethod, getRouteMetadata } from 'src/decorators/method.decorator';
-import { getMiddlewaresForController, getMiddlewaresForControllerAction, IMiddleware, NextFunction } from 'src/decorators/middleware.decorator';
-import { BadRequestException, MethodNotAllowedException, NotFoundException, ResponseException, UnauthorizedException } from 'src/exceptions';
-import { IBatchRequestItem, IBatchRequestPayload, IBatchResponsePayload, IResponse, Request } from 'src/request';
-import { InjectorExplorer } from 'src/DI/injector-explorer';
-import { Logger } from 'src/utils/logger';
-import { RadixTree } from 'src/utils/radix-tree';
-import { Type } from 'src/utils/types';
+import { getControllerMetadata } from './decorators/controller.decorator';
+import { Guard } from './decorators/guards.decorator';
+import { Injectable } from './decorators/injectable.decorator';
+import { getRouteMetadata, isAtomicHttpMethod } from './decorators/method.decorator';
+import { Middleware, NextFunction } from './decorators/middleware.decorator';
+import { InjectorExplorer } from './DI/injector-explorer';
+import {
+    BadRequestException,
+    NotFoundException,
+    ResponseException,
+    UnauthorizedException
+} from './exceptions';
+import { IBatchRequestItem, IBatchRequestPayload, IBatchResponsePayload, IResponse, Request } from './request';
+import { Logger } from './utils/logger';
+import { RadixTree } from './utils/radix-tree';
+import { Type } from './utils/types';
 
-/**
- * A lazy route entry maps a path prefix to a dynamic import function.
- * The module is loaded on the first request matching the prefix.
- */
 export interface ILazyRoute {
-    /** Path prefix (e.g. "auth", "printing"). Matched against the first segment(s) of the request path. */
-    path: string;
-    /** Dynamic import function returning the module file. */
-    loadModule: () => Promise<unknown>;
-}
-
-interface LazyRouteEntry {
-    loadModule: () => Promise<unknown>;
+    load: () => Promise<unknown>;
+    guards: Guard[];
+    middlewares: Middleware[];
     loading: Promise<void> | null;
     loaded: boolean;
 }
 
-const ATOMIC_HTTP_METHODS: ReadonlySet<AtomicHttpMethod> = new Set<AtomicHttpMethod>(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-
-function isAtomicHttpMethod(method: unknown): method is AtomicHttpMethod {
-    return typeof method === 'string' && ATOMIC_HTTP_METHODS.has(method as AtomicHttpMethod);
+interface LazyRouteEntry {
+    load: (() => Promise<unknown>) | null;
+    guards: Guard[];
+    middlewares: Middleware[];
+    loading: Promise<void> | null;
+    loaded: boolean;
 }
 
-/**
- * IRouteDefinition interface defines the structure of a route in the application.
- * It includes the HTTP method, path, controller class, handler method name,
- * guards, and middlewares associated with the route.
- */
 export interface IRouteDefinition {
     method: string;
     path: string;
-    controller: Type<any>;
+    controller: Type<unknown>;
     handler: string;
-    guards: Type<IGuard>[];
-    middlewares: Type<IMiddleware>[];
+    guards: Guard[];
+    middlewares: Middleware[];
 }
 
-/**
- * This type defines a function that represents an action in a controller.
- * It takes a Request and an IResponse as parameters and returns a value or a Promise.
- */
-export type ControllerAction = (request: Request, response: IResponse) => any;
+export type ControllerAction = (request: Request, response: IResponse) => unknown;
 
-
-/**
- * Router class is responsible for managing the application's routing.
- * It registers controllers, handles requests, and manages middlewares and guards.
- */
-@Injectable('singleton')
+@Injectable({ lifetime: 'singleton' })
 export class Router {
     private readonly routes = new RadixTree<IRouteDefinition>();
-    private readonly rootMiddlewares: Type<IMiddleware>[] = [];
+    private readonly rootMiddlewares: Middleware[] = [];
     private readonly lazyRoutes = new Map<string, LazyRouteEntry>();
 
-    /**
-     * Registers a controller class with the router.
-     * This method extracts the route metadata from the controller class and registers it in the routing tree.
-     * It also handles the guards and middlewares associated with the controller.
-     * @param controllerClass - The controller class to register.
-     */
-    public registerController(controllerClass: Type<unknown>): Router {
-        const controllerMeta = getControllerMetadata(controllerClass);
+    // -------------------------------------------------------------------------
+    // Registration
+    // -------------------------------------------------------------------------
 
-        const controllerGuards = getGuardForController(controllerClass.name);
-        const controllerMiddlewares = getMiddlewaresForController(controllerClass.name);
+    public registerController(
+        controllerClass: Type<unknown>,
+        pathPrefix: string,
+        routeGuards: Guard[] = [],
+        routeMiddlewares: Middleware[] = [],
+    ): this {
+        const meta = getControllerMetadata(controllerClass);
 
-        if(!controllerMeta)
-            throw new Error(`Missing @Controller decorator on ${controllerClass.name}`);
+        if (!meta) {
+            throw new Error(`[Noxus] Missing @Controller decorator on ${controllerClass.name}`);
+        }
 
-        const routeMetadata = getRouteMetadata(controllerClass);
+        const routeMeta = getRouteMetadata(controllerClass);
 
-        for(const def of routeMetadata) {
-            const fullPath = `${controllerMeta.path}/${def.path}`.replace(/\/+/g, '/');
+        for (const def of routeMeta) {
+            const fullPath = `${pathPrefix}/${def.path}`.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 
-            const routeGuards = getGuardForControllerAction(controllerClass.name, def.handler);
-            const routeMiddlewares = getMiddlewaresForControllerAction(controllerClass.name, def.handler);
-
-            const guards = new Set([...controllerGuards, ...routeGuards]);
-            const middlewares = new Set([...controllerMiddlewares, ...routeMiddlewares]);
+            // Route-level guards/middlewares from defineRoutes() + action-level ones
+            const guards      = [...new Set([...routeGuards,      ...def.guards])];
+            const middlewares = [...new Set([...routeMiddlewares,  ...def.middlewares])];
 
             const routeDef: IRouteDefinition = {
                 method: def.method,
                 path: fullPath,
                 controller: controllerClass,
                 handler: def.handler,
-                guards: [...guards],
-                middlewares: [...middlewares],
+                guards,
+                middlewares,
             };
 
             this.routes.insert(fullPath + '/' + def.method, routeDef);
 
-            const hasActionGuards = routeDef.guards.length > 0;
-
-            const actionGuardsInfo = hasActionGuards
-                ? '<' + routeDef.guards.map(g => g.name).join('|') + '>'
-                : '';
-
-            Logger.log(`Mapped {${routeDef.method} /${fullPath}}${actionGuardsInfo} route`);
+            const guardInfo = guards.length ? `<${guards.map(g => g.name).join('|')}>` : '';
+            Logger.log(`Mapped {${def.method} /${fullPath}}${guardInfo} route`);
         }
 
-        const hasCtrlGuards = controllerMeta.guards.length > 0;
-
-        const controllerGuardsInfo = hasCtrlGuards
-            ? '<' + controllerMeta.guards.map(g => g.name).join('|') + '>'
+        const ctrlGuardInfo = routeGuards.length
+            ? `<${routeGuards.map(g => g.name).join('|')}>`
             : '';
-
-        Logger.log(`Mapped ${controllerClass.name}${controllerGuardsInfo} controller's routes`);
+        Logger.log(`Mapped ${controllerClass.name}${ctrlGuardInfo} controller's routes`);
 
         return this;
     }
 
-    /**
-     * Registers a lazy route. The module behind this route prefix will only
-     * be imported (and its controllers/services registered in DI) the first
-     * time a request targets this prefix.
-     *
-     * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
-     * @param loadModule - A function that returns a dynamic import promise.
-     */
-    public registerLazyRoute(pathPrefix: string, loadModule: () => Promise<unknown>): Router {
+    public registerLazyRoute(
+        pathPrefix: string,
+        load: () => Promise<unknown>,
+        guards: Guard[] = [],
+        middlewares: Middleware[] = [],
+    ): this {
         const normalized = pathPrefix.replace(/^\/+|\/+$/g, '');
-        this.lazyRoutes.set(normalized, { loadModule, loading: null, loaded: false });
+        this.lazyRoutes.set(normalized, { load, guards, middlewares, loading: null, loaded: false });
         Logger.log(`Registered lazy route prefix {${normalized}}`);
         return this;
     }
 
-    /**
-     * Defines a middleware for the root of the application.
-     * This method allows you to register a middleware that will be applied to all requests
-     * to the application, regardless of the controller or action.
-     * @param middleware - The middleware class to register.
-     */
-    public defineRootMiddleware(middleware: Type<IMiddleware>): Router {
+    public defineRootMiddleware(middleware: Middleware): this {
         this.rootMiddlewares.push(middleware);
         return this;
     }
 
-    /**
-     * Shuts down the message channel for a specific sender ID.
-     * This method closes the IPC channel for the specified sender ID and
-     * removes it from the messagePorts map.
-     * @param channelSenderId - The ID of the sender channel to shut down.
-     */
-    public async handle(request: Request): Promise<IResponse> {
-        if(request.method === 'BATCH') {
-            return this.handleBatch(request);
-        }
+    // -------------------------------------------------------------------------
+    // Request handling
+    // -------------------------------------------------------------------------
 
-        return this.handleAtomic(request);
+    public async handle(request: Request): Promise<IResponse> {
+        return request.method === 'BATCH'
+            ? this.handleBatch(request)
+            : this.handleAtomic(request);
     }
 
     private async handleAtomic(request: Request): Promise<IResponse> {
         Logger.comment(`>     ${request.method} /${request.path}`);
-
         const t0 = performance.now();
 
-        const response: IResponse = {
-            requestId: request.id,
-            status: 200,
-            body: null,
-        };
-
-        let isCritical: boolean = false;
+        const response: IResponse = { requestId: request.id, status: 200, body: null };
+        let isCritical = false;
 
         try {
             const routeDef = await this.findRoute(request);
             await this.resolveController(request, response, routeDef);
 
-            if(response.status > 400) {
-                throw new ResponseException(response.status, response.error);
-            }
+            if (response.status >= 400) throw new ResponseException(response.status, response.error);
         }
-        catch(error: unknown) {
-            response.body = undefined;
-
-            if(error instanceof ResponseException) {
-                response.status = error.status;
-                response.error = error.message;
-                response.stack = error.stack;
-            }
-            else if(error instanceof Error) {
-                isCritical = true;
-                response.status = 500;
-                response.error = error.message || 'Internal Server Error';
-                response.stack = error.stack || 'No stack trace available';
-            }
-            else {
-                isCritical = true;
-                response.status = 500;
-                response.error = 'Unknown error occurred';
-                response.stack = 'No stack trace available';
-            }
+        catch (error) {
+            this.fillErrorResponse(response, error, (c) => { isCritical = c; });
         }
         finally {
-            const t1 = performance.now();
-
-            const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
-
-            if(response.status < 400) {
-                Logger.log(message);
-            }
-            else if(response.status < 500) {
-                Logger.warn(message);
-            }
-            else {
-                if(isCritical) {
-                    Logger.critical(message);
-                }
-                else {
-                    Logger.error(message);
-                }
-            }
-
-            if(response.error !== undefined) {
-                if(isCritical) {
-                    Logger.critical(response.error);
-                }
-                else {
-                    Logger.error(response.error);
-                }
-
-                if(response.stack !== undefined) {
-                    Logger.errorStack(response.stack);
-                }
-            }
-
+            this.logResponse(request, response, performance.now() - t0, isCritical);
             return response;
         }
     }
 
     private async handleBatch(request: Request): Promise<IResponse> {
         Logger.comment(`>     ${request.method} /${request.path}`);
-
         const t0 = performance.now();
 
         const response: IResponse<IBatchResponsePayload> = {
@@ -257,338 +160,194 @@ export class Router {
             status: 200,
             body: { responses: [] },
         };
-
-        let isCritical: boolean = false;
+        let isCritical = false;
 
         try {
             const payload = this.normalizeBatchPayload(request.body);
-
-            const batchPromises = payload.requests.map((item, index) => {
-                const subRequestId = item.requestId ?? `${request.id}:${index}`;
-                const atomicRequest = new Request(request.event, request.senderId, subRequestId, item.method, item.path, item.body);
-                return this.handleAtomic(atomicRequest);
-            });
-
-            response.body!.responses = await Promise.all(batchPromises);
+            response.body!.responses = await Promise.all(
+                payload.requests.map((item, i) => {
+                    const id = item.requestId ?? `${request.id}:${i}`;
+                    return this.handleAtomic(new Request(request.event, request.senderId, id, item.method, item.path, item.body));
+                }),
+            );
         }
-        catch(error: unknown) {
-            response.body = undefined;
-
-            if(error instanceof ResponseException) {
-                response.status = error.status;
-                response.error = error.message;
-                response.stack = error.stack;
-            }
-            else if(error instanceof Error) {
-                isCritical = true;
-                response.status = 500;
-                response.error = error.message || 'Internal Server Error';
-                response.stack = error.stack || 'No stack trace available';
-            }
-            else {
-                isCritical = true;
-                response.status = 500;
-                response.error = 'Unknown error occurred';
-                response.stack = 'No stack trace available';
-            }
+        catch (error) {
+            this.fillErrorResponse(response, error, (c) => { isCritical = c; });
         }
         finally {
-            const t1 = performance.now();
-
-            const message = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(t1 - t0)}ms${Logger.colors.initial}`;
-
-            if(response.status < 400) {
-                Logger.log(message);
-            }
-            else if(response.status < 500) {
-                Logger.warn(message);
-            }
-            else {
-                if(isCritical) {
-                    Logger.critical(message);
-                }
-                else {
-                    Logger.error(message);
-                }
-            }
-
-            if(response.error !== undefined) {
-                if(isCritical) {
-                    Logger.critical(response.error);
-                }
-                else {
-                    Logger.error(response.error);
-                }
-
-                if(response.stack !== undefined) {
-                    Logger.errorStack(response.stack);
-                }
-            }
-
+            this.logResponse(request, response, performance.now() - t0, isCritical);
             return response;
         }
     }
 
-    private normalizeBatchPayload(body: unknown): IBatchRequestPayload {
-        if(body === null || typeof body !== 'object') {
-            throw new BadRequestException('Batch payload must be an object containing a requests array.');
-        }
+    // -------------------------------------------------------------------------
+    // Route resolution
+    // -------------------------------------------------------------------------
 
-        const possiblePayload = body as Partial<IBatchRequestPayload>;
-        const { requests } = possiblePayload;
-
-        if(!Array.isArray(requests)) {
-            throw new BadRequestException('Batch payload must define a requests array.');
-        }
-
-        const normalizedRequests = requests.map((entry, index) => this.normalizeBatchItem(entry, index));
-
-        return { requests: normalizedRequests };
-    }
-
-    private normalizeBatchItem(entry: unknown, index: number): IBatchRequestItem {
-        if(entry === null || typeof entry !== 'object') {
-            throw new BadRequestException(`Batch request at index ${index} must be an object.`);
-        }
-
-        const { requestId, path, method, body } = entry as Partial<IBatchRequestItem> & { method?: unknown };
-
-        if(requestId !== undefined && typeof requestId !== 'string') {
-            throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
-        }
-
-        if(typeof path !== 'string' || path.length === 0) {
-            throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
-        }
-
-        if(typeof method !== 'string') {
-            throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
-        }
-
-        const normalizedMethod = method.toUpperCase();
-
-        if(!isAtomicHttpMethod(normalizedMethod)) {
-            throw new BadRequestException(`Batch request at index ${index} uses the unsupported method ${method}.`);
-        }
-
-        return {
-            requestId,
-            path,
-            method: normalizedMethod as AtomicHttpMethod,
-            body,
-        };
-    }
-
-    /**
-     * Finds the route definition for a given request.
-     * This method searches the routing tree for a matching route based on the request's path and method.
-     * If no matching route is found, it throws a NotFoundException.
-     * @param request - The Request object containing the method and path to search for.
-     * @returns The IRouteDefinition for the matched route.
-     */
-    /**
-     * Attempts to find a route definition for the given request.
-     * Returns undefined instead of throwing when the route is not found,
-     * so the caller can try lazy-loading first.
-     */
     private tryFindRoute(request: Request): IRouteDefinition | undefined {
-        const matchedRoutes = this.routes.search(request.path);
-
-        if(matchedRoutes?.node === undefined || matchedRoutes.node.children.length === 0) {
-            return undefined;
-        }
-
-        const routeDef = matchedRoutes.node.findExactChild(request.method);
-        return routeDef?.value;
+        const matched = this.routes.search(request.path);
+        if (!matched?.node || matched.node.children.length === 0) return undefined;
+        return matched.node.findExactChild(request.method)?.value;
     }
 
-    /**
-     * Finds the route definition for a given request.
-     * If no eagerly-registered route matches, attempts to load a lazy module
-     * whose prefix matches the request path, then retries.
-     */
     private async findRoute(request: Request): Promise<IRouteDefinition> {
-        // Fast path: route already registered
         const direct = this.tryFindRoute(request);
-        if(direct) return direct;
+        if (direct) return direct;
 
-        // Try lazy route loading
         await this.tryLoadLazyRoute(request.path);
 
-        // Retry after lazy load
         const afterLazy = this.tryFindRoute(request);
-        if(afterLazy) return afterLazy;
+        if (afterLazy) return afterLazy;
 
         throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
     }
 
-    /**
-     * Given a request path, checks whether a lazy route prefix matches
-     * and triggers the dynamic import if it hasn't been loaded yet.
-     */
     private async tryLoadLazyRoute(requestPath: string): Promise<void> {
         const firstSegment = requestPath.replace(/^\/+/, '').split('/')[0] ?? '';
 
-        // Check exact first segment, then try multi-segment prefixes
-        for(const [prefix, entry] of this.lazyRoutes) {
-            if(entry.loaded) continue;
-
-            const normalizedPath = requestPath.replace(/^\/+/, '');
-            if(normalizedPath === prefix || normalizedPath.startsWith(prefix + '/') || firstSegment === prefix) {
-                if(!entry.loading) {
-                    entry.loading = this.loadLazyModule(prefix, entry);
-                }
+        for (const [prefix, entry] of this.lazyRoutes) {
+            if (entry.loaded) continue;
+            const normalized = requestPath.replace(/^\/+/, '');
+            if (normalized === prefix || normalized.startsWith(prefix + '/') || firstSegment === prefix) {
+                if (!entry.loading) entry.loading = this.loadLazyModule(prefix, entry);
                 await entry.loading;
                 return;
             }
         }
     }
 
-    /**
-     * Dynamically imports a lazy module and registers its decorated classes
-     * (controllers, services) in the DI container using the two-phase strategy.
-     */
     private async loadLazyModule(prefix: string, entry: LazyRouteEntry): Promise<void> {
         const t0 = performance.now();
-
         InjectorExplorer.beginAccumulate();
-        await entry.loadModule();
-        InjectorExplorer.flushAccumulated();
+
+        await entry.load?.();
+
+        entry.loading = null;
+        entry.load = null;
+
+        InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
 
         entry.loaded = true;
 
-        const t1 = performance.now();
-        Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(t1 - t0)}ms`);
+        Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
     }
 
-    /**
-     * Resolves the controller for a given route definition.
-     * This method creates an instance of the controller class and prepares the request parameters.
-     * It also runs the request pipeline, which includes executing middlewares and guards.
-     * @param request - The Request object containing the request data.
-     * @param response - The IResponse object to populate with the response data.
-     * @param routeDef - The IRouteDefinition for the matched route.
-     * @return A Promise that resolves when the controller action has been executed.
-     * @throws UnauthorizedException if the request is not authorized by the guards.
-     */
+    // -------------------------------------------------------------------------
+    // Pipeline
+    // -------------------------------------------------------------------------
+
     private async resolveController(request: Request, response: IResponse, routeDef: IRouteDefinition): Promise<void> {
-        const controllerInstance = request.context.resolve(routeDef.controller);
-
+        const instance = request.context.resolve(routeDef.controller);
         Object.assign(request.params, this.extractParams(request.path, routeDef.path));
-
-        await this.runRequestPipeline(request, response, routeDef, controllerInstance);
+        await this.runPipeline(request, response, routeDef, instance);
     }
 
-    /**
-     * Runs the request pipeline for a given request.
-     * This method executes the middlewares and guards associated with the route,
-     * and finally calls the controller action.
-     * @param request - The Request object containing the request data.
-     * @param response - The IResponse object to populate with the response data.
-     * @param routeDef - The IRouteDefinition for the matched route.
-     * @param controllerInstance - The instance of the controller class.
-     * @return A Promise that resolves when the request pipeline has been executed.
-     * @throws ResponseException if the response status is not successful.
-     */
-    private async runRequestPipeline(request: Request, response: IResponse, routeDef: IRouteDefinition, controllerInstance: any): Promise<void> {
+    private async runPipeline(
+        request: Request,
+        response: IResponse,
+        routeDef: IRouteDefinition,
+        controllerInstance: unknown,
+    ): Promise<void> {
         const middlewares = [...new Set([...this.rootMiddlewares, ...routeDef.middlewares])];
-
-        const middlewareMaxIndex = middlewares.length - 1;
-        const guardsMaxIndex = middlewareMaxIndex + routeDef.guards.length;
-
+        const mwMax = middlewares.length - 1;
+        const guardMax = mwMax + routeDef.guards.length;
         let index = -1;
 
         const dispatch = async (i: number): Promise<void> => {
-            if(i <= index)
-                throw new Error("next() called multiple times");
-
+            if (i <= index) throw new Error('next() called multiple times');
             index = i;
 
-            // middlewares
-            if(i <= middlewareMaxIndex) {
-                const nextFn = dispatch.bind(null, i + 1);
-                await this.runMiddleware(request, response, nextFn, middlewares[i]!);
-
-                if(response.status >= 400) {
-                    throw new ResponseException(response.status, response.error);
-                }
-
+            if (i <= mwMax) {
+                await this.runMiddleware(request, response, dispatch.bind(null, i + 1), middlewares[i]!);
+                if (response.status >= 400) throw new ResponseException(response.status, response.error);
                 return;
             }
 
-            // guards
-            if(i <= guardsMaxIndex) {
-                const guardIndex = i - middlewares.length;
-                const guardType = routeDef.guards[guardIndex]!;
-                await this.runGuard(request, guardType);
+            if (i <= guardMax) {
+                await this.runGuard(request, routeDef.guards[i - middlewares.length]!);
                 await dispatch(i + 1);
                 return;
             }
 
-            // endpoint action
-            const action = controllerInstance[routeDef.handler] as ControllerAction;
+            const action = (controllerInstance as Record<string, ControllerAction>)[routeDef.handler]!;
             response.body = await action.call(controllerInstance, request, response);
-
-            // avoid parsing error on the renderer if the action just does treatment without returning anything
-            if(response.body === undefined) {
-                response.body = {};
-            }
+            if (response.body === undefined) response.body = {};
         };
 
         await dispatch(0);
     }
 
-    /**
-     * Runs a middleware function in the request pipeline.
-     * This method creates an instance of the middleware and invokes its `invoke` method,
-     * passing the request, response, and next function.
-     * @param request - The Request object containing the request data.
-     * @param response - The IResponse object to populate with the response data.
-     * @param next - The NextFunction to call to continue the middleware chain.
-     * @param middlewareType - The type of the middleware to run.
-     * @return A Promise that resolves when the middleware has been executed.
-     */
-    private async runMiddleware(request: Request, response: IResponse, next: NextFunction, middlewareType: Type<IMiddleware>): Promise<void> {
-        const middleware = request.context.resolve(middlewareType);
-        await middleware.invoke(request, response, next);
+    private async runMiddleware(request: Request, response: IResponse, next: NextFunction, middleware: Middleware): Promise<void> {
+        await middleware(request, response, next);
     }
 
-    /**
-     * Runs a guard to check if the request is authorized.
-     * This method creates an instance of the guard and calls its `canActivate` method.
-     * If the guard returns false, it throws an UnauthorizedException.
-     * @param request - The Request object containing the request data.
-     * @param guardType - The type of the guard to run.
-     * @return A Promise that resolves if the guard allows the request, or throws an UnauthorizedException if not.
-     * @throws UnauthorizedException if the guard denies access to the request.
-     */
-    private async runGuard(request: Request, guardType: Type<IGuard>): Promise<void> {
-        const guard = request.context.resolve(guardType);
-        const allowed = await guard.canActivate(request);
-
-        if(!allowed)
+    private async runGuard(request: Request, guard: Guard): Promise<void> {
+        if (!await guard(request)) {
             throw new UnauthorizedException(`Unauthorized for ${request.method} ${request.path}`);
+        }
     }
 
-    /**
-     * Extracts parameters from the actual request path based on the template path.
-     * This method splits the actual path and the template path into segments,
-     * then maps the segments to parameters based on the template.
-     * @param actual - The actual request path.
-     * @param template - The template path to extract parameters from.
-     * @returns An object containing the extracted parameters.
-     */
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+
     private extractParams(actual: string, template: string): Record<string, string> {
         const aParts = actual.split('/');
         const tParts = template.split('/');
         const params: Record<string, string> = {};
-
         tParts.forEach((part, i) => {
-            if(part.startsWith(':')) {
-                params[part.slice(1)] = aParts[i] ?? '';
-            }
+            if (part.startsWith(':')) params[part.slice(1)] = aParts[i] ?? '';
         });
-
         return params;
+    }
+
+    private normalizeBatchPayload(body: unknown): IBatchRequestPayload {
+        if (body === null || typeof body !== 'object') {
+            throw new BadRequestException('Batch payload must be an object containing a requests array.');
+        }
+        const { requests } = body as Partial<IBatchRequestPayload>;
+        if (!Array.isArray(requests)) throw new BadRequestException('Batch payload must define a requests array.');
+        return { requests: requests.map((e, i) => this.normalizeBatchItem(e, i)) };
+    }
+
+    private normalizeBatchItem(entry: unknown, index: number): IBatchRequestItem {
+        if (entry === null || typeof entry !== 'object') throw new BadRequestException(`Batch request at index ${index} must be an object.`);
+        const { requestId, path, method, body } = entry as Partial<IBatchRequestItem> & { method?: unknown };
+        if (requestId !== undefined && typeof requestId !== 'string') throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
+        if (typeof path !== 'string' || !path.length) throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
+        if (typeof method !== 'string') throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
+        const normalized = method.toUpperCase();
+        if (!isAtomicHttpMethod(normalized)) throw new BadRequestException(`Batch request at index ${index} uses unsupported method ${method}.`);
+        return { requestId, path, method: normalized, body };
+    }
+
+    private fillErrorResponse(response: IResponse, error: unknown, setCritical: (v: boolean) => void): void {
+        response.body = undefined;
+        if (error instanceof ResponseException) {
+            response.status = error.status;
+            response.error = error.message;
+            response.stack = error.stack;
+        } else if (error instanceof Error) {
+            setCritical(true);
+            response.status = 500;
+            response.error = error.message || 'Internal Server Error';
+            response.stack = error.stack;
+        } else {
+            setCritical(true);
+            response.status = 500;
+            response.error = 'Unknown error occurred';
+        }
+    }
+
+    private logResponse(request: Request, response: IResponse, ms: number, isCritical: boolean): void {
+        const msg = `< ${response.status} ${request.method} /${request.path} ${Logger.colors.yellow}${Math.round(ms)}ms${Logger.colors.initial}`;
+        if (response.status < 400) Logger.log(msg);
+        else if (response.status < 500) Logger.warn(msg);
+        else isCritical ? Logger.critical(msg) : Logger.error(msg);
+
+        if (response.error) {
+            isCritical ? Logger.critical(response.error) : Logger.error(response.error);
+            if (response.stack) Logger.errorStack(response.stack);
+        }
     }
 }

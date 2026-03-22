@@ -4,72 +4,44 @@
  * @author NoxFly
  */
 var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
-// src/request.ts
-import "reflect-metadata";
-
-// src/DI/app-injector.ts
-import "reflect-metadata";
-
-// src/decorators/inject.decorator.ts
-import "reflect-metadata";
-var INJECT_METADATA_KEY = "custom:inject";
-
-// src/exceptions.ts
-var _ResponseException = class _ResponseException extends Error {
-  constructor(statusOrMessage, message) {
-    let statusCode;
-    if (typeof statusOrMessage === "number") {
-      statusCode = statusOrMessage;
-    } else if (typeof statusOrMessage === "string") {
-      message = statusOrMessage;
-    }
-    super(message ?? "");
-    __publicField(this, "status", 0);
-    if (statusCode !== void 0) {
-      this.status = statusCode;
-    }
-    this.name = this.constructor.name.replace(/([A-Z])/g, " $1");
-  }
-};
-__name(_ResponseException, "ResponseException");
-var ResponseException = _ResponseException;
-var _InternalServerException = class _InternalServerException extends ResponseException {
-  constructor() {
-    super(...arguments);
-    __publicField(this, "status", 500);
-  }
-};
-__name(_InternalServerException, "InternalServerException");
-var InternalServerException = _InternalServerException;
 
 // src/utils/forward-ref.ts
 var _ForwardReference = class _ForwardReference {
   constructor(forwardRefFn) {
-    __publicField(this, "forwardRefFn");
     this.forwardRefFn = forwardRefFn;
   }
 };
 __name(_ForwardReference, "ForwardReference");
 var ForwardReference = _ForwardReference;
 
+// src/DI/token.ts
+var _Token = class _Token {
+  constructor(target) {
+    this.target = target;
+    this.description = typeof target === "string" ? target : target.name;
+  }
+  toString() {
+    return `Token(${this.description})`;
+  }
+};
+__name(_Token, "Token");
+var Token = _Token;
+
 // src/DI/app-injector.ts
+function keyOf(k) {
+  return k;
+}
+__name(keyOf, "keyOf");
 var _AppInjector = class _AppInjector {
   constructor(name = null) {
-    __publicField(this, "name");
-    __publicField(this, "bindings", /* @__PURE__ */ new Map());
-    __publicField(this, "singletons", /* @__PURE__ */ new Map());
-    __publicField(this, "scoped", /* @__PURE__ */ new Map());
     this.name = name;
+    this.bindings = /* @__PURE__ */ new Map();
+    this.singletons = /* @__PURE__ */ new Map();
+    this.scoped = /* @__PURE__ */ new Map();
   }
   /**
-   * Typically used to create a dependency injection scope
-   * at the "scope" level (i.e., per-request lifetime).
-   *
-   * SHOULD NOT BE USED by anything else than the framework itself.
+   * Creates a child scope for per-request lifetime resolution.
    */
   createScope() {
     const scope = new _AppInjector();
@@ -78,70 +50,73 @@ var _AppInjector = class _AppInjector {
     return scope;
   }
   /**
-   * Called when resolving a dependency,
-   * i.e., retrieving the instance of a given class.
+   * Registers a binding explicitly.
    */
-  resolve(target) {
-    if (target instanceof ForwardReference) {
-      return new Proxy({}, {
-        get: /* @__PURE__ */ __name((obj, prop, receiver) => {
-          const realType = target.forwardRefFn();
-          const instance = this.resolve(realType);
-          const value = Reflect.get(instance, prop, receiver);
-          return typeof value === "function" ? value.bind(instance) : value;
-        }, "get"),
-        set: /* @__PURE__ */ __name((obj, prop, value, receiver) => {
-          const realType = target.forwardRefFn();
-          const instance = this.resolve(realType);
-          return Reflect.set(instance, prop, value, receiver);
-        }, "set"),
-        getPrototypeOf: /* @__PURE__ */ __name(() => {
-          const realType = target.forwardRefFn();
-          return realType.prototype;
-        }, "getPrototypeOf")
-      });
-    }
-    const binding = this.bindings.get(target);
-    if (!binding) {
-      if (target === void 0) {
-        throw new InternalServerException("Failed to resolve a dependency injection : Undefined target type.\nThis might be caused by a circular dependency.");
-      }
-      const name = target.name || "unknown";
-      throw new InternalServerException(`Failed to resolve a dependency injection : No binding for type ${name}.
-Did you forget to use @Injectable() decorator ?`);
-    }
-    switch (binding.lifetime) {
-      case "transient":
-        return this.instantiate(binding.implementation);
-      case "scope": {
-        if (this.scoped.has(target)) {
-          return this.scoped.get(target);
-        }
-        const instance = this.instantiate(binding.implementation);
-        this.scoped.set(target, instance);
-        return instance;
-      }
-      case "singleton": {
-        if (binding.instance === void 0 && this.name === "root") {
-          binding.instance = this.instantiate(binding.implementation);
-          this.singletons.set(target, binding.instance);
-        }
-        return binding.instance;
-      }
+  register(key, implementation, lifetime, deps = []) {
+    const k = keyOf(key);
+    if (!this.bindings.has(k)) {
+      this.bindings.set(k, { lifetime, implementation, deps });
     }
   }
   /**
-   * Instantiates a class, resolving its dependencies.
+   * Resolves a dependency by token or class reference.
    */
-  instantiate(target) {
-    const paramTypes = Reflect.getMetadata("design:paramtypes", target) || [];
-    const injectParams = Reflect.getMetadata(INJECT_METADATA_KEY, target) || [];
-    const params = paramTypes.map((paramType, index) => {
-      const overrideToken = injectParams[index];
-      const actualToken = overrideToken !== void 0 ? overrideToken : paramType;
-      return this.resolve(actualToken);
+  resolve(target) {
+    if (target instanceof ForwardReference) {
+      return this._resolveForwardRef(target);
+    }
+    const k = keyOf(target);
+    const binding = this.bindings.get(k);
+    if (!binding) {
+      const name = target instanceof Token ? target.description : target.name ?? "unknown";
+      throw new Error(
+        `[Noxus DI] No binding found for "${name}".
+Did you forget to declare it in @Injectable({ deps }) or in bootstrapApplication({ singletons })?`
+      );
+    }
+    switch (binding.lifetime) {
+      case "transient":
+        return this._instantiate(binding);
+      case "scope": {
+        if (this.scoped.has(k)) return this.scoped.get(k);
+        const inst = this._instantiate(binding);
+        this.scoped.set(k, inst);
+        return inst;
+      }
+      case "singleton": {
+        if (this.singletons.has(k)) return this.singletons.get(k);
+        const inst = this._instantiate(binding);
+        this.singletons.set(k, inst);
+        if (binding.instance === void 0) {
+          binding.instance = inst;
+        }
+        return inst;
+      }
+    }
+  }
+  // -------------------------------------------------------------------------
+  _resolveForwardRef(ref) {
+    return new Proxy({}, {
+      get: /* @__PURE__ */ __name((_obj, prop, receiver) => {
+        const realType = ref.forwardRefFn();
+        const instance = this.resolve(realType);
+        const value = Reflect.get(instance, prop, receiver);
+        return typeof value === "function" ? value.bind(instance) : value;
+      }, "get"),
+      set: /* @__PURE__ */ __name((_obj, prop, value, receiver) => {
+        const realType = ref.forwardRefFn();
+        const instance = this.resolve(realType);
+        return Reflect.set(instance, prop, value, receiver);
+      }, "set"),
+      getPrototypeOf: /* @__PURE__ */ __name(() => {
+        const realType = ref.forwardRefFn();
+        return realType.prototype;
+      }, "getPrototypeOf")
     });
-    return new target(...params);
+  }
+  _instantiate(binding) {
+    const resolvedDeps = binding.deps.map((dep) => this.resolve(dep));
+    return new binding.implementation(...resolvedDeps);
   }
 };
 __name(_AppInjector, "AppInjector");
@@ -151,20 +126,14 @@ var RootInjector = new AppInjector("root");
 // src/request.ts
 var _Request = class _Request {
   constructor(event, senderId, id, method, path, body) {
-    __publicField(this, "event");
-    __publicField(this, "senderId");
-    __publicField(this, "id");
-    __publicField(this, "method");
-    __publicField(this, "path");
-    __publicField(this, "body");
-    __publicField(this, "context", RootInjector.createScope());
-    __publicField(this, "params", {});
     this.event = event;
     this.senderId = senderId;
     this.id = id;
     this.method = method;
     this.path = path;
     this.body = body;
+    this.context = RootInjector.createScope();
+    this.params = {};
     this.path = path.replace(/^\/|\/$/g, "");
   }
 };
@@ -195,7 +164,13 @@ var DEFAULT_INIT_EVENT = "init-port";
 var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
 var DEFAULT_RESPONSE_CHANNEL = "port";
 function exposeNoxusBridge(options = {}) {
-  const { exposeAs = DEFAULT_EXPOSE_NAME, initMessageType = DEFAULT_INIT_EVENT, requestChannel = DEFAULT_REQUEST_CHANNEL, responseChannel = DEFAULT_RESPONSE_CHANNEL, targetWindow = window } = options;
+  const {
+    exposeAs = DEFAULT_EXPOSE_NAME,
+    initMessageType = DEFAULT_INIT_EVENT,
+    requestChannel = DEFAULT_REQUEST_CHANNEL,
+    responseChannel = DEFAULT_RESPONSE_CHANNEL,
+    targetWindow = window
+  } = options;
   const api = {
     requestPort: /* @__PURE__ */ __name(() => {
       ipcRenderer.send(requestChannel);
@@ -212,10 +187,14 @@ function exposeNoxusBridge(options = {}) {
             console.error("[Noxus] Failed to start MessagePort.", error);
           }
         }
-        targetWindow.postMessage({
-          type: initMessageType,
-          senderId: message?.senderId
-        }, "*", ports);
+        targetWindow.postMessage(
+          {
+            type: initMessageType,
+            senderId: message?.senderId
+          },
+          "*",
+          ports
+        );
       });
     }, "requestPort")
   };
@@ -227,7 +206,7 @@ __name(exposeNoxusBridge, "exposeNoxusBridge");
 // src/renderer-events.ts
 var _RendererEventRegistry = class _RendererEventRegistry {
   constructor() {
-    __publicField(this, "listeners", /* @__PURE__ */ new Map());
+    this.listeners = /* @__PURE__ */ new Map();
   }
   /**
    *
@@ -306,10 +285,7 @@ var RendererEventRegistry = _RendererEventRegistry;
 
 // src/renderer-client.ts
 var DEFAULT_INIT_EVENT2 = "init-port";
-var DEFAULT_BRIDGE_NAMES = [
-  "noxus",
-  "ipcRenderer"
-];
+var DEFAULT_BRIDGE_NAMES = ["noxus", "ipcRenderer"];
 function defaultRequestId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -320,7 +296,8 @@ __name(defaultRequestId, "defaultRequestId");
 function normalizeBridgeNames(preferred) {
   const names = [];
   const add = /* @__PURE__ */ __name((name) => {
-    if (!name) return;
+    if (!name)
+      return;
     if (!names.includes(name)) {
       names.push(name);
     }
@@ -355,20 +332,10 @@ function resolveBridgeFromWindow(windowRef, preferred) {
 __name(resolveBridgeFromWindow, "resolveBridgeFromWindow");
 var _NoxRendererClient = class _NoxRendererClient {
   constructor(options = {}) {
-    __publicField(this, "events", new RendererEventRegistry());
-    __publicField(this, "pendingRequests", /* @__PURE__ */ new Map());
-    __publicField(this, "requestPort");
-    __publicField(this, "socketPort");
-    __publicField(this, "senderId");
-    __publicField(this, "bridge");
-    __publicField(this, "initMessageType");
-    __publicField(this, "windowRef");
-    __publicField(this, "generateRequestId");
-    __publicField(this, "isReady", false);
-    __publicField(this, "setupPromise");
-    __publicField(this, "setupResolve");
-    __publicField(this, "setupReject");
-    __publicField(this, "onWindowMessage", /* @__PURE__ */ __name((event) => {
+    this.events = new RendererEventRegistry();
+    this.pendingRequests = /* @__PURE__ */ new Map();
+    this.isReady = false;
+    this.onWindowMessage = /* @__PURE__ */ __name((event) => {
       if (event.data?.type !== this.initMessageType) {
         return;
       }
@@ -395,14 +362,14 @@ var _NoxRendererClient = class _NoxRendererClient {
       this.isReady = true;
       this.setupResolve?.();
       this.resetSetupState(true);
-    }, "onWindowMessage"));
-    __publicField(this, "onSocketMessage", /* @__PURE__ */ __name((event) => {
+    }, "onWindowMessage");
+    this.onSocketMessage = /* @__PURE__ */ __name((event) => {
       if (this.events.tryDispatchFromMessageEvent(event)) {
         return;
       }
       console.warn("[Noxus] Received a socket message that is not a renderer event payload.", event.data);
-    }, "onSocketMessage"));
-    __publicField(this, "onRequestMessage", /* @__PURE__ */ __name((event) => {
+    }, "onSocketMessage");
+    this.onRequestMessage = /* @__PURE__ */ __name((event) => {
       if (this.events.tryDispatchFromMessageEvent(event)) {
         return;
       }
@@ -423,7 +390,7 @@ var _NoxRendererClient = class _NoxRendererClient {
         return;
       }
       pending.resolve(response.body);
-    }, "onRequestMessage"));
+    }, "onRequestMessage");
     this.windowRef = options.windowRef ?? window;
     const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
     this.bridge = resolvedBridge ?? null;
@@ -562,5 +529,12 @@ export {
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
+ */
+/**
+ * @copyright 2025 NoxFly
+ * @license MIT
+ * @author NoxFly
+ *
+ * Entry point for renderer process and preload consumers.
  */
 //# sourceMappingURL=renderer.mjs.map

@@ -2,6 +2,8 @@
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
+ *
+ * Entry point for renderer process and preload consumers.
  */
 
 export * from './request';

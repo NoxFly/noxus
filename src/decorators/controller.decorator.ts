@@ -4,44 +4,55 @@
  * @author NoxFly
  */
 
-import { getGuardForController, IGuard } from "src/decorators/guards.decorator";
-import { Injectable } from "src/decorators/injectable.decorator";
-import { Type } from "src/utils/types";
+import { InjectorExplorer } from '../DI/injector-explorer';
+import { TokenKey } from '../DI/token';
+import { Type } from '../utils/types';
 
-/**
- * The configuration that waits a controller's decorator.
- */
-export interface IControllerMetadata {
-    path: string;
-    guards: Type<IGuard>[];
+export interface ControllerOptions {
+    /**
+     * Explicit constructor dependencies.
+     */
+    deps?: ReadonlyArray<TokenKey>;
 }
 
+export interface IControllerMetadata {
+    deps: ReadonlyArray<TokenKey>;
+}
+
+const controllerMetaMap = new WeakMap<object, IControllerMetadata>();
+
 /**
- * Controller decorator is used to define a controller in the application.
- * It is a kind of node in the routing tree, that can contains routes and middlewares.
+ * Marks a class as a Noxus controller.
+ * Controllers are always scope-scoped injectables.
+ * The route prefix and guards/middlewares are declared in defineRoutes(), not here.
  *
- * @param path - The path for the controller.
+ * @example
+ * @Controller({ deps: [UserService] })
+ * export class UserController {
+ *   constructor(private svc: UserService) {}
+ *
+ *   @Get('byId/:userId')
+ *   getUserById(req: Request) { ... }
+ * }
  */
-export function Controller(path: string): ClassDecorator {
+export function Controller(options: ControllerOptions = {}): ClassDecorator {
     return (target) => {
-        const data: IControllerMetadata = {
-            path,
-            guards: getGuardForController(target.name)
+        const meta: IControllerMetadata = {
+            deps: options.deps ?? [],
         };
 
-        Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
-        Injectable('scope')(target);
+        controllerMetaMap.set(target, meta);
+
+        InjectorExplorer.enqueue({
+            key: target as unknown as Type<unknown>,
+            implementation: target as unknown as Type<unknown>,
+            lifetime: 'scope',
+            deps: options.deps ?? [],
+            isController: true,
+        });
     };
 }
 
-/**
- * Gets the controller metadata for a given target class.
- * This metadata includes the path and guards defined by the @Controller decorator.
- * @param target - The target class to get the controller metadata from.
- * @returns The controller metadata if it exists, otherwise undefined.
- */
-export function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined {
-    return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
+export function getControllerMetadata(target: object): IControllerMetadata | undefined {
+    return controllerMetaMap.get(target);
 }
-
-export const CONTROLLER_METADATA_KEY = Symbol('CONTROLLER_METADATA_KEY');

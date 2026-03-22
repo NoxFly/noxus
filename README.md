@@ -1,508 +1,570 @@
-# ⚡ Noxus — The NestJS-Inspired Framework Built for Electron
+# @noxfly/noxus
 
-Noxus brings the elegance and power of NestJS-like architecture to Electron applications — but with a purpose-built design for IPC and MessagePort communication instead of HTTP.
+Lightweight IPC framework for Electron, inspired by NestJS and Angular. It simulates HTTP-like requests between the renderer and the main process via `MessageChannel` / `MessagePort`, with routing, DI, guards, middlewares, and lazy-loading.
 
-While NestJS is an excellent framework for building web servers, it is not suited for Electron environments where communication between the main process and the renderer is critical.
+No dependency on `reflect-metadata` or `emitDecoratorMetadata`.
 
-Transferring data between these using a local server and using HTTP request would be a waste of resources for the user's target device.
-
-Noxus fills that gap.
-
-✅ Use of decorators
-
-✅ Use of dependency injection, with lifetimes management (singleton, scope, transient)
-
-✅ Modular architecture with the use of modules, defining a map of controllers and services
-
-✅ Automatic and performant controller and route registration with path and method mapping
-
-✅ A true request/response model built on top of MessagePort to look like HTTP requests
-
-✅ Custom exception handling and unified error responses
-
-✅ Decorator-based guard system for route and controller authorization
-
-✅ Scoped dependency injection per request context
-
-✅ Setup the electron application and communication with your renderer easily and with flexibility
-
-✅ TypeScript-first with full type safety and metadata reflection
-
-✅ Pluggable logging with color-coded output for different log levels
-
-<sub>* If you see any issue and you'd like to enhance this framework, feel free to open an issue, fork and do a pull request.</sub>
+---
 
 ## Installation
 
-Install the package in your main process application, and in your renderer as well :
-
-```sh
-npm i @noxfly/noxus
+```bash
+npm install @noxfly/noxus
 ```
 
-> ⚠️ The default entry (`@noxfly/noxus`) only exposes renderer-friendly helpers and types. Import Electron main-process APIs from `@noxfly/noxus/main`.
-
-## Basic use
-
-When employing "main", we consider this is the electron side of your application.
-
-When employing "renderer", this is the separated renderer side of your application.
-
-However, you can feel free to keep both merged, this won't change anything, but for further examples, this will be done to show you where the code should go.
-
-### Setup Main Process side
-
-```ts
-// main/index.ts
-
-import { bootstrapApplication } from '@noxfly/noxus/main';
-import { AppModule } from './modules/app.module.ts';
-import { Application } from './modules/app.service.ts';
-
-async function main(): Promise<void> {
-    const noxApp = await bootstrapApplication(AppModule);
-
-    noxApp.configure(Application);
-
-    noxApp.start();
-}
-
-main();
-```
-
-> ℹ️ Note that you have to specify which service you'd like to see as your application root's service, so the framework can interact with it and setup things on it.
-
-```ts
-// main/modules/app.service.ts
-
-import { IApp, Injectable, Logger } from '@noxfly/noxus/main';
-
-@Injectable('singleton')
-export class Application implements IApp {
-    constructor(
-        private readonly windowManager: WindowManager, // An Injectable too
-    ) {}
-
-    // automatically called by the bootstrapApplication function
-    // once it is all setup
-    public async onReady(): Promise<void> {
-        Logger.info("Application's ready");
-        this.windowManager.createMain(); // Your custom logic here to create a window
-    }
+In your `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": false
+  }
 }
 ```
 
-```ts
-// main/modules/app.module.ts
+---
 
-import { Module } from '@noxfly/noxus/main';
+## Concepts
 
-@Module({
-    imports: [UsersModule], // import modules to be found here
-    providers: [], // define services that should be found here
-    controllers: [], // define controllers that this module has to create a route node
-})
-export class AppModule {}
-```
+| Concept                  | Role                                                  |
+| ------------------------ | ----------------------------------------------------- |
+| **Controller**           | Handles a set of IPC routes under a path prefix       |
+| **Injectable**           | Service injectable into other services or controllers |
+| **Guard**                | Protects a route or controller (authorization)        |
+| **Middleware**           | Runs before guards and the handler                    |
+| **Token**                | Explicit identifier for non-class dependencies        |
+| **WindowManager**        | Singleton service for managing Electron windows       |
+| **bootstrapApplication** | Single entry point of the application                 |
 
-> ℹ️ Note that we do not register Application service in it because it already has been registered when bootstraping the application.
+---
 
-```ts
-// main/modules/users/users.module.ts
+## Quick start
 
-import { Module } from '@noxfly/noxus/main';
-
-@Module({
-    providers: [UsersService],
-    controllers: [UsersController],
-})
-export class UsersModule {}
-```
+### 1. Create a service
 
 ```ts
-// main/modules/users/users.service.ts
-
+// services/user.service.ts
 import { Injectable } from '@noxfly/noxus/main';
 
-@Injectable()
-export class UsersService {
-    public async findAll(): Promise<User[]> {
-        // ...
+@Injectable({ lifetime: 'singleton' })
+export class UserService {
+    private users = [{ id: 1, name: 'Alice' }];
+
+    findAll() {
+        return this.users;
     }
 
-    public async findOneById(id: string): Promise<User> {
-        // ...
-    }
-}
-```
-
-> ℹ️ You can specify the lifetime of an injectable passing a value in the decorator, between `singleton`, `scope` or `transient` (default to `scope`).
-
-```ts
-// main/modules/users/users.controller.ts
-
-import { Controller, Get } from '@noxfly/noxus/main';
-import { UsersService } from './users.service.ts';
-
-@Controller('users')
-export class UsersController {
-    constructor(
-        private readonly usersService: UsersService,
-    ) {}
-
-    @Get('all')
-    public getAll(): Promise<User[]> {
-        return await this.usersService.findAll();
-    }
-
-    @Get('profile/:id')
-    @Authorize(AuthGuard)
-    public getProfile(IRequest request, IResponse response): Promise<User | undefined> {
-        return await this.usersService.findOneById(request.params.id);
+    findById(id: number) {
+        return this.users.find(u => u.id === id);
     }
 }
 ```
 
-Further upgrades might include new decorators like `@Param()`, `@Body()` etc... like Nest.js offers.
+### 2. Create a controller
 
 ```ts
-// main/guards/auth.guard.ts
+// controllers/user.controller.ts
+import { Controller, Get, Post, Request } from '@noxfly/noxus/main';
+import { UserService } from '../services/user.service';
 
-import { IGuard, Injectable, MaybeAsync, Request } from '@noxfly/noxus/main';
+@Controller({ path: 'users', deps: [UserService] })
+export class UserController {
+    constructor(private svc: UserService) {}
 
-@Injectable()
-export class AuthGuard implements IGuard {
-    constructor(
-        private readonly authService: AuthService
-    ) {}
+    @Get('list')
+    list(req: Request) {
+        return this.svc.findAll();
+    }
 
-    public async canActivate(IRequest request): MaybeAsync<boolean> {
-        return this.authService.isAuthenticated();
+    @Get(':id')
+    getOne(req: Request) {
+        const id = parseInt(req.params['id']!);
+        return this.svc.findById(id);
+    }
+
+    @Post('create')
+    create(req: Request) {
+        return { created: true, body: req.body };
     }
 }
 ```
 
-Here is the output (not with that exact same example) when running the main process :
-
-![Startup image](./images/screenshot-startup.png)
-
-
-### Setup Preload
-
-We need some configuration on the preload so the main process can give the renderer a port (MessagePort) to communicate with. Everytime this is requested, a new channel is created, an d the previous is closed.
+### 3. Create the application service
 
 ```ts
-// main/preload.ts
+// app.service.ts
+import { IApp, Injectable, WindowManager } from '@noxfly/noxus/main';
+import path from 'path';
 
-import { exposeNoxusBridge } from '@noxfly/noxus';
+@Injectable({ lifetime: 'singleton', deps: [WindowManager] })
+export class AppService implements IApp {
+    constructor(private wm: WindowManager) {}
 
-exposeNoxusBridge();
-```
+    async onReady() {
+        const win = await this.wm.createSplash({
+            webPreferences: {
+                preload: path.join(__dirname, 'preload.js'),
+            },
+        });
 
-The helper uses `ipcRenderer.send('gimme-my-port')`, waits for the `'port'` response, starts both transferred `MessagePort`s, and forwards them to the renderer with `window.postMessage({ type: 'init-port', ... }, '*', [requestPort, socketPort])`. If you need to customise any channel names or the exposed property, pass `exposeNoxusBridge({ exposeAs: 'customNoxus', requestChannel: 'my-port', responseChannel: 'my-port-ready', initMessageType: 'custom-init' })`.
-
-> ⚠️ As the Electron documentation warns, never expose the full `ipcRenderer` object. The helper only reveals a minimal `{ requestPort }` surface under `window.noxus` by default.
-
-
-### Setup Renderer
-
-Noxus ships with a `NoxRendererClient` helper that performs the renderer bootstrap: it asks the preload bridge for a port, expects two transferable `MessagePort`s (index `0` for request/response and index `1` for socket pushes), wires both, and exposes a promise-based `request`/`batch` API plus the `RendererEventRegistry` instance.
-
-By default it calls `window.noxus.requestPort()`—the value registered by `exposeNoxusBridge()`—but you can pass a custom bridge through the constructor options if needed.
-
-Call `await client.setup()` early in your renderer startup (for example inside the first Angular service that needs IPC). Once the promise resolves, `client.request(...)` automatically includes the negotiated `senderId`, and socket events are routed through `client.events`.
-
-```ts
-// renderer/services/noxus.service.ts
-
-import { Injectable } from '@angular/core';
-import { from, Observable } from 'rxjs';
-import {
-    IBatchRequestItem,
-    IBatchResponsePayload,
-    IRequest,
-    NoxRendererClient,
-} from '@noxfly/noxus';
-
-@Injectable({ providedIn: 'root' })
-export class NoxusService extends NoxRendererClient {
-    public async init(): Promise<void> {
-        await this.setup();
+        win.loadFile('index.html');
     }
 
-    public request$<T, U = unknown>(request: Omit<IRequest<U>, 'requestId' | 'senderId'>): Observable<T> {
-        return from(this.request<T, U>(request));
+    async onActivated() {
+        if (this.wm.count === 0) await this.onReady();
     }
 
-    public batch$<T = IBatchResponsePayload>(requests: Omit<IBatchRequestItem<unknown>, 'requestId'>[]): Observable<T> {
-        return from(this.batch(requests) as Promise<T>);
+    async dispose() {
+        // cleanup on app close
     }
 }
+```
 
-// Somewhere during app bootstrap
-await noxusService.init();
+### 4. Bootstrap the application
 
-// Subscribe to push notifications
-const subscription = noxusService.events.subscribe('users.updated', (payload) => {
-    console.log('Users updated:', payload);
+```ts
+// main.ts
+import { bootstrapApplication } from '@noxfly/noxus/main';
+import { AppService } from './app.service';
+
+const noxApp = await bootstrapApplication();
+
+noxApp
+    .configure(AppService)
+    .lazy('users',  () => import('./controllers/user.controller.js'))
+    .lazy('orders', () => import('./controllers/order.controller.js'))
+    .start();
+```
+
+---
+
+## Dependency Injection
+
+### `@Injectable`
+
+```ts
+@Injectable({ lifetime: 'singleton', deps: [RepoA, RepoB] })
+class MyService {
+    constructor(private a: RepoA, private b: RepoB) {}
+}
+```
+
+| Option     | Type                                    | Default   | Description                        |
+| ---------- | --------------------------------------- | --------- | ---------------------------------- |
+| `lifetime` | `'singleton' \| 'scope' \| 'transient'` | `'scope'` | Instance lifetime                  |
+| `deps`     | `TokenKey[]`                            | `[]`      | Constructor dependencies, in order |
+
+**Lifetimes:**
+- `singleton` — one instance for the entire lifetime of the app
+- `scope` — one instance per IPC request
+- `transient` — a new instance on every resolution
+
+### `token()` — Non-class dependencies
+
+To inject values that are not classes (strings, interfaces, config objects):
+
+```ts
+// tokens.ts
+import { token } from '@noxfly/noxus/main';
+
+export const DB_URL     = token<string>('DB_URL');
+export const APP_CONFIG = token<AppConfig>('APP_CONFIG');
+```
+
+```ts
+// Declaring the dependency
+@Injectable({ deps: [DB_URL, APP_CONFIG] })
+class DbService {
+    constructor(private url: string, private config: AppConfig) {}
+}
+
+// Providing the value in bootstrapApplication
+bootstrapApplication({
+    singletons: [
+        { token: DB_URL,     useValue: process.env.DATABASE_URL! },
+        { token: APP_CONFIG, useValue: { debug: true } },
+    ],
 });
 ```
 
-If you need a custom bridge (for example a different preload shape), pass it via the constructor: `super({ bridge: window.customBridge })`. The class keeps promise-based semantics so frameworks can layer their own reactive wrappers as shown above.
-
-![Startup image](./images/screenshot-requests.png)
-
-
-### Error Handling
-
-You have a bunch of `*Exception` classes that are at your disposal to help you have a clean code.
-
-Replace `*` By any of the HTTP status code's name that is available in the list below.
-
-If you throw any of these exception, the response to the renderer will contains the associated status code.
-
-You can specify a message in the constructor.
-
-You throw it as follow :
-```ts
-throw new UnauthorizedException("Invalid credentials");
-throw new BadRequestException("id is missing in the body");
-throw new UnavailableException();
-// ...
-```
-
-| status code | class to throw                         |
-| ----------- | -------------------------------------- |
-| 400         | BadRequestException                    |
-| 401         | UnauthorizedException                  |
-| 402         | PaymentRequiredException               |
-| 403         | ForbiddenException                     |
-| 404         | NotFoundException                      |
-| 405         | MethodNotAllowedException              |
-| 406         | NotAcceptableException                 |
-| 408         | RequestTimeoutException                |
-| 409         | ConflictException                      |
-| 426         | UpgradeRequiredException               |
-| 429         | TooManyRequestsException               |
-| 500         | InternalServerException                |
-| 501         | NotImplementedException                |
-| 502         | BadGatewayException                    |
-| 503         | ServiceUnavailableException            |
-| 504         | GatewayTimeoutException                |
-| 505         | HttpVersionNotSupportedException       |
-| 506         | VariantAlsoNegotiatesException         |
-| 507         | InsufficientStorageException           |
-| 508         | LoopDetectedException                  |
-| 510         | NotExtendedException                   |
-| 511         | NetworkAuthenticationRequiredException |
-| 599         | NetworkConnectTimeoutException         |
-
-
-## Advanced
-
-### Injection
-
-You can decide to inject an Injectable without passing by the constructor, as follow :
+### `inject()` — Manual resolution
 
 ```ts
 import { inject } from '@noxfly/noxus/main';
-import { MyClass } from 'src/myclass';
 
-const instance: MyClass = inject(MyClass);
+const userService = inject(UserService);
 ```
 
-### Circular Dependencies
+Useful outside a constructor — in callbacks, factories, etc.
 
-Noxus solves circular dependencies using a forward reference pattern. When two classes depend on each other, you can use `forwardRef()` combined with either the `@Inject()` decorator or the `inject()` helper to lazily resolve the dependency.
-
-**Using Constructor Injection (`@Inject`)**
+### `forwardRef()` — Circular dependencies
 
 ```ts
-import { Injectable, Inject, forwardRef } from '@noxfly/noxus/main';
+import { forwardRef } from '@noxfly/noxus/main';
 
-@Injectable()
+@Injectable({ deps: [forwardRef(() => ServiceB)] })
 class ServiceA {
-    constructor(
-        @Inject(forwardRef(() => ServiceB)) 
-        private readonly serviceB: ServiceB
-    ) {}
-}
-
-@Injectable()
-class ServiceB {
-    constructor(
-        private readonly serviceA: ServiceA
-    ) {}
+    constructor(private b: ServiceB) {}
 }
 ```
 
-**Using Property Injection (`inject`)**
+---
+
+## Routing
+
+### Available HTTP methods
 
 ```ts
-import { Injectable, inject, forwardRef } from '@noxfly/noxus/main';
+import { Get, Post, Put, Patch, Delete } from '@noxfly/noxus/main';
 
-@Injectable()
-class ServiceA {
-    // Lazily resolves ServiceB, avoiding infinite recursion during instantiation
-    private readonly serviceB = inject(forwardRef(() => ServiceB));
-}
+@Controller({ path: 'products', deps: [ProductService] })
+class ProductController {
+    constructor(private svc: ProductService) {}
 
-@Injectable()
-class ServiceB {
-    private readonly serviceA = inject(ServiceA);
+    @Get('list')       list(req: Request)    { ... }
+    @Post('create')    create(req: Request)  { ... }
+    @Put(':id')        replace(req: Request) { ... }
+    @Patch(':id')      update(req: Request)  { ... }
+    @Delete(':id')     remove(req: Request)  { ... }
 }
 ```
 
-In both cases, a `Proxy` is returned, meaning the actual instance is only resolved when you access a property or method on it.
-
-### Middlewares
-
-Declare middlewares as follow :
+### Route parameters
 
 ```ts
-// renderer/middlewares.ts
+@Get('category/:categoryId/product/:productId')
+getProduct(req: Request) {
+    const { categoryId, productId } = req.params;
+}
+```
 
-import { IMiddleware, Injectable, Request, IResponse, NextFunction } from '@noxfly/noxus/main';
+### Request body
 
-@Injectable()
-export class MiddlewareA implements IMiddleware {
-    public async invoke(request: Request, response: IResponse, next: NextFunction): Promise<void> {
-        console.log(`[Middleware A] before next()`);
-        await next();
-        console.log(`[Middleware A] after next()`);
+```ts
+@Post('create')
+create(req: Request) {
+    const { name, price } = req.body as { name: string; price: number };
+}
+```
+
+### Response
+
+The value returned by the handler is automatically placed in `response.body`. To control the status code:
+
+```ts
+@Post('create')
+create(req: Request, res: IResponse) {
+    res.status = 201;
+    return { id: 42 };
+}
+```
+
+---
+
+## Lazy loading
+
+This is the core mechanism for keeping startup fast. A lazy controller is never imported until an IPC request targets its prefix.
+
+```ts
+noxApp
+    .lazy('users',    () => import('./modules/users/users.controller.js'))
+    .lazy('orders',   () => import('./modules/orders/orders.controller.js'))
+    .lazy('printing', () => import('./modules/printing/printing.controller.js'))
+    .start();
+```
+
+> **Important:** the `import()` argument must not statically reference heavy modules. If `users.controller.ts` imports `applicationinsights` at the top of the file, the library will be loaded on the first `users/*` request — not at startup.
+
+### Eager loading (`eagerLoad`)
+
+For modules whose services are needed before `onReady()`:
+
+```ts
+bootstrapApplication({
+    eagerLoad: [
+        () => import('./modules/auth/auth.controller.js'),
+    ],
+});
+```
+
+### Manual loading from NoxApp
+
+```ts
+await noxApp.load([
+    () => import('./modules/reporting/reporting.controller.js'),
+]);
+```
+
+---
+
+## Guards
+
+A guard is a plain function that decides whether a request can reach its handler.
+
+```ts
+// guards/auth.guard.ts
+import { Guard } from '@noxfly/noxus/main';
+
+export const authGuard: Guard = async (req) => {
+    return req.body?.token === 'secret'; // your auth logic
+};
+```
+
+**On an entire controller:**
+```ts
+@Controller({ path: 'admin', deps: [AdminService], guards: [authGuard] })
+class AdminController { ... }
+```
+
+**On a specific route:**
+```ts
+@Delete(':id', { guards: [authGuard, adminGuard] })
+remove(req: Request) { ... }
+```
+
+Controller guards and route guards are **cumulative** — both run, in the given order.
+
+---
+
+## Middlewares
+
+A middleware is a plain function that runs before guards.
+
+```ts
+// middlewares/log.middleware.ts
+import { Middleware } from '@noxfly/noxus/main';
+
+export const logMiddleware: Middleware = async (req, res, next) => {
+    console.log(`→ ${req.method} ${req.path}`);
+    await next();
+    console.log(`← ${res.status}`);
+};
+```
+
+**Global (all routes):**
+```ts
+noxApp.use(logMiddleware);
+```
+
+**On a controller:**
+```ts
+@Controller({ path: 'users', deps: [...], middlewares: [logMiddleware] })
+class UserController { ... }
+```
+
+**On a route:**
+```ts
+@Post('upload', { middlewares: [fileSizeMiddleware] })
+upload(req: Request) { ... }
+```
+
+**Execution order:** global middlewares → controller middlewares → route middlewares → guards → handler.
+
+---
+
+## WindowManager
+
+Injectable singleton service for managing `BrowserWindow` instances.
+
+```ts
+@Injectable({ lifetime: 'singleton', deps: [WindowManager] })
+class AppService implements IApp {
+    constructor(private wm: WindowManager) {}
+
+    async onReady() {
+        // Creates a 600×600 window, animates it to full screen,
+        // then resolves the promise once the animation is complete.
+        // loadFile() is therefore always called at the correct size — no viewbox freeze.
+        const win = await this.wm.createSplash({
+            webPreferences: { preload: path.join(__dirname, 'preload.js') },
+        });
+        win.loadFile('index.html');
     }
 }
+```
 
-@Injectable()
-export class MiddlewareB implements IMiddleware {
-    public async invoke(request: Request, response: IResponse, next: NextFunction): Promise<void> {
-        console.log(`[Middleware B] before next()`);
-        await next();
-        console.log(`[Middleware B] after next()`);
+### Full API
+
+```ts
+// Creation
+const win  = await wm.createSplash(options);      // animated main window
+const win2 = await wm.create(config, isMain?);    // custom window
+
+// Access
+wm.getMain()       // main window
+wm.getById(id)     // by Electron id
+wm.getAll()        // all open windows
+wm.count           // number of open windows
+
+// Actions
+wm.close(id)       // close a window
+wm.closeAll()      // close all windows
+
+// Messaging
+wm.send(id, 'channel', ...args)    // send a message to one window
+wm.broadcast('channel', ...args)   // send to all windows
+```
+
+### `createSplash` vs `create`
+
+|              | `createSplash`         | `create`                            |
+| ------------ | ---------------------- | ----------------------------------- |
+| Initial size | 600×600 centered       | Whatever you define                 |
+| Animation    | Expands to work area   | Optional (`expandToWorkArea: true`) |
+| `show`       | `true` immediately     | `false` until `ready-to-show`       |
+| Use case     | Main window at startup | Secondary windows                   |
+
+---
+
+## External singletons
+
+To inject values built outside the DI container (DB connection, third-party SDK):
+
+```ts
+// main.ts
+import { MikroORM } from '@mikro-orm/core';
+import { bootstrapApplication } from '@noxfly/noxus/main';
+
+const orm = await MikroORM.init(ormConfig);
+
+const noxApp = await bootstrapApplication({
+    singletons: [
+        { token: MikroORM, useValue: orm },
+    ],
+});
+```
+
+These values are then available via injection in any service:
+
+```ts
+@Injectable({ lifetime: 'singleton', deps: [MikroORM] })
+class UserRepository {
+    constructor(private orm: MikroORM) {}
+}
+```
+
+---
+
+## Renderer side
+
+### Preload
+
+```ts
+// preload.ts
+import { createPreloadBridge } from '@noxfly/noxus';
+
+createPreloadBridge(); // exposes window.__noxus__ to the renderer
+```
+
+### IPC client
+
+```ts
+// In the renderer (Angular, React, Vue, Vanilla...)
+import { NoxusClient } from '@noxfly/noxus';
+
+const client = new NoxusClient();
+await client.connect();
+
+// Requests
+const users = await client.get<User[]>('users/list');
+const user  = await client.get<User>('users/42');
+await client.post('users/create', { name: 'Bob' });
+await client.put('users/42', { name: 'Bob Updated' });
+await client.delete('users/42');
+```
+
+### Push events (main → renderer)
+
+On the main side, via `NoxSocket`:
+
+```ts
+@Injectable({ lifetime: 'singleton', deps: [NoxSocket] })
+class NotificationService {
+    constructor(private socket: NoxSocket) {}
+
+    notifyAll(message: string) {
+        this.socket.emit('notification', { message });
+    }
+
+    notifyOne(senderId: number, message: string) {
+        this.socket.emitToRenderer(senderId, 'notification', { message });
     }
 }
 ```
 
-It is highly recommended to `await` the call of the `next` function.
-
-Register these by 3 possible ways :
-
-1. For a root scope. Will be present for each routes.
+On the renderer side:
 
 ```ts
-const noxApp = bootstrapApplication(AppModule);
-
-noxApp.configure(Application);
-
-noxApp.use(MiddlewareA);
-noxApp.use(MiddlewareB);
-
-noxApp.start();
+client.on('notification', (payload) => {
+    console.log(payload.message);
+});
 ```
 
-2. Or for a controller or action's scope :
+---
+
+## Batch requests
+
+Multiple IPC requests in a single round-trip:
 
 ```ts
-@Controller('user')
-@UseMiddlewares([MiddlewareA, MiddlewareB])
-export class UserController {
-    @Get('all')
-    @UseMiddlewares([MiddlewareA, MiddlewareB])
-    public getAll(): Promise<void> {
-        // ...
-    }
-}
+const results = await client.batch([
+    { method: 'GET',  path: 'users/list' },
+    { method: 'GET',  path: 'products/list' },
+    { method: 'POST', path: 'orders/create', body: { ... } },
+]);
 ```
 
-Note that if, for a given action, it has registered multiples times the same middleware, only the first registration will be saved.
+---
 
-For instance, registering MiddlewareA for root, on the controller and on the action is useless.
+## Exceptions
 
-The order of declaration of use of middlewares is important.
-
-assume we do this :
-1. Use Middleware A for root
-2. Use Middleware B for root just after MiddlewareA
-3. Use Middleware C for controller
-4. Use Middleware D for action
-5. Use AuthGuard on the controller
-6. Use RoleGuard on the action
-
-Then the executing pipeline will be as follow :
-
-```r
-A -> B -> C -> D -> AuthGuard -> RoleGuard -> [action] -> D -> C -> B -> A.
-```
-
-if a middleware throw any exception or put the response status higher or equal to 400, the pipeline immediatly stops and the response is returned, weither it is done before or after the call to the next function.
-
-
-
-
-
-## Listening to events from the main process
-
-Starting from v1.2, the main process can push messages to renderer processes without the request/response flow.
+Noxus provides an HTTP exception hierarchy to throw from handlers:
 
 ```ts
-// main/users/users.controller.ts
-import { Controller, Post, Request, NoxSocket } from '@noxfly/noxus/main';
+import {
+    BadRequestException,     // 400
+    UnauthorizedException,   // 401
+    ForbiddenException,      // 403
+    NotFoundException,       // 404
+    ConflictException,       // 409
+    InternalServerException, // 500
+    // ... and all other 4xx/5xx
+} from '@noxfly/noxus/main';
 
-@Controller('users')
-export class UsersController {
-    constructor(private readonly socket: NoxSocket) {}
-
-    @Post('create')
-    public async create(request: Request): Promise<void> {
-        const payload = { nickname: request.body.nickname };
-
-        this.socket.emitToRenderer(request.event.senderId, 'users:created', payload);
-        // or broadcast to every connected renderer: this.socket.emit('users:created', payload);
-    }
+@Get(':id')
+getOne(req: Request) {
+    const user = this.svc.findById(parseInt(req.params['id']!));
+    if (!user) throw new NotFoundException(`User not found`);
+    return user;
 }
 ```
 
-On the renderer side, leverage the `RendererEventRegistry` to register and clean up listeners. The registry only handles push events, so it plays nicely with the existing request handling code above.
+The exception is automatically caught by the router and translated into a response with the correct HTTP status.
 
-```ts
-import { RendererEventRegistry, RendererEventSubscription } from '@noxfly/noxus';
+---
 
-private readonly events = new RendererEventRegistry();
+## Recommended project structure
 
-constructor() {
-    // ... after the MessagePort is ready
-    this.port.onmessage = (event) => {
-        if(this.events.tryDispatchFromMessageEvent(event)) {
-            return;
-        }
-
-        this.onMessage(event); // existing request handling
-    };
-}
-
-public onUsersCreated(): RendererEventSubscription {
-    return this.events.subscribe('users:created', (payload) => {
-        // react to the event
-    });
-}
-
-public teardown(): void {
-    this.events.clear();
-}
+```
+src/
+├── main.ts                        ← bootstrapApplication + lazy routes
+├── app.service.ts                 ← implements IApp
+├── modules/
+│   ├── users/
+│   │   ├── user.controller.ts
+│   │   ├── user.service.ts
+│   │   └── user.repository.ts
+│   ├── orders/
+│   │   ├── order.controller.ts
+│   │   └── order.service.ts
+│   └── printing/
+│       ├── printing.controller.ts
+│       └── printing.service.ts
+├── guards/
+│   └── auth.guard.ts
+├── middlewares/
+│   └── log.middleware.ts
+└── tokens.ts                      ← shared named tokens
 ```
 
-
-
-
-## Contributing
-
-1. Clone the repo
-1. `npm i`
-1. Develop
-1. Push changes (automatically builds)
-1. Create a PR
-
-if you'd like to test your changes locally :
-1. `npm run build`
-1. from an electron project, `npm i ../<path/to/repo>`
-
+Each `module/` folder is **self-contained** — the controller imports its own services directly, with no central declaration. `main.ts` only knows the lazy loading paths.
