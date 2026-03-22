@@ -4,7 +4,7 @@
  * @author NoxFly
  */
 
-import { app, BrowserWindow } from "electron/main";
+import { app, BrowserWindow, screen } from "electron/main";
 import { NoxApp } from "src/app";
 import { getModuleMetadata } from "src/decorators/module.decorator";
 import { inject } from "src/DI/app-injector";
@@ -38,8 +38,8 @@ export interface BootstrapOptions {
  * @return A promise that resolves to the NoxApp instance.
  * @throws Error if the root module is not decorated with @Module, or if the electron process could not start.
  */
-export async function bootstrapApplication(rootModule: Type<any>, options?: BootstrapOptions): Promise<NoxApp> {
-    if(!getModuleMetadata(rootModule)) {
+export async function bootstrapApplication(rootModule?: Type<any> | null, options?: BootstrapOptions): Promise<NoxApp> {
+    if(rootModule && !getModuleMetadata(rootModule)) {
         throw new Error(`Root module must be decorated with @Module`);
     }
 
@@ -51,6 +51,21 @@ export async function bootstrapApplication(rootModule: Type<any>, options?: Boot
 
     if(options?.window) {
         mainWindow = new BrowserWindow(options.window);
+
+        mainWindow.once("ready-to-show", () => {
+            mainWindow?.show();
+        });
+
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width, height } = primaryDisplay.workAreaSize;
+
+        if(options.window.minWidth && options.window.minHeight) {
+            mainWindow.setSize(
+                Math.min(width, options.window.minWidth),
+                Math.min(height, options.window.minHeight),
+                true,
+            );
+        }
     }
 
     // Process all deferred injectable registrations (two-phase: bindings then resolution)

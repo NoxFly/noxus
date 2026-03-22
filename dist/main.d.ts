@@ -1,7 +1,7 @@
 import { M as MaybeAsync, T as Type } from './app-injector-B3MvgV3k.js';
 export { A as AppInjector, F as ForwardRefFn, a as ForwardReference, I as IBinding, L as Lifetime, R as RootInjector, f as forwardRef, i as inject } from './app-injector-B3MvgV3k.js';
-import { R as Request, I as IResponse, a as IGuard, b as IPortRequester } from './index-BxWQVi6C.js';
-export { e as AtomicHttpMethod, A as Authorize, D as Delete, G as Get, H as HttpMethod, l as IBatchRequestItem, m as IBatchRequestPayload, n as IBatchResponsePayload, p as IRendererEventMessage, k as IRequest, d as IRouteMetadata, N as NoxRendererClient, i as Patch, P as Post, h as Put, o as RENDERER_EVENT_TYPE, j as ROUTE_METADATA_KEY, v as RendererClientOptions, s as RendererEventHandler, u as RendererEventRegistry, t as RendererEventSubscription, q as createRendererEventMessage, g as getGuardForController, c as getGuardForControllerAction, f as getRouteMetadata, r as isRendererEventMessage } from './index-BxWQVi6C.js';
+import { R as Request, a as IResponse, h as IGuard } from './request-CdpZ9qZL.js';
+export { A as AtomicHttpMethod, j as Authorize, D as Delete, G as Get, H as HttpMethod, c as IBatchRequestItem, e as IBatchRequestPayload, d as IBatchResponsePayload, I as IRendererEventMessage, b as IRequest, m as IRouteMetadata, p as Patch, P as Post, o as Put, f as RENDERER_EVENT_TYPE, q as ROUTE_METADATA_KEY, g as createRendererEventMessage, k as getGuardForController, l as getGuardForControllerAction, n as getRouteMetadata, i as isRendererEventMessage } from './request-CdpZ9qZL.js';
 import { BrowserWindow } from 'electron/main';
 export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, Inject, Injectable, InsufficientStorageException, InternalServerException, LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, getInjectableMetadata, hasInjectableMetadata } from './child.js';
 
@@ -52,6 +52,16 @@ declare function getMiddlewaresForControllerAction(controllerName: string, actio
 
 
 /**
+ * A lazy route entry maps a path prefix to a dynamic import function.
+ * The module is loaded on the first request matching the prefix.
+ */
+interface ILazyRoute {
+    /** Path prefix (e.g. "auth", "printing"). Matched against the first segment(s) of the request path. */
+    path: string;
+    /** Dynamic import function returning the module file. */
+    loadModule: () => Promise<unknown>;
+}
+/**
  * IRouteDefinition interface defines the structure of a route in the application.
  * It includes the HTTP method, path, controller class, handler method name,
  * guards, and middlewares associated with the route.
@@ -76,6 +86,7 @@ type ControllerAction = (request: Request, response: IResponse) => any;
 declare class Router {
     private readonly routes;
     private readonly rootMiddlewares;
+    private readonly lazyRoutes;
     /**
      * Registers a controller class with the router.
      * This method extracts the route metadata from the controller class and registers it in the routing tree.
@@ -83,6 +94,15 @@ declare class Router {
      * @param controllerClass - The controller class to register.
      */
     registerController(controllerClass: Type<unknown>): Router;
+    /**
+     * Registers a lazy route. The module behind this route prefix will only
+     * be imported (and its controllers/services registered in DI) the first
+     * time a request targets this prefix.
+     *
+     * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
+     * @param loadModule - A function that returns a dynamic import promise.
+     */
+    registerLazyRoute(pathPrefix: string, loadModule: () => Promise<unknown>): Router;
     /**
      * Defines a middleware for the root of the application.
      * This method allows you to register a middleware that will be applied to all requests
@@ -108,7 +128,28 @@ declare class Router {
      * @param request - The Request object containing the method and path to search for.
      * @returns The IRouteDefinition for the matched route.
      */
+    /**
+     * Attempts to find a route definition for the given request.
+     * Returns undefined instead of throwing when the route is not found,
+     * so the caller can try lazy-loading first.
+     */
+    private tryFindRoute;
+    /**
+     * Finds the route definition for a given request.
+     * If no eagerly-registered route matches, attempts to load a lazy module
+     * whose prefix matches the request path, then retries.
+     */
     private findRoute;
+    /**
+     * Given a request path, checks whether a lazy route prefix matches
+     * and triggers the dynamic import if it hasn't been loaded yet.
+     */
+    private tryLoadLazyRoute;
+    /**
+     * Dynamically imports a lazy module and registers its decorated classes
+     * (controllers, services) in the DI container using the two-phase strategy.
+     */
+    private loadLazyModule;
     /**
      * Resolves the controller for a given route definition.
      * This method creates an instance of the controller class and prepares the request parameters.
@@ -240,6 +281,33 @@ declare class NoxApp {
      */
     setMainWindow(window: BrowserWindow): void;
     /**
+     * Registers a lazy-loaded route. The module behind this path prefix
+     * will only be dynamically imported when the first IPC request
+     * targets this prefix — like Angular's loadChildren.
+     *
+     * @example
+     * ```ts
+     * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
+     * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
+     * ```
+     *
+     * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
+     * @param loadModule - A function returning a dynamic import promise.
+     * @returns NoxApp instance for method chaining.
+     */
+    lazy(pathPrefix: string, loadModule: () => Promise<unknown>): NoxApp;
+    /**
+     * Eagerly loads one or more modules with a two-phase DI guarantee.
+     * Use this when a service needed at startup lives inside a module
+     * (e.g. the Application service depends on LoaderService).
+     *
+     * All dynamic imports run in parallel; bindings are registered first,
+     * then singletons are resolved — safe regardless of import ordering.
+     *
+     * @param importFns - Functions returning dynamic import promises.
+     */
+    loadModules(importFns: Array<() => Promise<unknown>>): Promise<void>;
+    /**
      * Configures the NoxApp instance with the provided application class.
      * This method allows you to set the application class that will handle lifecycle events.
      * @param app - The application class to configure.
@@ -288,7 +356,7 @@ interface BootstrapOptions {
  * @return A promise that resolves to the NoxApp instance.
  * @throws Error if the root module is not decorated with @Module, or if the electron process could not start.
  */
-declare function bootstrapApplication(rootModule: Type<any>, options?: BootstrapOptions): Promise<NoxApp>;
+declare function bootstrapApplication(rootModule?: Type<any> | null, options?: BootstrapOptions): Promise<NoxApp>;
 
 
 /**
@@ -331,21 +399,4 @@ declare function Module(metadata: IModuleMetadata): ClassDecorator;
 declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
 declare const MODULE_METADATA_KEY: unique symbol;
 
-
-interface NoxusPreloadAPI extends IPortRequester {
-}
-interface NoxusPreloadOptions {
-    exposeAs?: string;
-    initMessageType?: string;
-    requestChannel?: string;
-    responseChannel?: string;
-    targetWindow?: Window;
-}
-/**
- * Exposes a minimal bridge in the isolated preload context so renderer processes
- * can request the two MessagePorts required by Noxus. The bridge forwards both
- * request/response and socket ports to the renderer via window.postMessage.
- */
-declare function exposeNoxusBridge(options?: NoxusPreloadOptions): NoxusPreloadAPI;
-
-export { type BootstrapOptions, CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, IPortRequester, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, Request, Router, Type, UseMiddlewares, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };
+export { type BootstrapOptions, CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type ILazyRoute, type IMiddleware, type IModuleMetadata, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, Request, Router, Type, UseMiddlewares, bootstrapApplication, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };

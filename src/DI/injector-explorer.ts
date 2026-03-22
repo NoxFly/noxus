@@ -26,22 +26,67 @@ interface PendingRegistration {
 export class InjectorExplorer {
     private static readonly pending: PendingRegistration[] = [];
     private static processed = false;
+    private static accumulating = false;
 
     /**
      * Enqueues a class for deferred registration.
      * Called by the @Injectable decorator at import time.
      *
-     * If {@link processPending} has already been called (i.e. after bootstrap),
-     * the class is registered immediately so that late dynamic imports
-     * (e.g. middlewares loaded after bootstrap) work correctly.
+     * If {@link processPending} has already been called (i.e. after bootstrap)
+     * and accumulation mode is not active, the class is registered immediately
+     * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
+     * work correctly.
+     *
+     * When accumulation mode is active (between {@link beginAccumulate} and
+     * {@link flushAccumulated}), classes are queued instead — preserving the
+     * two-phase binding/resolution guarantee for lazy-loaded modules.
      */
     public static enqueue(target: Type<unknown>, lifetime: Lifetime): void {
-        if(InjectorExplorer.processed) {
+        if(InjectorExplorer.processed && !InjectorExplorer.accumulating) {
             InjectorExplorer.registerImmediate(target, lifetime);
             return;
         }
 
         InjectorExplorer.pending.push({ target, lifetime });
+    }
+
+    /**
+     * Enters accumulation mode. While active, all decorated classes discovered
+     * via dynamic imports are queued in {@link pending} rather than registered
+     * immediately. Call {@link flushAccumulated} to process them with the
+     * full two-phase (bind-then-resolve) guarantee.
+     */
+    public static beginAccumulate(): void {
+        InjectorExplorer.accumulating = true;
+    }
+
+    /**
+     * Exits accumulation mode and processes every class queued since
+     * {@link beginAccumulate} was called. Uses the same two-phase strategy
+     * as {@link processPending} (register all bindings first, then resolve
+     * singletons / controllers) so import ordering within a lazy batch
+     * does not cause resolution failures.
+     */
+    public static flushAccumulated(): void {
+        InjectorExplorer.accumulating = false;
+
+        const queue = [...InjectorExplorer.pending];
+        InjectorExplorer.pending.length = 0;
+
+        // Phase 1: register all bindings without instantiation
+        for(const { target, lifetime } of queue) {
+            if(!RootInjector.bindings.has(target)) {
+                RootInjector.bindings.set(target, {
+                    implementation: target,
+                    lifetime
+                });
+            }
+        }
+
+        // Phase 2: resolve singletons, register controllers, log modules
+        for(const { target, lifetime } of queue) {
+            InjectorExplorer.processRegistration(target, lifetime);
+        }
     }
 
     /**

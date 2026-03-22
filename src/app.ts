@@ -8,6 +8,7 @@ import { app, BrowserWindow, ipcMain, MessageChannelMain } from "electron/main";
 import { Injectable } from "src/decorators/injectable.decorator";
 import { IMiddleware } from "src/decorators/middleware.decorator";
 import { inject } from "src/DI/app-injector";
+import { InjectorExplorer } from "src/DI/injector-explorer";
 import { IRequest, IResponse, Request } from "src/request";
 import { NoxSocket } from "src/socket";
 import { Router } from "src/router";
@@ -171,6 +172,42 @@ export class NoxApp {
      */
     public setMainWindow(window: BrowserWindow): void {
         this.mainWindow = window;
+    }
+
+    /**
+     * Registers a lazy-loaded route. The module behind this path prefix
+     * will only be dynamically imported when the first IPC request
+     * targets this prefix — like Angular's loadChildren.
+     *
+     * @example
+     * ```ts
+     * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
+     * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
+     * ```
+     *
+     * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
+     * @param loadModule - A function returning a dynamic import promise.
+     * @returns NoxApp instance for method chaining.
+     */
+    public lazy(pathPrefix: string, loadModule: () => Promise<unknown>): NoxApp {
+        this.router.registerLazyRoute(pathPrefix, loadModule);
+        return this;
+    }
+
+    /**
+     * Eagerly loads one or more modules with a two-phase DI guarantee.
+     * Use this when a service needed at startup lives inside a module
+     * (e.g. the Application service depends on LoaderService).
+     *
+     * All dynamic imports run in parallel; bindings are registered first,
+     * then singletons are resolved — safe regardless of import ordering.
+     *
+     * @param importFns - Functions returning dynamic import promises.
+     */
+    public async loadModules(importFns: Array<() => Promise<unknown>>): Promise<void> {
+        InjectorExplorer.beginAccumulate();
+        await Promise.all(importFns.map(fn => fn()));
+        InjectorExplorer.flushAccumulated();
     }
 
     /**

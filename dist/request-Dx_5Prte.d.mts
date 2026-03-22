@@ -1,4 +1,4 @@
-import { M as MaybeAsync, T as Type, A as AppInjector } from './app-injector-B3MvgV3k.js';
+import { M as MaybeAsync, T as Type, A as AppInjector } from './app-injector-B3MvgV3k.mjs';
 
 /**
  * @copyright 2025 NoxFly
@@ -164,90 +164,4 @@ interface IRendererEventMessage<TPayload = unknown> {
 declare function createRendererEventMessage<TPayload = unknown>(event: string, payload?: TPayload): IRendererEventMessage<TPayload>;
 declare function isRendererEventMessage(value: unknown): value is IRendererEventMessage;
 
-/**
- * Lightweight event registry to help renderer processes subscribe to
- * push messages sent by the main process through Noxus.
- */
-
-type RendererEventHandler<TPayload = unknown> = (payload: TPayload) => void;
-interface RendererEventSubscription {
-    unsubscribe(): void;
-}
-declare class RendererEventRegistry {
-    private readonly listeners;
-    /**
-     *
-     */
-    subscribe<TPayload>(eventName: string, handler: RendererEventHandler<TPayload>): RendererEventSubscription;
-    /**
-     *
-     */
-    unsubscribe<TPayload>(eventName: string, handler: RendererEventHandler<TPayload>): void;
-    /**
-     *
-     */
-    clear(eventName?: string): void;
-    /**
-     *
-     */
-    dispatch<TPayload>(message: IRendererEventMessage<TPayload>): void;
-    /**
-     *
-     */
-    tryDispatchFromMessageEvent(event: MessageEvent): boolean;
-    /**
-     *
-     */
-    hasHandlers(eventName: string): boolean;
-}
-
-
-interface IPortRequester {
-    requestPort(): void;
-}
-interface RendererClientOptions {
-    bridge?: IPortRequester | null;
-    bridgeName?: string | string[];
-    initMessageType?: string;
-    windowRef?: Window;
-    generateRequestId?: () => string;
-}
-interface PendingRequest<T = unknown> {
-    resolve: (value: T) => void;
-    reject: (reason: IResponse<T>) => void;
-    request: IRequest;
-    submittedAt: number;
-}
-declare class NoxRendererClient {
-    readonly events: RendererEventRegistry;
-    protected readonly pendingRequests: Map<string, PendingRequest<unknown>>;
-    protected requestPort: MessagePort | undefined;
-    protected socketPort: MessagePort | undefined;
-    protected senderId: number | undefined;
-    private readonly bridge;
-    private readonly initMessageType;
-    private readonly windowRef;
-    private readonly generateRequestId;
-    private isReady;
-    private setupPromise;
-    private setupResolve;
-    private setupReject;
-    constructor(options?: RendererClientOptions);
-    setup(): Promise<void>;
-    dispose(): void;
-    request<TResponse, TBody = unknown>(request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>): Promise<TResponse>;
-    batch(requests: Omit<IBatchRequestItem<unknown>, 'requestId'>[]): Promise<IBatchResponsePayload>;
-    getSenderId(): number | undefined;
-    private readonly onWindowMessage;
-    private readonly onSocketMessage;
-    private readonly onRequestMessage;
-    protected onRequestCompleted(pending: PendingRequest, response: IResponse): void;
-    private attachRequestPort;
-    private attachSocketPort;
-    private validateReady;
-    private createErrorResponse;
-    private resetSetupState;
-    isElectronEnvironment(): boolean;
-}
-
-export { Authorize as A, Delete as D, Get as G, type HttpMethod as H, type IResponse as I, NoxRendererClient as N, Post as P, Request as R, type IGuard as a, type IPortRequester as b, getGuardForControllerAction as c, type IRouteMetadata as d, type AtomicHttpMethod as e, getRouteMetadata as f, getGuardForController as g, Put as h, Patch as i, ROUTE_METADATA_KEY as j, type IRequest as k, type IBatchRequestItem as l, type IBatchRequestPayload as m, type IBatchResponsePayload as n, RENDERER_EVENT_TYPE as o, type IRendererEventMessage as p, createRendererEventMessage as q, isRendererEventMessage as r, type RendererEventHandler as s, type RendererEventSubscription as t, RendererEventRegistry as u, type RendererClientOptions as v };
+export { type AtomicHttpMethod as A, Delete as D, Get as G, type HttpMethod as H, type IRendererEventMessage as I, Post as P, Request as R, type IResponse as a, type IRequest as b, type IBatchRequestItem as c, type IBatchResponsePayload as d, type IBatchRequestPayload as e, RENDERER_EVENT_TYPE as f, createRendererEventMessage as g, type IGuard as h, isRendererEventMessage as i, Authorize as j, getGuardForController as k, getGuardForControllerAction as l, type IRouteMetadata as m, getRouteMetadata as n, Put as o, Patch as p, ROUTE_METADATA_KEY as q };

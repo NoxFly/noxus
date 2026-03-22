@@ -12,9 +12,27 @@ import { AtomicHttpMethod, getRouteMetadata } from 'src/decorators/method.decora
 import { getMiddlewaresForController, getMiddlewaresForControllerAction, IMiddleware, NextFunction } from 'src/decorators/middleware.decorator';
 import { BadRequestException, MethodNotAllowedException, NotFoundException, ResponseException, UnauthorizedException } from 'src/exceptions';
 import { IBatchRequestItem, IBatchRequestPayload, IBatchResponsePayload, IResponse, Request } from 'src/request';
+import { InjectorExplorer } from 'src/DI/injector-explorer';
 import { Logger } from 'src/utils/logger';
 import { RadixTree } from 'src/utils/radix-tree';
 import { Type } from 'src/utils/types';
+
+/**
+ * A lazy route entry maps a path prefix to a dynamic import function.
+ * The module is loaded on the first request matching the prefix.
+ */
+export interface ILazyRoute {
+    /** Path prefix (e.g. "auth", "printing"). Matched against the first segment(s) of the request path. */
+    path: string;
+    /** Dynamic import function returning the module file. */
+    loadModule: () => Promise<unknown>;
+}
+
+interface LazyRouteEntry {
+    loadModule: () => Promise<unknown>;
+    loading: Promise<void> | null;
+    loaded: boolean;
+}
 
 const ATOMIC_HTTP_METHODS: ReadonlySet<AtomicHttpMethod> = new Set<AtomicHttpMethod>(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -51,6 +69,7 @@ export type ControllerAction = (request: Request, response: IResponse) => any;
 export class Router {
     private readonly routes = new RadixTree<IRouteDefinition>();
     private readonly rootMiddlewares: Type<IMiddleware>[] = [];
+    private readonly lazyRoutes = new Map<string, LazyRouteEntry>();
 
     /**
      * Registers a controller class with the router.
@@ -110,6 +129,21 @@ export class Router {
     }
 
     /**
+     * Registers a lazy route. The module behind this route prefix will only
+     * be imported (and its controllers/services registered in DI) the first
+     * time a request targets this prefix.
+     *
+     * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
+     * @param loadModule - A function that returns a dynamic import promise.
+     */
+    public registerLazyRoute(pathPrefix: string, loadModule: () => Promise<unknown>): Router {
+        const normalized = pathPrefix.replace(/^\/+|\/+$/g, '');
+        this.lazyRoutes.set(normalized, { loadModule, loading: null, loaded: false });
+        Logger.log(`Registered lazy route prefix {${normalized}}`);
+        return this;
+    }
+
+    /**
      * Defines a middleware for the root of the application.
      * This method allows you to register a middleware that will be applied to all requests
      * to the application, regardless of the controller or action.
@@ -148,7 +182,7 @@ export class Router {
         let isCritical: boolean = false;
 
         try {
-            const routeDef = this.findRoute(request);
+            const routeDef = await this.findRoute(request);
             await this.resolveController(request, response, routeDef);
 
             if(response.status > 400) {
@@ -352,20 +386,79 @@ export class Router {
      * @param request - The Request object containing the method and path to search for.
      * @returns The IRouteDefinition for the matched route.
      */
-    private findRoute(request: Request): IRouteDefinition {
+    /**
+     * Attempts to find a route definition for the given request.
+     * Returns undefined instead of throwing when the route is not found,
+     * so the caller can try lazy-loading first.
+     */
+    private tryFindRoute(request: Request): IRouteDefinition | undefined {
         const matchedRoutes = this.routes.search(request.path);
 
         if(matchedRoutes?.node === undefined || matchedRoutes.node.children.length === 0) {
-            throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+            return undefined;
         }
 
         const routeDef = matchedRoutes.node.findExactChild(request.method);
+        return routeDef?.value;
+    }
 
-        if(routeDef?.value === undefined) {
-            throw new MethodNotAllowedException(`Method Not Allowed for ${request.method} ${request.path}`);
+    /**
+     * Finds the route definition for a given request.
+     * If no eagerly-registered route matches, attempts to load a lazy module
+     * whose prefix matches the request path, then retries.
+     */
+    private async findRoute(request: Request): Promise<IRouteDefinition> {
+        // Fast path: route already registered
+        const direct = this.tryFindRoute(request);
+        if(direct) return direct;
+
+        // Try lazy route loading
+        await this.tryLoadLazyRoute(request.path);
+
+        // Retry after lazy load
+        const afterLazy = this.tryFindRoute(request);
+        if(afterLazy) return afterLazy;
+
+        throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+    }
+
+    /**
+     * Given a request path, checks whether a lazy route prefix matches
+     * and triggers the dynamic import if it hasn't been loaded yet.
+     */
+    private async tryLoadLazyRoute(requestPath: string): Promise<void> {
+        const firstSegment = requestPath.replace(/^\/+/, '').split('/')[0] ?? '';
+
+        // Check exact first segment, then try multi-segment prefixes
+        for(const [prefix, entry] of this.lazyRoutes) {
+            if(entry.loaded) continue;
+
+            const normalizedPath = requestPath.replace(/^\/+/, '');
+            if(normalizedPath === prefix || normalizedPath.startsWith(prefix + '/') || firstSegment === prefix) {
+                if(!entry.loading) {
+                    entry.loading = this.loadLazyModule(prefix, entry);
+                }
+                await entry.loading;
+                return;
+            }
         }
+    }
 
-        return routeDef.value;
+    /**
+     * Dynamically imports a lazy module and registers its decorated classes
+     * (controllers, services) in the DI container using the two-phase strategy.
+     */
+    private async loadLazyModule(prefix: string, entry: LazyRouteEntry): Promise<void> {
+        const t0 = performance.now();
+
+        InjectorExplorer.beginAccumulate();
+        await entry.loadModule();
+        InjectorExplorer.flushAccumulated();
+
+        entry.loaded = true;
+
+        const t1 = performance.now();
+        Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(t1 - t0)}ms`);
     }
 
     /**

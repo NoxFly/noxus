@@ -963,6 +963,7 @@ var _Router = class _Router {
   constructor() {
     __publicField(this, "routes", new RadixTree());
     __publicField(this, "rootMiddlewares", []);
+    __publicField(this, "lazyRoutes", /* @__PURE__ */ new Map());
   }
   /**
    * Registers a controller class with the router.
@@ -1011,6 +1012,24 @@ var _Router = class _Router {
     return this;
   }
   /**
+   * Registers a lazy route. The module behind this route prefix will only
+   * be imported (and its controllers/services registered in DI) the first
+   * time a request targets this prefix.
+   *
+   * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
+   * @param loadModule - A function that returns a dynamic import promise.
+   */
+  registerLazyRoute(pathPrefix, loadModule) {
+    const normalized = pathPrefix.replace(/^\/+|\/+$/g, "");
+    this.lazyRoutes.set(normalized, {
+      loadModule,
+      loading: null,
+      loaded: false
+    });
+    Logger.log(`Registered lazy route prefix {${normalized}}`);
+    return this;
+  }
+  /**
    * Defines a middleware for the root of the application.
    * This method allows you to register a middleware that will be applied to all requests
    * to the application, regardless of the controller or action.
@@ -1042,7 +1061,7 @@ var _Router = class _Router {
     };
     let isCritical = false;
     try {
-      const routeDef = this.findRoute(request);
+      const routeDef = await this.findRoute(request);
       await this.resolveController(request, response, routeDef);
       if (response.status > 400) {
         throw new ResponseException(response.status, response.error);
@@ -1200,16 +1219,62 @@ var _Router = class _Router {
    * @param request - The Request object containing the method and path to search for.
    * @returns The IRouteDefinition for the matched route.
    */
-  findRoute(request) {
+  /**
+  * Attempts to find a route definition for the given request.
+  * Returns undefined instead of throwing when the route is not found,
+  * so the caller can try lazy-loading first.
+  */
+  tryFindRoute(request) {
     const matchedRoutes = this.routes.search(request.path);
     if (matchedRoutes?.node === void 0 || matchedRoutes.node.children.length === 0) {
-      throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+      return void 0;
     }
     const routeDef = matchedRoutes.node.findExactChild(request.method);
-    if (routeDef?.value === void 0) {
-      throw new MethodNotAllowedException(`Method Not Allowed for ${request.method} ${request.path}`);
+    return routeDef?.value;
+  }
+  /**
+   * Finds the route definition for a given request.
+   * If no eagerly-registered route matches, attempts to load a lazy module
+   * whose prefix matches the request path, then retries.
+   */
+  async findRoute(request) {
+    const direct = this.tryFindRoute(request);
+    if (direct) return direct;
+    await this.tryLoadLazyRoute(request.path);
+    const afterLazy = this.tryFindRoute(request);
+    if (afterLazy) return afterLazy;
+    throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+  }
+  /**
+   * Given a request path, checks whether a lazy route prefix matches
+   * and triggers the dynamic import if it hasn't been loaded yet.
+   */
+  async tryLoadLazyRoute(requestPath) {
+    const firstSegment = requestPath.replace(/^\/+/, "").split("/")[0] ?? "";
+    for (const [prefix, entry] of this.lazyRoutes) {
+      if (entry.loaded) continue;
+      const normalizedPath = requestPath.replace(/^\/+/, "");
+      if (normalizedPath === prefix || normalizedPath.startsWith(prefix + "/") || firstSegment === prefix) {
+        if (!entry.loading) {
+          entry.loading = this.loadLazyModule(prefix, entry);
+        }
+        await entry.loading;
+        return;
+      }
     }
-    return routeDef.value;
+  }
+  /**
+   * Dynamically imports a lazy module and registers its decorated classes
+   * (controllers, services) in the DI container using the two-phase strategy.
+   */
+  async loadLazyModule(prefix, entry) {
+    const t0 = performance.now();
+    InjectorExplorer.beginAccumulate();
+    await entry.loadModule();
+    InjectorExplorer.flushAccumulated();
+    entry.loaded = true;
+    const t1 = performance.now();
+    Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(t1 - t0)}ms`);
   }
   /**
    * Resolves the controller for a given route definition.
@@ -1333,12 +1398,17 @@ var _InjectorExplorer = class _InjectorExplorer {
    * Enqueues a class for deferred registration.
    * Called by the @Injectable decorator at import time.
    *
-   * If {@link processPending} has already been called (i.e. after bootstrap),
-   * the class is registered immediately so that late dynamic imports
-   * (e.g. middlewares loaded after bootstrap) work correctly.
+   * If {@link processPending} has already been called (i.e. after bootstrap)
+   * and accumulation mode is not active, the class is registered immediately
+   * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
+   * work correctly.
+   *
+   * When accumulation mode is active (between {@link beginAccumulate} and
+   * {@link flushAccumulated}), classes are queued instead — preserving the
+   * two-phase binding/resolution guarantee for lazy-loaded modules.
    */
   static enqueue(target, lifetime) {
-    if (_InjectorExplorer.processed) {
+    if (_InjectorExplorer.processed && !_InjectorExplorer.accumulating) {
       _InjectorExplorer.registerImmediate(target, lifetime);
       return;
     }
@@ -1346,6 +1416,40 @@ var _InjectorExplorer = class _InjectorExplorer {
       target,
       lifetime
     });
+  }
+  /**
+   * Enters accumulation mode. While active, all decorated classes discovered
+   * via dynamic imports are queued in {@link pending} rather than registered
+   * immediately. Call {@link flushAccumulated} to process them with the
+   * full two-phase (bind-then-resolve) guarantee.
+   */
+  static beginAccumulate() {
+    _InjectorExplorer.accumulating = true;
+  }
+  /**
+   * Exits accumulation mode and processes every class queued since
+   * {@link beginAccumulate} was called. Uses the same two-phase strategy
+   * as {@link processPending} (register all bindings first, then resolve
+   * singletons / controllers) so import ordering within a lazy batch
+   * does not cause resolution failures.
+   */
+  static flushAccumulated() {
+    _InjectorExplorer.accumulating = false;
+    const queue = [
+      ..._InjectorExplorer.pending
+    ];
+    _InjectorExplorer.pending.length = 0;
+    for (const { target, lifetime } of queue) {
+      if (!RootInjector.bindings.has(target)) {
+        RootInjector.bindings.set(target, {
+          implementation: target,
+          lifetime
+        });
+      }
+    }
+    for (const { target, lifetime } of queue) {
+      _InjectorExplorer.processRegistration(target, lifetime);
+    }
   }
   /**
    * Processes all pending registrations in two phases:
@@ -1414,6 +1518,7 @@ var _InjectorExplorer = class _InjectorExplorer {
 __name(_InjectorExplorer, "InjectorExplorer");
 __publicField(_InjectorExplorer, "pending", []);
 __publicField(_InjectorExplorer, "processed", false);
+__publicField(_InjectorExplorer, "accumulating", false);
 var InjectorExplorer = _InjectorExplorer;
 
 // src/decorators/injectable.decorator.ts

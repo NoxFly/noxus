@@ -69,7 +69,6 @@ __export(main_exports, {
   NotFoundException: () => NotFoundException,
   NotImplementedException: () => NotImplementedException,
   NoxApp: () => NoxApp,
-  NoxRendererClient: () => NoxRendererClient,
   NoxSocket: () => NoxSocket,
   Patch: () => Patch,
   PaymentRequiredException: () => PaymentRequiredException,
@@ -77,7 +76,6 @@ __export(main_exports, {
   Put: () => Put,
   RENDERER_EVENT_TYPE: () => RENDERER_EVENT_TYPE,
   ROUTE_METADATA_KEY: () => ROUTE_METADATA_KEY,
-  RendererEventRegistry: () => RendererEventRegistry,
   Request: () => Request,
   RequestTimeoutException: () => RequestTimeoutException,
   ResponseException: () => ResponseException,
@@ -91,7 +89,6 @@ __export(main_exports, {
   VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
   bootstrapApplication: () => bootstrapApplication,
   createRendererEventMessage: () => createRendererEventMessage,
-  exposeNoxusBridge: () => exposeNoxusBridge,
   forwardRef: () => forwardRef,
   getControllerMetadata: () => getControllerMetadata,
   getGuardForController: () => getGuardForController,
@@ -828,12 +825,17 @@ var _InjectorExplorer = class _InjectorExplorer {
    * Enqueues a class for deferred registration.
    * Called by the @Injectable decorator at import time.
    *
-   * If {@link processPending} has already been called (i.e. after bootstrap),
-   * the class is registered immediately so that late dynamic imports
-   * (e.g. middlewares loaded after bootstrap) work correctly.
+   * If {@link processPending} has already been called (i.e. after bootstrap)
+   * and accumulation mode is not active, the class is registered immediately
+   * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
+   * work correctly.
+   *
+   * When accumulation mode is active (between {@link beginAccumulate} and
+   * {@link flushAccumulated}), classes are queued instead — preserving the
+   * two-phase binding/resolution guarantee for lazy-loaded modules.
    */
   static enqueue(target, lifetime) {
-    if (_InjectorExplorer.processed) {
+    if (_InjectorExplorer.processed && !_InjectorExplorer.accumulating) {
       _InjectorExplorer.registerImmediate(target, lifetime);
       return;
     }
@@ -841,6 +843,40 @@ var _InjectorExplorer = class _InjectorExplorer {
       target,
       lifetime
     });
+  }
+  /**
+   * Enters accumulation mode. While active, all decorated classes discovered
+   * via dynamic imports are queued in {@link pending} rather than registered
+   * immediately. Call {@link flushAccumulated} to process them with the
+   * full two-phase (bind-then-resolve) guarantee.
+   */
+  static beginAccumulate() {
+    _InjectorExplorer.accumulating = true;
+  }
+  /**
+   * Exits accumulation mode and processes every class queued since
+   * {@link beginAccumulate} was called. Uses the same two-phase strategy
+   * as {@link processPending} (register all bindings first, then resolve
+   * singletons / controllers) so import ordering within a lazy batch
+   * does not cause resolution failures.
+   */
+  static flushAccumulated() {
+    _InjectorExplorer.accumulating = false;
+    const queue = [
+      ..._InjectorExplorer.pending
+    ];
+    _InjectorExplorer.pending.length = 0;
+    for (const { target, lifetime } of queue) {
+      if (!RootInjector.bindings.has(target)) {
+        RootInjector.bindings.set(target, {
+          implementation: target,
+          lifetime
+        });
+      }
+    }
+    for (const { target, lifetime } of queue) {
+      _InjectorExplorer.processRegistration(target, lifetime);
+    }
   }
   /**
    * Processes all pending registrations in two phases:
@@ -909,6 +945,7 @@ var _InjectorExplorer = class _InjectorExplorer {
 __name(_InjectorExplorer, "InjectorExplorer");
 __publicField(_InjectorExplorer, "pending", []);
 __publicField(_InjectorExplorer, "processed", false);
+__publicField(_InjectorExplorer, "accumulating", false);
 var InjectorExplorer = _InjectorExplorer;
 
 // src/decorators/injectable.decorator.ts
@@ -1193,6 +1230,7 @@ var _Router = class _Router {
   constructor() {
     __publicField(this, "routes", new RadixTree());
     __publicField(this, "rootMiddlewares", []);
+    __publicField(this, "lazyRoutes", /* @__PURE__ */ new Map());
   }
   /**
    * Registers a controller class with the router.
@@ -1241,6 +1279,24 @@ var _Router = class _Router {
     return this;
   }
   /**
+   * Registers a lazy route. The module behind this route prefix will only
+   * be imported (and its controllers/services registered in DI) the first
+   * time a request targets this prefix.
+   *
+   * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
+   * @param loadModule - A function that returns a dynamic import promise.
+   */
+  registerLazyRoute(pathPrefix, loadModule) {
+    const normalized = pathPrefix.replace(/^\/+|\/+$/g, "");
+    this.lazyRoutes.set(normalized, {
+      loadModule,
+      loading: null,
+      loaded: false
+    });
+    Logger.log(`Registered lazy route prefix {${normalized}}`);
+    return this;
+  }
+  /**
    * Defines a middleware for the root of the application.
    * This method allows you to register a middleware that will be applied to all requests
    * to the application, regardless of the controller or action.
@@ -1272,7 +1328,7 @@ var _Router = class _Router {
     };
     let isCritical = false;
     try {
-      const routeDef = this.findRoute(request);
+      const routeDef = await this.findRoute(request);
       await this.resolveController(request, response, routeDef);
       if (response.status > 400) {
         throw new ResponseException(response.status, response.error);
@@ -1430,16 +1486,62 @@ var _Router = class _Router {
    * @param request - The Request object containing the method and path to search for.
    * @returns The IRouteDefinition for the matched route.
    */
-  findRoute(request) {
+  /**
+  * Attempts to find a route definition for the given request.
+  * Returns undefined instead of throwing when the route is not found,
+  * so the caller can try lazy-loading first.
+  */
+  tryFindRoute(request) {
     const matchedRoutes = this.routes.search(request.path);
     if (matchedRoutes?.node === void 0 || matchedRoutes.node.children.length === 0) {
-      throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+      return void 0;
     }
     const routeDef = matchedRoutes.node.findExactChild(request.method);
-    if (routeDef?.value === void 0) {
-      throw new MethodNotAllowedException(`Method Not Allowed for ${request.method} ${request.path}`);
+    return routeDef?.value;
+  }
+  /**
+   * Finds the route definition for a given request.
+   * If no eagerly-registered route matches, attempts to load a lazy module
+   * whose prefix matches the request path, then retries.
+   */
+  async findRoute(request) {
+    const direct = this.tryFindRoute(request);
+    if (direct) return direct;
+    await this.tryLoadLazyRoute(request.path);
+    const afterLazy = this.tryFindRoute(request);
+    if (afterLazy) return afterLazy;
+    throw new NotFoundException(`No route matches ${request.method} ${request.path}`);
+  }
+  /**
+   * Given a request path, checks whether a lazy route prefix matches
+   * and triggers the dynamic import if it hasn't been loaded yet.
+   */
+  async tryLoadLazyRoute(requestPath) {
+    const firstSegment = requestPath.replace(/^\/+/, "").split("/")[0] ?? "";
+    for (const [prefix, entry] of this.lazyRoutes) {
+      if (entry.loaded) continue;
+      const normalizedPath = requestPath.replace(/^\/+/, "");
+      if (normalizedPath === prefix || normalizedPath.startsWith(prefix + "/") || firstSegment === prefix) {
+        if (!entry.loading) {
+          entry.loading = this.loadLazyModule(prefix, entry);
+        }
+        await entry.loading;
+        return;
+      }
     }
-    return routeDef.value;
+  }
+  /**
+   * Dynamically imports a lazy module and registers its decorated classes
+   * (controllers, services) in the DI container using the two-phase strategy.
+   */
+  async loadLazyModule(prefix, entry) {
+    const t0 = performance.now();
+    InjectorExplorer.beginAccumulate();
+    await entry.loadModule();
+    InjectorExplorer.flushAccumulated();
+    entry.loaded = true;
+    const t1 = performance.now();
+    Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(t1 - t0)}ms`);
   }
   /**
    * Resolves the controller for a given route definition.
@@ -1752,8 +1854,42 @@ var _NoxApp = class _NoxApp {
    * This window will be passed to IApp.onReady when start() is called.
    * @param window - The BrowserWindow created during bootstrap.
    */
-  setMainWindow(window2) {
-    this.mainWindow = window2;
+  setMainWindow(window) {
+    this.mainWindow = window;
+  }
+  /**
+   * Registers a lazy-loaded route. The module behind this path prefix
+   * will only be dynamically imported when the first IPC request
+   * targets this prefix — like Angular's loadChildren.
+   *
+   * @example
+   * ```ts
+   * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
+   * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
+   * ```
+   *
+   * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
+   * @param loadModule - A function returning a dynamic import promise.
+   * @returns NoxApp instance for method chaining.
+   */
+  lazy(pathPrefix, loadModule) {
+    this.router.registerLazyRoute(pathPrefix, loadModule);
+    return this;
+  }
+  /**
+   * Eagerly loads one or more modules with a two-phase DI guarantee.
+   * Use this when a service needed at startup lives inside a module
+   * (e.g. the Application service depends on LoaderService).
+   *
+   * All dynamic imports run in parallel; bindings are registered first,
+   * then singletons are resolved — safe regardless of import ordering.
+   *
+   * @param importFns - Functions returning dynamic import promises.
+   */
+  async loadModules(importFns) {
+    InjectorExplorer.beginAccumulate();
+    await Promise.all(importFns.map((fn) => fn()));
+    InjectorExplorer.flushAccumulated();
   }
   /**
    * Configures the NoxApp instance with the provided application class.
@@ -1799,13 +1935,21 @@ NoxApp = _ts_decorate3([
 // src/bootstrap.ts
 var import_main2 = require("electron/main");
 async function bootstrapApplication(rootModule, options) {
-  if (!getModuleMetadata(rootModule)) {
+  if (rootModule && !getModuleMetadata(rootModule)) {
     throw new Error(`Root module must be decorated with @Module`);
   }
   await import_main2.app.whenReady();
   let mainWindow;
   if (options?.window) {
     mainWindow = new import_main2.BrowserWindow(options.window);
+    mainWindow.once("ready-to-show", () => {
+      mainWindow?.show();
+    });
+    const primaryDisplay = import_main2.screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+    if (options.window.minWidth && options.window.minHeight) {
+      mainWindow.setSize(Math.min(width, options.window.minWidth), Math.min(height, options.window.minHeight), true);
+    }
   }
   InjectorExplorer.processPending();
   const noxApp = inject(NoxApp);
@@ -1816,368 +1960,6 @@ async function bootstrapApplication(rootModule, options) {
   return noxApp;
 }
 __name(bootstrapApplication, "bootstrapApplication");
-
-// src/preload-bridge.ts
-var import_renderer = require("electron/renderer");
-var DEFAULT_EXPOSE_NAME = "noxus";
-var DEFAULT_INIT_EVENT = "init-port";
-var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
-var DEFAULT_RESPONSE_CHANNEL = "port";
-function exposeNoxusBridge(options = {}) {
-  const { exposeAs = DEFAULT_EXPOSE_NAME, initMessageType = DEFAULT_INIT_EVENT, requestChannel = DEFAULT_REQUEST_CHANNEL, responseChannel = DEFAULT_RESPONSE_CHANNEL, targetWindow = window } = options;
-  const api = {
-    requestPort: /* @__PURE__ */ __name(() => {
-      import_renderer.ipcRenderer.send(requestChannel);
-      import_renderer.ipcRenderer.once(responseChannel, (event, message) => {
-        const ports = (event.ports ?? []).filter((port) => port !== void 0);
-        if (ports.length === 0) {
-          console.error("[Noxus] No MessagePort received from main process.");
-          return;
-        }
-        for (const port of ports) {
-          try {
-            port.start();
-          } catch (error) {
-            console.error("[Noxus] Failed to start MessagePort.", error);
-          }
-        }
-        targetWindow.postMessage({
-          type: initMessageType,
-          senderId: message?.senderId
-        }, "*", ports);
-      });
-    }, "requestPort")
-  };
-  import_renderer.contextBridge.exposeInMainWorld(exposeAs, api);
-  return api;
-}
-__name(exposeNoxusBridge, "exposeNoxusBridge");
-
-// src/renderer-events.ts
-var _RendererEventRegistry = class _RendererEventRegistry {
-  constructor() {
-    __publicField(this, "listeners", /* @__PURE__ */ new Map());
-  }
-  /**
-   *
-   */
-  subscribe(eventName, handler) {
-    const normalizedEventName = eventName.trim();
-    if (normalizedEventName.length === 0) {
-      throw new Error("Renderer event name must be a non-empty string.");
-    }
-    const handlers = this.listeners.get(normalizedEventName) ?? /* @__PURE__ */ new Set();
-    handlers.add(handler);
-    this.listeners.set(normalizedEventName, handlers);
-    return {
-      unsubscribe: /* @__PURE__ */ __name(() => this.unsubscribe(normalizedEventName, handler), "unsubscribe")
-    };
-  }
-  /**
-   *
-   */
-  unsubscribe(eventName, handler) {
-    const handlers = this.listeners.get(eventName);
-    if (!handlers) {
-      return;
-    }
-    handlers.delete(handler);
-    if (handlers.size === 0) {
-      this.listeners.delete(eventName);
-    }
-  }
-  /**
-   *
-   */
-  clear(eventName) {
-    if (eventName) {
-      this.listeners.delete(eventName);
-      return;
-    }
-    this.listeners.clear();
-  }
-  /**
-   *
-   */
-  dispatch(message) {
-    const handlers = this.listeners.get(message.event);
-    if (!handlers || handlers.size === 0) {
-      return;
-    }
-    handlers.forEach((handler) => {
-      try {
-        handler(message.payload);
-      } catch (error) {
-        console.error(`[Noxus] Renderer event handler for "${message.event}" threw an error.`, error);
-      }
-    });
-  }
-  /**
-   *
-   */
-  tryDispatchFromMessageEvent(event) {
-    if (!isRendererEventMessage(event.data)) {
-      return false;
-    }
-    this.dispatch(event.data);
-    return true;
-  }
-  /**
-   *
-   */
-  hasHandlers(eventName) {
-    const handlers = this.listeners.get(eventName);
-    return !!handlers && handlers.size > 0;
-  }
-};
-__name(_RendererEventRegistry, "RendererEventRegistry");
-var RendererEventRegistry = _RendererEventRegistry;
-
-// src/renderer-client.ts
-var DEFAULT_INIT_EVENT2 = "init-port";
-var DEFAULT_BRIDGE_NAMES = [
-  "noxus",
-  "ipcRenderer"
-];
-function defaultRequestId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `${Date.now().toString(16)}-${Math.floor(Math.random() * 1e8).toString(16)}`;
-}
-__name(defaultRequestId, "defaultRequestId");
-function normalizeBridgeNames(preferred) {
-  const names = [];
-  const add = /* @__PURE__ */ __name((name) => {
-    if (!name) return;
-    if (!names.includes(name)) {
-      names.push(name);
-    }
-  }, "add");
-  if (Array.isArray(preferred)) {
-    for (const name of preferred) {
-      add(name);
-    }
-  } else {
-    add(preferred);
-  }
-  for (const fallback of DEFAULT_BRIDGE_NAMES) {
-    add(fallback);
-  }
-  return names;
-}
-__name(normalizeBridgeNames, "normalizeBridgeNames");
-function resolveBridgeFromWindow(windowRef, preferred) {
-  const names = normalizeBridgeNames(preferred);
-  const globalRef = windowRef;
-  if (!globalRef) {
-    return null;
-  }
-  for (const name of names) {
-    const candidate = globalRef[name];
-    if (candidate && typeof candidate.requestPort === "function") {
-      return candidate;
-    }
-  }
-  return null;
-}
-__name(resolveBridgeFromWindow, "resolveBridgeFromWindow");
-var _NoxRendererClient = class _NoxRendererClient {
-  constructor(options = {}) {
-    __publicField(this, "events", new RendererEventRegistry());
-    __publicField(this, "pendingRequests", /* @__PURE__ */ new Map());
-    __publicField(this, "requestPort");
-    __publicField(this, "socketPort");
-    __publicField(this, "senderId");
-    __publicField(this, "bridge");
-    __publicField(this, "initMessageType");
-    __publicField(this, "windowRef");
-    __publicField(this, "generateRequestId");
-    __publicField(this, "isReady", false);
-    __publicField(this, "setupPromise");
-    __publicField(this, "setupResolve");
-    __publicField(this, "setupReject");
-    __publicField(this, "onWindowMessage", /* @__PURE__ */ __name((event) => {
-      if (event.data?.type !== this.initMessageType) {
-        return;
-      }
-      if (!Array.isArray(event.ports) || event.ports.length < 2) {
-        const error = new Error("[Noxus] Renderer expected two MessagePorts (request + socket).");
-        console.error(error);
-        this.setupReject?.(error);
-        this.resetSetupState();
-        return;
-      }
-      this.windowRef.removeEventListener("message", this.onWindowMessage);
-      this.requestPort = event.ports[0];
-      this.socketPort = event.ports[1];
-      this.senderId = event.data.senderId;
-      if (this.requestPort === void 0 || this.socketPort === void 0) {
-        const error = new Error("[Noxus] Renderer failed to receive valid MessagePorts.");
-        console.error(error);
-        this.setupReject?.(error);
-        this.resetSetupState();
-        return;
-      }
-      this.attachRequestPort(this.requestPort);
-      this.attachSocketPort(this.socketPort);
-      this.isReady = true;
-      this.setupResolve?.();
-      this.resetSetupState(true);
-    }, "onWindowMessage"));
-    __publicField(this, "onSocketMessage", /* @__PURE__ */ __name((event) => {
-      if (this.events.tryDispatchFromMessageEvent(event)) {
-        return;
-      }
-      console.warn("[Noxus] Received a socket message that is not a renderer event payload.", event.data);
-    }, "onSocketMessage"));
-    __publicField(this, "onRequestMessage", /* @__PURE__ */ __name((event) => {
-      if (this.events.tryDispatchFromMessageEvent(event)) {
-        return;
-      }
-      const response = event.data;
-      if (!response || typeof response.requestId !== "string") {
-        console.error("[Noxus] Renderer received an invalid response payload.", response);
-        return;
-      }
-      const pending = this.pendingRequests.get(response.requestId);
-      if (!pending) {
-        console.error(`[Noxus] No pending handler found for request ${response.requestId}.`);
-        return;
-      }
-      this.pendingRequests.delete(response.requestId);
-      this.onRequestCompleted(pending, response);
-      if (response.status >= 400) {
-        pending.reject(response);
-        return;
-      }
-      pending.resolve(response.body);
-    }, "onRequestMessage"));
-    this.windowRef = options.windowRef ?? window;
-    const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
-    this.bridge = resolvedBridge ?? null;
-    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT2;
-    this.generateRequestId = options.generateRequestId ?? defaultRequestId;
-  }
-  async setup() {
-    if (this.isReady) {
-      return Promise.resolve();
-    }
-    if (this.setupPromise) {
-      return this.setupPromise;
-    }
-    if (!this.bridge || typeof this.bridge.requestPort !== "function") {
-      throw new Error("[Noxus] Renderer bridge is missing requestPort().");
-    }
-    this.setupPromise = new Promise((resolve, reject) => {
-      this.setupResolve = resolve;
-      this.setupReject = reject;
-    });
-    this.windowRef.addEventListener("message", this.onWindowMessage);
-    this.bridge.requestPort();
-    return this.setupPromise;
-  }
-  dispose() {
-    this.windowRef.removeEventListener("message", this.onWindowMessage);
-    this.requestPort?.close();
-    this.socketPort?.close();
-    this.requestPort = void 0;
-    this.socketPort = void 0;
-    this.senderId = void 0;
-    this.isReady = false;
-    this.pendingRequests.clear();
-  }
-  async request(request) {
-    const senderId = this.senderId;
-    const requestId = this.generateRequestId();
-    if (senderId === void 0) {
-      return Promise.reject(this.createErrorResponse(requestId, "MessagePort is not available"));
-    }
-    const readinessError = this.validateReady(requestId);
-    if (readinessError) {
-      return Promise.reject(readinessError);
-    }
-    const message = {
-      requestId,
-      senderId,
-      ...request
-    };
-    return new Promise((resolve, reject) => {
-      const pending = {
-        resolve,
-        reject: /* @__PURE__ */ __name((response) => reject(response), "reject"),
-        request: message,
-        submittedAt: Date.now()
-      };
-      this.pendingRequests.set(message.requestId, pending);
-      this.requestPort.postMessage(message);
-    });
-  }
-  async batch(requests) {
-    return this.request({
-      method: "BATCH",
-      path: "",
-      body: {
-        requests
-      }
-    });
-  }
-  getSenderId() {
-    return this.senderId;
-  }
-  onRequestCompleted(pending, response) {
-    if (typeof console.groupCollapsed === "function") {
-      console.groupCollapsed(`${response.status} ${pending.request.method} /${pending.request.path}`);
-    }
-    if (response.error) {
-      console.error("error message:", response.error);
-    }
-    if (response.body !== void 0) {
-      console.info("response:", response.body);
-    }
-    console.info("request:", pending.request);
-    console.info(`Request duration: ${Date.now() - pending.submittedAt} ms`);
-    if (typeof console.groupCollapsed === "function") {
-      console.groupEnd();
-    }
-  }
-  attachRequestPort(port) {
-    port.onmessage = this.onRequestMessage;
-    port.start();
-  }
-  attachSocketPort(port) {
-    port.onmessage = this.onSocketMessage;
-    port.start();
-  }
-  validateReady(requestId) {
-    if (!this.isElectronEnvironment()) {
-      return this.createErrorResponse(requestId, "Not running in Electron environment");
-    }
-    if (!this.requestPort) {
-      return this.createErrorResponse(requestId, "MessagePort is not available");
-    }
-    return void 0;
-  }
-  createErrorResponse(requestId, message) {
-    return {
-      status: 500,
-      requestId,
-      error: message
-    };
-  }
-  resetSetupState(success = false) {
-    if (!success) {
-      this.setupPromise = void 0;
-    }
-    this.setupResolve = void 0;
-    this.setupReject = void 0;
-  }
-  isElectronEnvironment() {
-    return typeof window !== "undefined" && /Electron/.test(window.navigator.userAgent);
-  }
-};
-__name(_NoxRendererClient, "NoxRendererClient");
-var NoxRendererClient = _NoxRendererClient;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AppInjector,
@@ -2211,7 +1993,6 @@ var NoxRendererClient = _NoxRendererClient;
   NotFoundException,
   NotImplementedException,
   NoxApp,
-  NoxRendererClient,
   NoxSocket,
   Patch,
   PaymentRequiredException,
@@ -2219,7 +2000,6 @@ var NoxRendererClient = _NoxRendererClient;
   Put,
   RENDERER_EVENT_TYPE,
   ROUTE_METADATA_KEY,
-  RendererEventRegistry,
   Request,
   RequestTimeoutException,
   ResponseException,
@@ -2233,7 +2013,6 @@ var NoxRendererClient = _NoxRendererClient;
   VariantAlsoNegotiatesException,
   bootstrapApplication,
   createRendererEventMessage,
-  exposeNoxusBridge,
   forwardRef,
   getControllerMetadata,
   getGuardForController,
