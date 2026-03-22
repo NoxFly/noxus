@@ -1428,18 +1428,24 @@ var WindowManager = class {
    * win.loadFile('index.html');
    */
   async createSplash(options = {}) {
-    const { animationDuration = 600, ...bwOptions } = options;
+    const {
+      animationDuration = 10,
+      expandToWorkArea = true,
+      ...bwOptions
+    } = options;
     const win = new import_main.BrowserWindow({
       width: 600,
       height: 600,
       center: true,
-      frame: false,
       show: true,
       ...bwOptions
     });
     this._register(win, true);
     Logger.log(`[WindowManager] Splash window #${win.id} created`);
-    await this._expandToWorkArea(win, animationDuration);
+    if (expandToWorkArea) {
+      await (() => new Promise((r) => setTimeout(r, 500)))();
+      await this._expandToWorkArea(win, animationDuration);
+    }
     return win;
   }
   // -------------------------------------------------------------------------
@@ -1498,7 +1504,9 @@ var WindowManager = class {
    */
   broadcast(channel, ...args) {
     for (const win of this._windows.values()) {
-      if (!win.isDestroyed()) win.webContents.send(channel, ...args);
+      if (!win.isDestroyed()) {
+        win.webContents.send(channel, ...args);
+      }
     }
   }
   // -------------------------------------------------------------------------
@@ -1511,7 +1519,9 @@ var WindowManager = class {
     }
     win.once("closed", () => {
       this._windows.delete(win.id);
-      if (this._mainWindowId === win.id) this._mainWindowId = void 0;
+      if (this._mainWindowId === win.id) {
+        this._mainWindowId = void 0;
+      }
       Logger.log(`[WindowManager] Window #${win.id} closed`);
     });
   }
@@ -1522,17 +1532,18 @@ var WindowManager = class {
    */
   _expandToWorkArea(win, animationDuration) {
     return new Promise((resolve) => {
-      const { x, y, width, height } = import_main.screen.getPrimaryDisplay().workArea;
-      win.setBounds({ x, y, width, height }, true);
+      win.maximize();
       let resolved = false;
       const done = /* @__PURE__ */ __name(() => {
-        if (resolved) return;
+        if (resolved) {
+          return;
+        }
         resolved = true;
         win.removeListener("resize", done);
         resolve();
       }, "done");
       win.once("resize", done);
-      setTimeout(done, animationDuration + 100);
+      setTimeout(done, animationDuration);
     });
   }
 };

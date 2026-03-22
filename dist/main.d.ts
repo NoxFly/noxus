@@ -347,6 +347,7 @@ declare class WindowManager {
      */
     createSplash(options?: Electron.BrowserWindowConstructorOptions & {
         animationDuration?: number;
+        expandToWorkArea?: boolean;
     }): Promise<BrowserWindow>;
     /** Returns all currently open windows. */
     getAll(): BrowserWindow[];

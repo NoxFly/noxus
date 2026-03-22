@@ -4,7 +4,7 @@
  * @author NoxFly
  */
 
-import { BrowserWindow, screen } from 'electron/main';
+import { BrowserWindow } from 'electron/main';
 import { Injectable } from '../decorators/injectable.decorator';
 import { Logger } from '../utils/logger';
 
@@ -114,15 +114,21 @@ export class WindowManager {
      * win.loadFile('index.html');
      */
     public async createSplash(
-        options: Electron.BrowserWindowConstructorOptions & { animationDuration?: number } = {},
+        options: Electron.BrowserWindowConstructorOptions & {
+            animationDuration?: number;
+            expandToWorkArea?: boolean;
+        } = {},
     ): Promise<BrowserWindow> {
-        const { animationDuration = 600, ...bwOptions } = options;
+        const {
+            animationDuration = 10,
+            expandToWorkArea = true,
+            ...bwOptions
+        } = options;
 
         const win = new BrowserWindow({
             width: 600,
             height: 600,
             center: true,
-            frame: false,
             show: true,
             ...bwOptions,
         });
@@ -131,7 +137,10 @@ export class WindowManager {
 
         Logger.log(`[WindowManager] Splash window #${win.id} created`);
 
-        await this._expandToWorkArea(win, animationDuration);
+        if(expandToWorkArea) {
+            await (() => new Promise((r) => setTimeout(r, 500)))();
+            await this._expandToWorkArea(win, animationDuration);
+        }
 
         return win;
     }
@@ -203,7 +212,9 @@ export class WindowManager {
      */
     public broadcast(channel: string, ...args: unknown[]): void {
         for (const win of this._windows.values()) {
-            if (!win.isDestroyed()) win.webContents.send(channel, ...args);
+            if (!win.isDestroyed()) {
+                win.webContents.send(channel, ...args);
+            }
         }
     }
 
@@ -220,7 +231,9 @@ export class WindowManager {
 
         win.once('closed', () => {
             this._windows.delete(win.id);
-            if (this._mainWindowId === win.id) this._mainWindowId = undefined;
+            if (this._mainWindowId === win.id) {
+                this._mainWindowId = undefined;
+            }
             Logger.log(`[WindowManager] Window #${win.id} closed`);
         });
     }
@@ -232,9 +245,7 @@ export class WindowManager {
      */
     private _expandToWorkArea(win: BrowserWindow, animationDuration: number): Promise<void> {
         return new Promise((resolve) => {
-            const { x, y, width, height } = screen.getPrimaryDisplay().workArea;
-
-            win.setBounds({ x, y, width, height }, true);
+            win.maximize();
 
             // Wait for the animation to finish before resolving.
             // We listen to the 'resize' event which fires once the OS
@@ -242,14 +253,16 @@ export class WindowManager {
             let resolved = false;
 
             const done = (): void => {
-                if (resolved) return;
+                if (resolved) {
+                    return;
+                }
                 resolved = true;
                 win.removeListener('resize', done);
                 resolve();
             };
 
             win.once('resize', done);
-            setTimeout(done, animationDuration + 100); // safety fallback
+            setTimeout(done, animationDuration);
         });
     }
 }
