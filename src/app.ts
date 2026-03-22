@@ -8,6 +8,7 @@ import { app, BrowserWindow, ipcMain, MessageChannelMain } from "electron/main";
 import { Injectable } from "src/decorators/injectable.decorator";
 import { IMiddleware } from "src/decorators/middleware.decorator";
 import { inject } from "src/DI/app-injector";
+import { InjectorExplorer } from "src/DI/injector-explorer";
 import { IRequest, IResponse, Request } from "src/request";
 import { NoxSocket } from "src/socket";
 import { Router } from "src/router";
@@ -21,7 +22,7 @@ import { Type } from "src/utils/types";
  */
 export interface IApp {
     dispose(): Promise<void>;
-    onReady(): Promise<void>;
+    onReady(mainWindow?: BrowserWindow): Promise<void>;
     onActivated(): Promise<void>;
 }
 
@@ -32,6 +33,7 @@ export interface IApp {
 @Injectable('singleton')
 export class NoxApp {
     private app: IApp | undefined;
+    private mainWindow: BrowserWindow | undefined;
 
     /**
      *
@@ -164,6 +166,51 @@ export class NoxApp {
     // ---
 
     /**
+     * Sets the main BrowserWindow that was created early by bootstrapApplication.
+     * This window will be passed to IApp.onReady when start() is called.
+     * @param window - The BrowserWindow created during bootstrap.
+     */
+    public setMainWindow(window: BrowserWindow): void {
+        this.mainWindow = window;
+    }
+
+    /**
+     * Registers a lazy-loaded route. The module behind this path prefix
+     * will only be dynamically imported when the first IPC request
+     * targets this prefix — like Angular's loadChildren.
+     *
+     * @example
+     * ```ts
+     * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
+     * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
+     * ```
+     *
+     * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
+     * @param loadModule - A function returning a dynamic import promise.
+     * @returns NoxApp instance for method chaining.
+     */
+    public lazy(pathPrefix: string, loadModule: () => Promise<unknown>): NoxApp {
+        this.router.registerLazyRoute(pathPrefix, loadModule);
+        return this;
+    }
+
+    /**
+     * Eagerly loads one or more modules with a two-phase DI guarantee.
+     * Use this when a service needed at startup lives inside a module
+     * (e.g. the Application service depends on LoaderService).
+     *
+     * All dynamic imports run in parallel; bindings are registered first,
+     * then singletons are resolved — safe regardless of import ordering.
+     *
+     * @param importFns - Functions returning dynamic import promises.
+     */
+    public async loadModules(importFns: Array<() => Promise<unknown>>): Promise<void> {
+        InjectorExplorer.beginAccumulate();
+        await Promise.all(importFns.map(fn => fn()));
+        InjectorExplorer.flushAccumulated();
+    }
+
+    /**
      * Configures the NoxApp instance with the provided application class.
      * This method allows you to set the application class that will handle lifecycle events.
      * @param app - The application class to configure.
@@ -187,10 +234,11 @@ export class NoxApp {
 
     /**
      * Should be called after the bootstrapApplication function is called.
+     * Passes the early-created BrowserWindow (if any) to the configured IApp service.
      * @returns NoxApp instance for method chaining.
      */
     public start(): NoxApp {
-        this.app?.onReady();
+        this.app?.onReady(this.mainWindow);
         return this;
     }
 }

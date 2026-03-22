@@ -33,6 +33,7 @@ __export(src_exports, {
   RendererEventRegistry: () => RendererEventRegistry,
   Request: () => Request,
   createRendererEventMessage: () => createRendererEventMessage,
+  exposeNoxusBridge: () => exposeNoxusBridge,
   isRendererEventMessage: () => isRendererEventMessage
 });
 module.exports = __toCommonJS(src_exports);
@@ -217,6 +218,42 @@ function isRendererEventMessage(value) {
 }
 __name(isRendererEventMessage, "isRendererEventMessage");
 
+// src/preload-bridge.ts
+var import_renderer = require("electron/renderer");
+var DEFAULT_EXPOSE_NAME = "noxus";
+var DEFAULT_INIT_EVENT = "init-port";
+var DEFAULT_REQUEST_CHANNEL = "gimme-my-port";
+var DEFAULT_RESPONSE_CHANNEL = "port";
+function exposeNoxusBridge(options = {}) {
+  const { exposeAs = DEFAULT_EXPOSE_NAME, initMessageType = DEFAULT_INIT_EVENT, requestChannel = DEFAULT_REQUEST_CHANNEL, responseChannel = DEFAULT_RESPONSE_CHANNEL, targetWindow = window } = options;
+  const api = {
+    requestPort: /* @__PURE__ */ __name(() => {
+      import_renderer.ipcRenderer.send(requestChannel);
+      import_renderer.ipcRenderer.once(responseChannel, (event, message) => {
+        const ports = (event.ports ?? []).filter((port) => port !== void 0);
+        if (ports.length === 0) {
+          console.error("[Noxus] No MessagePort received from main process.");
+          return;
+        }
+        for (const port of ports) {
+          try {
+            port.start();
+          } catch (error) {
+            console.error("[Noxus] Failed to start MessagePort.", error);
+          }
+        }
+        targetWindow.postMessage({
+          type: initMessageType,
+          senderId: message?.senderId
+        }, "*", ports);
+      });
+    }, "requestPort")
+  };
+  import_renderer.contextBridge.exposeInMainWorld(exposeAs, api);
+  return api;
+}
+__name(exposeNoxusBridge, "exposeNoxusBridge");
+
 // src/renderer-events.ts
 var _RendererEventRegistry = class _RendererEventRegistry {
   constructor() {
@@ -298,7 +335,7 @@ __name(_RendererEventRegistry, "RendererEventRegistry");
 var RendererEventRegistry = _RendererEventRegistry;
 
 // src/renderer-client.ts
-var DEFAULT_INIT_EVENT = "init-port";
+var DEFAULT_INIT_EVENT2 = "init-port";
 var DEFAULT_BRIDGE_NAMES = [
   "noxus",
   "ipcRenderer"
@@ -420,7 +457,7 @@ var _NoxRendererClient = class _NoxRendererClient {
     this.windowRef = options.windowRef ?? window;
     const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
     this.bridge = resolvedBridge ?? null;
-    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
+    this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT2;
     this.generateRequestId = options.generateRequestId ?? defaultRequestId;
   }
   async setup() {
@@ -549,6 +586,7 @@ var NoxRendererClient = _NoxRendererClient;
   RendererEventRegistry,
   Request,
   createRendererEventMessage,
+  exposeNoxusBridge,
   isRendererEventMessage
 });
 /**

@@ -12,6 +12,7 @@ export default defineConfig({
     entry: {
         renderer: "src/index.ts",
         main: "src/main.ts",
+        child: "src/non-electron-process.ts",
     },
     keepNames: true,
     minifyIdentifiers: false,

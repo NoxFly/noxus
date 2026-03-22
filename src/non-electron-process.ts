@@ -5,26 +5,19 @@
  */
 
 /**
- * Entry point for Electron main-process consumers.
+ * Entry point for nodeJS non-electron process consumers.
+ * For instance, if main process creates a child process that
+ * wants to use Logger and DI.
+ * Child processes must not try to communicate with the renderer
+ * process.
  * order of exports here matters and can affect module resolution.
  * Please be cautious when modifying.
  */
 
 export * from './DI/app-injector';
-export * from './router';
-export * from './app';
-export * from './bootstrap';
 export * from './exceptions';
-export * from './decorators/middleware.decorator';
-export * from './decorators/guards.decorator';
-export * from './decorators/controller.decorator';
 export * from './decorators/injectable.decorator';
 export * from './decorators/inject.decorator';
-export * from './decorators/method.decorator';
-export * from './decorators/module.decorator';
 export * from './utils/logger';
 export * from './utils/types';
 export * from './utils/forward-ref';
-export * from './request';
-export * from './socket';
-

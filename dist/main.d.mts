@@ -1,5 +1,9 @@
-import { R as Request, I as IResponse, M as MaybeAsync, T as Type, a as IGuard, L as Lifetime, b as IPortRequester } from './index-Dr-ifUJj.mjs';
-export { A as AppInjector, j as AtomicHttpMethod, e as Authorize, D as Delete, F as ForwardRefFn, o as ForwardReference, G as Get, H as HttpMethod, r as IBatchRequestItem, s as IBatchRequestPayload, t as IBatchResponsePayload, c as IBinding, v as IRendererEventMessage, q as IRequest, h as IRouteMetadata, N as NoxRendererClient, m as Patch, P as Post, l as Put, u as RENDERER_EVENT_TYPE, n as ROUTE_METADATA_KEY, C as RendererClientOptions, y as RendererEventHandler, B as RendererEventRegistry, z as RendererEventSubscription, d as RootInjector, w as createRendererEventMessage, p as forwardRef, g as getGuardForController, f as getGuardForControllerAction, k as getRouteMetadata, i as inject, x as isRendererEventMessage } from './index-Dr-ifUJj.mjs';
+import { M as MaybeAsync, T as Type } from './app-injector-B3MvgV3k.mjs';
+export { A as AppInjector, F as ForwardRefFn, a as ForwardReference, I as IBinding, L as Lifetime, R as RootInjector, f as forwardRef, i as inject } from './app-injector-B3MvgV3k.mjs';
+import { R as Request, a as IResponse, h as IGuard } from './request-Dx_5Prte.mjs';
+export { A as AtomicHttpMethod, j as Authorize, D as Delete, G as Get, H as HttpMethod, c as IBatchRequestItem, e as IBatchRequestPayload, d as IBatchResponsePayload, I as IRendererEventMessage, b as IRequest, m as IRouteMetadata, p as Patch, P as Post, o as Put, f as RENDERER_EVENT_TYPE, q as ROUTE_METADATA_KEY, g as createRendererEventMessage, k as getGuardForController, l as getGuardForControllerAction, n as getRouteMetadata, i as isRendererEventMessage } from './request-Dx_5Prte.mjs';
+import { BrowserWindow } from 'electron/main';
+export { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, Inject, Injectable, InsufficientStorageException, InternalServerException, LogLevel, Logger, LoopDetectedException, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, ServiceUnavailableException, TooManyRequestsException, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, getInjectableMetadata, hasInjectableMetadata } from './child.mjs';
 
 /**
  * @copyright 2025 NoxFly
@@ -48,6 +52,16 @@ declare function getMiddlewaresForControllerAction(controllerName: string, actio
 
 
 /**
+ * A lazy route entry maps a path prefix to a dynamic import function.
+ * The module is loaded on the first request matching the prefix.
+ */
+interface ILazyRoute {
+    /** Path prefix (e.g. "auth", "printing"). Matched against the first segment(s) of the request path. */
+    path: string;
+    /** Dynamic import function returning the module file. */
+    loadModule: () => Promise<unknown>;
+}
+/**
  * IRouteDefinition interface defines the structure of a route in the application.
  * It includes the HTTP method, path, controller class, handler method name,
  * guards, and middlewares associated with the route.
@@ -72,6 +86,7 @@ type ControllerAction = (request: Request, response: IResponse) => any;
 declare class Router {
     private readonly routes;
     private readonly rootMiddlewares;
+    private readonly lazyRoutes;
     /**
      * Registers a controller class with the router.
      * This method extracts the route metadata from the controller class and registers it in the routing tree.
@@ -79,6 +94,15 @@ declare class Router {
      * @param controllerClass - The controller class to register.
      */
     registerController(controllerClass: Type<unknown>): Router;
+    /**
+     * Registers a lazy route. The module behind this route prefix will only
+     * be imported (and its controllers/services registered in DI) the first
+     * time a request targets this prefix.
+     *
+     * @param pathPrefix - Route prefix (e.g. "auth"). Matched against the first segment of the request path.
+     * @param loadModule - A function that returns a dynamic import promise.
+     */
+    registerLazyRoute(pathPrefix: string, loadModule: () => Promise<unknown>): Router;
     /**
      * Defines a middleware for the root of the application.
      * This method allows you to register a middleware that will be applied to all requests
@@ -104,7 +128,28 @@ declare class Router {
      * @param request - The Request object containing the method and path to search for.
      * @returns The IRouteDefinition for the matched route.
      */
+    /**
+     * Attempts to find a route definition for the given request.
+     * Returns undefined instead of throwing when the route is not found,
+     * so the caller can try lazy-loading first.
+     */
+    private tryFindRoute;
+    /**
+     * Finds the route definition for a given request.
+     * If no eagerly-registered route matches, attempts to load a lazy module
+     * whose prefix matches the request path, then retries.
+     */
     private findRoute;
+    /**
+     * Given a request path, checks whether a lazy route prefix matches
+     * and triggers the dynamic import if it hasn't been loaded yet.
+     */
+    private tryLoadLazyRoute;
+    /**
+     * Dynamically imports a lazy module and registers its decorated classes
+     * (controllers, services) in the DI container using the two-phase strategy.
+     */
+    private loadLazyModule;
     /**
      * Resolves the controller for a given route definition.
      * This method creates an instance of the controller class and prepares the request parameters.
@@ -182,7 +227,7 @@ declare class NoxSocket {
  */
 interface IApp {
     dispose(): Promise<void>;
-    onReady(): Promise<void>;
+    onReady(mainWindow?: BrowserWindow): Promise<void>;
     onActivated(): Promise<void>;
 }
 /**
@@ -193,6 +238,7 @@ declare class NoxApp {
     private readonly router;
     private readonly socket;
     private app;
+    private mainWindow;
     /**
      *
      */
@@ -229,6 +275,39 @@ declare class NoxApp {
      */
     private onAllWindowsClosed;
     /**
+     * Sets the main BrowserWindow that was created early by bootstrapApplication.
+     * This window will be passed to IApp.onReady when start() is called.
+     * @param window - The BrowserWindow created during bootstrap.
+     */
+    setMainWindow(window: BrowserWindow): void;
+    /**
+     * Registers a lazy-loaded route. The module behind this path prefix
+     * will only be dynamically imported when the first IPC request
+     * targets this prefix — like Angular's loadChildren.
+     *
+     * @example
+     * ```ts
+     * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
+     * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
+     * ```
+     *
+     * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
+     * @param loadModule - A function returning a dynamic import promise.
+     * @returns NoxApp instance for method chaining.
+     */
+    lazy(pathPrefix: string, loadModule: () => Promise<unknown>): NoxApp;
+    /**
+     * Eagerly loads one or more modules with a two-phase DI guarantee.
+     * Use this when a service needed at startup lives inside a module
+     * (e.g. the Application service depends on LoaderService).
+     *
+     * All dynamic imports run in parallel; bindings are registered first,
+     * then singletons are resolved — safe regardless of import ordering.
+     *
+     * @param importFns - Functions returning dynamic import promises.
+     */
+    loadModules(importFns: Array<() => Promise<unknown>>): Promise<void>;
+    /**
      * Configures the NoxApp instance with the provided application class.
      * This method allows you to set the application class that will handle lifecycle events.
      * @param app - The application class to configure.
@@ -244,6 +323,7 @@ declare class NoxApp {
     use(middleware: Type<IMiddleware>): NoxApp;
     /**
      * Should be called after the bootstrapApplication function is called.
+     * Passes the early-created BrowserWindow (if any) to the configured IApp service.
      * @returns NoxApp instance for method chaining.
      */
     start(): NoxApp;
@@ -251,89 +331,32 @@ declare class NoxApp {
 
 
 /**
+ * Options for bootstrapping the Noxus application.
+ */
+interface BootstrapOptions {
+    /**
+     * If provided, Noxus creates a BrowserWindow immediately after Electron is ready,
+     * before any DI processing occurs. This window is passed to the configured
+     * IApp service via onReady(). It allows the user to see a window as fast as possible,
+     * even before the application is fully initialized.
+     */
+    window?: Electron.BrowserWindowConstructorOptions;
+}
+/**
  * Bootstraps the Noxus application.
  * This function initializes the application by creating an instance of NoxApp,
  * registering the root module, and starting the application.
+ *
+ * When {@link BootstrapOptions.window} is provided, a BrowserWindow is created
+ * immediately after Electron readiness — before DI resolution — so the user
+ * sees a window as quickly as possible.
+ *
  * @param rootModule - The root module of the application, decorated with @Module.
+ * @param options - Optional bootstrap configuration.
  * @return A promise that resolves to the NoxApp instance.
  * @throws Error if the root module is not decorated with @Module, or if the electron process could not start.
  */
-declare function bootstrapApplication(rootModule: Type<any>): Promise<NoxApp>;
-
-declare class ResponseException extends Error {
-    readonly status: number;
-    constructor(message?: string);
-    constructor(statusCode?: number, message?: string);
-}
-declare class BadRequestException extends ResponseException {
-    readonly status = 400;
-}
-declare class UnauthorizedException extends ResponseException {
-    readonly status = 401;
-}
-declare class PaymentRequiredException extends ResponseException {
-    readonly status = 402;
-}
-declare class ForbiddenException extends ResponseException {
-    readonly status = 403;
-}
-declare class NotFoundException extends ResponseException {
-    readonly status = 404;
-}
-declare class MethodNotAllowedException extends ResponseException {
-    readonly status = 405;
-}
-declare class NotAcceptableException extends ResponseException {
-    readonly status = 406;
-}
-declare class RequestTimeoutException extends ResponseException {
-    readonly status = 408;
-}
-declare class ConflictException extends ResponseException {
-    readonly status = 409;
-}
-declare class UpgradeRequiredException extends ResponseException {
-    readonly status = 426;
-}
-declare class TooManyRequestsException extends ResponseException {
-    readonly status = 429;
-}
-declare class InternalServerException extends ResponseException {
-    readonly status = 500;
-}
-declare class NotImplementedException extends ResponseException {
-    readonly status = 501;
-}
-declare class BadGatewayException extends ResponseException {
-    readonly status = 502;
-}
-declare class ServiceUnavailableException extends ResponseException {
-    readonly status = 503;
-}
-declare class GatewayTimeoutException extends ResponseException {
-    readonly status = 504;
-}
-declare class HttpVersionNotSupportedException extends ResponseException {
-    readonly status = 505;
-}
-declare class VariantAlsoNegotiatesException extends ResponseException {
-    readonly status = 506;
-}
-declare class InsufficientStorageException extends ResponseException {
-    readonly status = 507;
-}
-declare class LoopDetectedException extends ResponseException {
-    readonly status = 508;
-}
-declare class NotExtendedException extends ResponseException {
-    readonly status = 510;
-}
-declare class NetworkAuthenticationRequiredException extends ResponseException {
-    readonly status = 511;
-}
-declare class NetworkConnectTimeoutException extends ResponseException {
-    readonly status = 599;
-}
+declare function bootstrapApplication(rootModule?: Type<any> | null, options?: BootstrapOptions): Promise<NoxApp>;
 
 
 /**
@@ -359,30 +382,6 @@ declare function Controller(path: string): ClassDecorator;
 declare function getControllerMetadata(target: Type<unknown>): IControllerMetadata | undefined;
 declare const CONTROLLER_METADATA_KEY: unique symbol;
 
-declare const INJECTABLE_METADATA_KEY: unique symbol;
-declare function getInjectableMetadata(target: Function): Lifetime | undefined;
-declare function hasInjectableMetadata(target: Function): boolean;
-
-
-/**
- * The Injectable decorator marks a class as injectable.
- * It allows the class to be registered in the dependency injection system.
- * A class decorated with @Injectable can be injected into other classes
- * either from the constructor of the class that needs it of from the `inject` function.
- * @param lifetime - The lifetime of the injectable. Can be 'singleton', 'scope', or 'transient'.
- */
-declare function Injectable(lifetime?: Lifetime): ClassDecorator;
-
-
-declare const INJECT_METADATA_KEY = "custom:inject";
-/**
- * Decorator to manually inject a dependency.
- * Useful for handling circular dependencies with `forwardRef` or injecting specific tokens.
- *
- * @param token The token or forward reference to inject.
- */
-declare function Inject(token: any): ParameterDecorator;
-
 
 interface IModuleMetadata {
     imports?: Type<unknown>[];
@@ -400,122 +399,4 @@ declare function Module(metadata: IModuleMetadata): ClassDecorator;
 declare function getModuleMetadata(target: Function): IModuleMetadata | undefined;
 declare const MODULE_METADATA_KEY: unique symbol;
 
-
-interface NoxusPreloadAPI extends IPortRequester {
-}
-interface NoxusPreloadOptions {
-    exposeAs?: string;
-    initMessageType?: string;
-    requestChannel?: string;
-    responseChannel?: string;
-    targetWindow?: Window;
-}
-/**
- * Exposes a minimal bridge in the isolated preload context so renderer processes
- * can request the two MessagePorts required by Noxus. The bridge forwards both
- * request/response and socket ports to the renderer via window.postMessage.
- */
-declare function exposeNoxusBridge(options?: NoxusPreloadOptions): NoxusPreloadAPI;
-
-/**
- * Logger is a utility class for logging messages to the console.
- */
-type LogLevel = 'debug' | 'comment' | 'log' | 'info' | 'warn' | 'error' | 'critical';
-declare namespace Logger {
-    /**
-     * Sets the log level for the logger.
-     * This function allows you to change the log level dynamically at runtime.
-     * This won't affect the startup logs.
-     *
-     * If the parameter is a single LogLevel, all log levels with equal or higher severity will be enabled.
-
-    * If the parameter is an array of LogLevels, only the specified levels will be enabled.
-     *
-     * @param level Sets the log level for the logger.
-     */
-    function setLogLevel(level: LogLevel | LogLevel[]): void;
-    /**
-     * Logs a message to the console with log level LOG.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function log(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level INFO.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function info(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level WARN.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function warn(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level ERROR.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function error(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level ERROR and a grey color scheme.
-     */
-    function errorStack(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level DEBUG.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function debug(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level COMMENT.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function comment(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level CRITICAL.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function critical(...args: any[]): void;
-    /**
-     * Enables logging to a file output for the specified log levels.
-     * @param filepath The path to the log file.
-     * @param levels The log levels to enable file logging for. Defaults to all levels.
-     */
-    function enableFileLogging(filepath: string, levels?: LogLevel[]): void;
-    /**
-     * Disables logging to a file output for the specified log levels.
-     * @param levels The log levels to disable file logging for. Defaults to all levels.
-     */
-    function disableFileLogging(levels?: LogLevel[]): void;
-    const colors: {
-        black: string;
-        grey: string;
-        red: string;
-        green: string;
-        brown: string;
-        blue: string;
-        purple: string;
-        darkGrey: string;
-        lightRed: string;
-        lightGreen: string;
-        yellow: string;
-        lightBlue: string;
-        magenta: string;
-        cyan: string;
-        white: string;
-        initial: string;
-    };
-}
-
-export { BadGatewayException, BadRequestException, CONTROLLER_METADATA_KEY, ConflictException, Controller, type ControllerAction, ForbiddenException, GatewayTimeoutException, HttpVersionNotSupportedException, type IApp, type IControllerMetadata, IGuard, type IMiddleware, type IModuleMetadata, INJECTABLE_METADATA_KEY, INJECT_METADATA_KEY, IPortRequester, IResponse, type IRouteDefinition, Inject, Injectable, InsufficientStorageException, InternalServerException, Lifetime, type LogLevel, Logger, LoopDetectedException, MODULE_METADATA_KEY, MaybeAsync, MethodNotAllowedException, Module, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, type NoxusPreloadAPI, type NoxusPreloadOptions, PaymentRequiredException, Request, RequestTimeoutException, ResponseException, Router, ServiceUnavailableException, TooManyRequestsException, Type, UnauthorizedException, UpgradeRequiredException, UseMiddlewares, VariantAlsoNegotiatesException, bootstrapApplication, exposeNoxusBridge, getControllerMetadata, getInjectableMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata, hasInjectableMetadata };
+export { type BootstrapOptions, CONTROLLER_METADATA_KEY, Controller, type ControllerAction, type IApp, type IControllerMetadata, IGuard, type ILazyRoute, type IMiddleware, type IModuleMetadata, IResponse, type IRouteDefinition, MODULE_METADATA_KEY, MaybeAsync, Module, type NextFunction, NoxApp, NoxSocket, Request, Router, Type, UseMiddlewares, bootstrapApplication, getControllerMetadata, getMiddlewaresForController, getMiddlewaresForControllerAction, getModuleMetadata };

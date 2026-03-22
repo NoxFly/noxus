@@ -35,21 +35,16 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-// src/main.ts
-var main_exports = {};
-__export(main_exports, {
+// src/non-electron-process.ts
+var non_electron_process_exports = {};
+__export(non_electron_process_exports, {
   AppInjector: () => AppInjector,
-  Authorize: () => Authorize,
   BadGatewayException: () => BadGatewayException,
   BadRequestException: () => BadRequestException,
-  CONTROLLER_METADATA_KEY: () => CONTROLLER_METADATA_KEY,
   ConflictException: () => ConflictException,
-  Controller: () => Controller,
-  Delete: () => Delete,
   ForbiddenException: () => ForbiddenException,
   ForwardReference: () => ForwardReference,
   GatewayTimeoutException: () => GatewayTimeoutException,
-  Get: () => Get,
   HttpVersionNotSupportedException: () => HttpVersionNotSupportedException,
   INJECTABLE_METADATA_KEY: () => INJECTABLE_METADATA_KEY,
   INJECT_METADATA_KEY: () => INJECT_METADATA_KEY,
@@ -59,50 +54,28 @@ __export(main_exports, {
   InternalServerException: () => InternalServerException,
   Logger: () => Logger,
   LoopDetectedException: () => LoopDetectedException,
-  MODULE_METADATA_KEY: () => MODULE_METADATA_KEY,
   MethodNotAllowedException: () => MethodNotAllowedException,
-  Module: () => Module,
   NetworkAuthenticationRequiredException: () => NetworkAuthenticationRequiredException,
   NetworkConnectTimeoutException: () => NetworkConnectTimeoutException,
   NotAcceptableException: () => NotAcceptableException,
   NotExtendedException: () => NotExtendedException,
   NotFoundException: () => NotFoundException,
   NotImplementedException: () => NotImplementedException,
-  NoxApp: () => NoxApp,
-  NoxSocket: () => NoxSocket,
-  Patch: () => Patch,
   PaymentRequiredException: () => PaymentRequiredException,
-  Post: () => Post,
-  Put: () => Put,
-  RENDERER_EVENT_TYPE: () => RENDERER_EVENT_TYPE,
-  ROUTE_METADATA_KEY: () => ROUTE_METADATA_KEY,
-  Request: () => Request,
   RequestTimeoutException: () => RequestTimeoutException,
   ResponseException: () => ResponseException,
   RootInjector: () => RootInjector,
-  Router: () => Router,
   ServiceUnavailableException: () => ServiceUnavailableException,
   TooManyRequestsException: () => TooManyRequestsException,
   UnauthorizedException: () => UnauthorizedException,
   UpgradeRequiredException: () => UpgradeRequiredException,
-  UseMiddlewares: () => UseMiddlewares,
   VariantAlsoNegotiatesException: () => VariantAlsoNegotiatesException,
-  bootstrapApplication: () => bootstrapApplication,
-  createRendererEventMessage: () => createRendererEventMessage,
   forwardRef: () => forwardRef,
-  getControllerMetadata: () => getControllerMetadata,
-  getGuardForController: () => getGuardForController,
-  getGuardForControllerAction: () => getGuardForControllerAction,
   getInjectableMetadata: () => getInjectableMetadata,
-  getMiddlewaresForController: () => getMiddlewaresForController,
-  getMiddlewaresForControllerAction: () => getMiddlewaresForControllerAction,
-  getModuleMetadata: () => getModuleMetadata,
-  getRouteMetadata: () => getRouteMetadata,
   hasInjectableMetadata: () => hasInjectableMetadata,
-  inject: () => inject,
-  isRendererEventMessage: () => isRendererEventMessage
+  inject: () => inject
 });
-module.exports = __toCommonJS(main_exports);
+module.exports = __toCommonJS(non_electron_process_exports);
 
 // src/DI/app-injector.ts
 var import_reflect_metadata2 = require("reflect-metadata");
@@ -433,28 +406,7 @@ function inject(t) {
 __name(inject, "inject");
 var RootInjector = new AppInjector("root");
 
-// src/router.ts
-var import_reflect_metadata4 = require("reflect-metadata");
-
 // src/decorators/guards.decorator.ts
-function Authorize(...guardClasses) {
-  return (target, propertyKey) => {
-    let key;
-    if (propertyKey) {
-      const ctrlName = target.constructor.name;
-      const actionName = propertyKey;
-      key = `${ctrlName}.${actionName}`;
-    } else {
-      const ctrlName = target.name;
-      key = `${ctrlName}`;
-    }
-    if (authorizations.has(key)) {
-      throw new Error(`Guard(s) already registered for ${key}`);
-    }
-    authorizations.set(key, guardClasses);
-  };
-}
-__name(Authorize, "Authorize");
 function getGuardForController(controllerName) {
   const key = `${controllerName}`;
   return authorizations.get(key) ?? [];
@@ -466,6 +418,13 @@ function getGuardForControllerAction(controllerName, actionName) {
 }
 __name(getGuardForControllerAction, "getGuardForControllerAction");
 var authorizations = /* @__PURE__ */ new Map();
+
+// src/decorators/controller.decorator.ts
+function getControllerMetadata(target) {
+  return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
+}
+__name(getControllerMetadata, "getControllerMetadata");
+var CONTROLLER_METADATA_KEY = Symbol("CONTROLLER_METADATA_KEY");
 
 // src/decorators/injectable.metadata.ts
 var INJECTABLE_METADATA_KEY = Symbol("INJECTABLE_METADATA_KEY");
@@ -511,46 +470,51 @@ var Delete = createRouteDecorator("DELETE");
 var ROUTE_METADATA_KEY = Symbol("ROUTE_METADATA_KEY");
 
 // src/decorators/module.decorator.ts
-function Module(metadata) {
-  return (target) => {
-    const checkModule = /* @__PURE__ */ __name((arr, arrName) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(MODULE_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in ${arrName} must be decorated with @Module`);
-        }
-      }
-    }, "checkModule");
-    const checkInjectable = /* @__PURE__ */ __name((arr) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(INJECTABLE_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in providers must be decorated with @Injectable`);
-        }
-      }
-    }, "checkInjectable");
-    const checkController = /* @__PURE__ */ __name((arr) => {
-      if (!arr) return;
-      for (const clazz of arr) {
-        if (!Reflect.getMetadata(CONTROLLER_METADATA_KEY, clazz)) {
-          throw new Error(`Class ${clazz.name} in controllers must be decorated with @Controller`);
-        }
-      }
-    }, "checkController");
-    checkModule(metadata.imports, "imports");
-    checkModule(metadata.exports, "exports");
-    checkInjectable(metadata.providers);
-    checkController(metadata.controllers);
-    Reflect.defineMetadata(MODULE_METADATA_KEY, metadata, target);
-    Injectable("singleton")(target);
-  };
-}
-__name(Module, "Module");
 function getModuleMetadata(target) {
   return Reflect.getMetadata(MODULE_METADATA_KEY, target);
 }
 __name(getModuleMetadata, "getModuleMetadata");
 var MODULE_METADATA_KEY = Symbol("MODULE_METADATA_KEY");
+
+// src/router.ts
+var import_reflect_metadata4 = require("reflect-metadata");
+
+// src/decorators/middleware.decorator.ts
+function getMiddlewaresForController(controllerName) {
+  const key = `${controllerName}`;
+  return middlewares.get(key) ?? [];
+}
+__name(getMiddlewaresForController, "getMiddlewaresForController");
+function getMiddlewaresForControllerAction(controllerName, actionName) {
+  const key = `${controllerName}.${actionName}`;
+  return middlewares.get(key) ?? [];
+}
+__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
+var middlewares = /* @__PURE__ */ new Map();
+
+// src/request.ts
+var import_reflect_metadata3 = require("reflect-metadata");
+var _Request = class _Request {
+  constructor(event, senderId, id, method, path2, body) {
+    __publicField(this, "event");
+    __publicField(this, "senderId");
+    __publicField(this, "id");
+    __publicField(this, "method");
+    __publicField(this, "path");
+    __publicField(this, "body");
+    __publicField(this, "context", RootInjector.createScope());
+    __publicField(this, "params", {});
+    this.event = event;
+    this.senderId = senderId;
+    this.id = id;
+    this.method = method;
+    this.path = path2;
+    this.body = body;
+    this.path = path2.replace(/^\/|\/$/g, "");
+  }
+};
+__name(_Request, "Request");
+var Request = _Request;
 
 // src/utils/logger.ts
 var fs = __toESM(require("fs"));
@@ -818,237 +782,6 @@ var logLevelChannel = {
 };
 Logger.setLogLevel("debug");
 var Logger;
-
-// src/DI/injector-explorer.ts
-var _InjectorExplorer = class _InjectorExplorer {
-  /**
-   * Enqueues a class for deferred registration.
-   * Called by the @Injectable decorator at import time.
-   *
-   * If {@link processPending} has already been called (i.e. after bootstrap)
-   * and accumulation mode is not active, the class is registered immediately
-   * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
-   * work correctly.
-   *
-   * When accumulation mode is active (between {@link beginAccumulate} and
-   * {@link flushAccumulated}), classes are queued instead — preserving the
-   * two-phase binding/resolution guarantee for lazy-loaded modules.
-   */
-  static enqueue(target, lifetime) {
-    if (_InjectorExplorer.processed && !_InjectorExplorer.accumulating) {
-      _InjectorExplorer.registerImmediate(target, lifetime);
-      return;
-    }
-    _InjectorExplorer.pending.push({
-      target,
-      lifetime
-    });
-  }
-  /**
-   * Enters accumulation mode. While active, all decorated classes discovered
-   * via dynamic imports are queued in {@link pending} rather than registered
-   * immediately. Call {@link flushAccumulated} to process them with the
-   * full two-phase (bind-then-resolve) guarantee.
-   */
-  static beginAccumulate() {
-    _InjectorExplorer.accumulating = true;
-  }
-  /**
-   * Exits accumulation mode and processes every class queued since
-   * {@link beginAccumulate} was called. Uses the same two-phase strategy
-   * as {@link processPending} (register all bindings first, then resolve
-   * singletons / controllers) so import ordering within a lazy batch
-   * does not cause resolution failures.
-   */
-  static flushAccumulated() {
-    _InjectorExplorer.accumulating = false;
-    const queue = [
-      ..._InjectorExplorer.pending
-    ];
-    _InjectorExplorer.pending.length = 0;
-    for (const { target, lifetime } of queue) {
-      if (!RootInjector.bindings.has(target)) {
-        RootInjector.bindings.set(target, {
-          implementation: target,
-          lifetime
-        });
-      }
-    }
-    for (const { target, lifetime } of queue) {
-      _InjectorExplorer.processRegistration(target, lifetime);
-    }
-  }
-  /**
-   * Processes all pending registrations in two phases:
-   * 1. Register all bindings (no instantiation) so every dependency is known.
-   * 2. Resolve singletons, register controllers and log module readiness.
-   *
-   * This two-phase approach makes the system resilient to import ordering:
-   * all bindings exist before any singleton is instantiated.
-   */
-  static processPending() {
-    const queue = _InjectorExplorer.pending;
-    for (const { target, lifetime } of queue) {
-      if (!RootInjector.bindings.has(target)) {
-        RootInjector.bindings.set(target, {
-          implementation: target,
-          lifetime
-        });
-      }
-    }
-    for (const { target, lifetime } of queue) {
-      _InjectorExplorer.processRegistration(target, lifetime);
-    }
-    queue.length = 0;
-    _InjectorExplorer.processed = true;
-  }
-  /**
-   * Registers a single class immediately (post-bootstrap path).
-   * Used for classes discovered via late dynamic imports.
-   */
-  static registerImmediate(target, lifetime) {
-    if (RootInjector.bindings.has(target)) {
-      return;
-    }
-    RootInjector.bindings.set(target, {
-      implementation: target,
-      lifetime
-    });
-    _InjectorExplorer.processRegistration(target, lifetime);
-  }
-  /**
-   * Performs phase-2 work for a single registration: resolve singletons,
-   * register controllers, and log module readiness.
-   */
-  static processRegistration(target, lifetime) {
-    if (lifetime === "singleton") {
-      RootInjector.resolve(target);
-    }
-    if (getModuleMetadata(target)) {
-      Logger.log(`${target.name} dependencies initialized`);
-      return;
-    }
-    const controllerMeta = getControllerMetadata(target);
-    if (controllerMeta) {
-      const router = RootInjector.resolve(Router);
-      router?.registerController(target);
-      return;
-    }
-    if (getRouteMetadata(target).length > 0) {
-      return;
-    }
-    if (getInjectableMetadata(target)) {
-      Logger.log(`Registered ${target.name} as ${lifetime}`);
-    }
-  }
-};
-__name(_InjectorExplorer, "InjectorExplorer");
-__publicField(_InjectorExplorer, "pending", []);
-__publicField(_InjectorExplorer, "processed", false);
-__publicField(_InjectorExplorer, "accumulating", false);
-var InjectorExplorer = _InjectorExplorer;
-
-// src/decorators/injectable.decorator.ts
-function Injectable(lifetime = "scope") {
-  return (target) => {
-    if (typeof target !== "function" || !target.prototype) {
-      throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
-    }
-    defineInjectableMetadata(target, lifetime);
-    InjectorExplorer.enqueue(target, lifetime);
-  };
-}
-__name(Injectable, "Injectable");
-
-// src/decorators/controller.decorator.ts
-function Controller(path2) {
-  return (target) => {
-    const data = {
-      path: path2,
-      guards: getGuardForController(target.name)
-    };
-    Reflect.defineMetadata(CONTROLLER_METADATA_KEY, data, target);
-    Injectable("scope")(target);
-  };
-}
-__name(Controller, "Controller");
-function getControllerMetadata(target) {
-  return Reflect.getMetadata(CONTROLLER_METADATA_KEY, target);
-}
-__name(getControllerMetadata, "getControllerMetadata");
-var CONTROLLER_METADATA_KEY = Symbol("CONTROLLER_METADATA_KEY");
-
-// src/decorators/middleware.decorator.ts
-function UseMiddlewares(mdlw) {
-  return (target, propertyKey) => {
-    let key;
-    if (propertyKey) {
-      const ctrlName = target.constructor.name;
-      const actionName = propertyKey;
-      key = `${ctrlName}.${actionName}`;
-    } else {
-      const ctrlName = target.name;
-      key = `${ctrlName}`;
-    }
-    if (middlewares.has(key)) {
-      throw new Error(`Middlewares(s) already registered for ${key}`);
-    }
-    middlewares.set(key, mdlw);
-  };
-}
-__name(UseMiddlewares, "UseMiddlewares");
-function getMiddlewaresForController(controllerName) {
-  const key = `${controllerName}`;
-  return middlewares.get(key) ?? [];
-}
-__name(getMiddlewaresForController, "getMiddlewaresForController");
-function getMiddlewaresForControllerAction(controllerName, actionName) {
-  const key = `${controllerName}.${actionName}`;
-  return middlewares.get(key) ?? [];
-}
-__name(getMiddlewaresForControllerAction, "getMiddlewaresForControllerAction");
-var middlewares = /* @__PURE__ */ new Map();
-
-// src/request.ts
-var import_reflect_metadata3 = require("reflect-metadata");
-var _Request = class _Request {
-  constructor(event, senderId, id, method, path2, body) {
-    __publicField(this, "event");
-    __publicField(this, "senderId");
-    __publicField(this, "id");
-    __publicField(this, "method");
-    __publicField(this, "path");
-    __publicField(this, "body");
-    __publicField(this, "context", RootInjector.createScope());
-    __publicField(this, "params", {});
-    this.event = event;
-    this.senderId = senderId;
-    this.id = id;
-    this.method = method;
-    this.path = path2;
-    this.body = body;
-    this.path = path2.replace(/^\/|\/$/g, "");
-  }
-};
-__name(_Request, "Request");
-var Request = _Request;
-var RENDERER_EVENT_TYPE = "noxus:event";
-function createRendererEventMessage(event, payload) {
-  return {
-    type: RENDERER_EVENT_TYPE,
-    event,
-    payload
-  };
-}
-__name(createRendererEventMessage, "createRendererEventMessage");
-function isRendererEventMessage(value) {
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-  const possibleMessage = value;
-  return possibleMessage.type === RENDERER_EVENT_TYPE && typeof possibleMessage.event === "string";
-}
-__name(isRendererEventMessage, "isRendererEventMessage");
 
 // src/utils/radix-tree.ts
 var _a;
@@ -1659,321 +1392,155 @@ Router = _ts_decorate([
   Injectable("singleton")
 ], Router);
 
-// src/app.ts
-var import_main = require("electron/main");
-
-// src/socket.ts
-function _ts_decorate2(decorators, target, key, desc) {
-  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-__name(_ts_decorate2, "_ts_decorate");
-var _NoxSocket = class _NoxSocket {
-  constructor() {
-    __publicField(this, "channels", /* @__PURE__ */ new Map());
-  }
-  register(senderId, requestChannel, socketChannel) {
-    this.channels.set(senderId, {
-      request: requestChannel,
-      socket: socketChannel
-    });
-  }
-  get(senderId) {
-    return this.channels.get(senderId);
-  }
-  unregister(senderId) {
-    this.channels.delete(senderId);
-  }
-  getSenderIds() {
-    return [
-      ...this.channels.keys()
-    ];
-  }
-  emit(eventName, payload, targetSenderIds) {
-    const normalizedEvent = eventName.trim();
-    if (normalizedEvent.length === 0) {
-      throw new Error("Renderer event name must be a non-empty string.");
-    }
-    const recipients = targetSenderIds ?? this.getSenderIds();
-    let delivered = 0;
-    for (const senderId of recipients) {
-      const channel = this.channels.get(senderId);
-      if (!channel) {
-        Logger.warn(`No message channel found for sender ID: ${senderId} while emitting "${normalizedEvent}".`);
-        continue;
-      }
-      try {
-        channel.socket.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
-        delivered++;
-      } catch (error) {
-        Logger.error(`[Noxus] Failed to emit "${normalizedEvent}" to sender ${senderId}.`, error);
-      }
-    }
-    return delivered;
-  }
-  emitToRenderer(senderId, eventName, payload) {
-    return this.emit(eventName, payload, [
-      senderId
-    ]) > 0;
-  }
-};
-__name(_NoxSocket, "NoxSocket");
-var NoxSocket = _NoxSocket;
-NoxSocket = _ts_decorate2([
-  Injectable("singleton")
-], NoxSocket);
-
-// src/app.ts
-function _ts_decorate3(decorators, target, key, desc) {
-  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-__name(_ts_decorate3, "_ts_decorate");
-function _ts_metadata(k, v) {
-  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-}
-__name(_ts_metadata, "_ts_metadata");
-var _NoxApp = class _NoxApp {
-  constructor(router, socket) {
-    __publicField(this, "router");
-    __publicField(this, "socket");
-    __publicField(this, "app");
-    __publicField(this, "mainWindow");
-    /**
-     *
-     */
-    __publicField(this, "onRendererMessage", /* @__PURE__ */ __name(async (event) => {
-      const { senderId, requestId, path: path2, method, body } = event.data;
-      const channels = this.socket.get(senderId);
-      if (!channels) {
-        Logger.error(`No message channel found for sender ID: ${senderId}`);
-        return;
-      }
-      try {
-        const request = new Request(event, senderId, requestId, method, path2, body);
-        const response = await this.router.handle(request);
-        channels.request.port1.postMessage(response);
-      } catch (err) {
-        const response = {
-          requestId,
-          status: 500,
-          body: null,
-          error: err.message || "Internal Server Error"
-        };
-        channels.request.port1.postMessage(response);
-      }
-    }, "onRendererMessage"));
-    this.router = router;
-    this.socket = socket;
-  }
+// src/DI/injector-explorer.ts
+var _InjectorExplorer = class _InjectorExplorer {
   /**
-   * Initializes the NoxApp instance.
-   * This method sets up the IPC communication, registers event listeners,
-   * and prepares the application for use.
+   * Enqueues a class for deferred registration.
+   * Called by the @Injectable decorator at import time.
+   *
+   * If {@link processPending} has already been called (i.e. after bootstrap)
+   * and accumulation mode is not active, the class is registered immediately
+   * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
+   * work correctly.
+   *
+   * When accumulation mode is active (between {@link beginAccumulate} and
+   * {@link flushAccumulated}), classes are queued instead — preserving the
+   * two-phase binding/resolution guarantee for lazy-loaded modules.
    */
-  async init() {
-    import_main.ipcMain.on("gimme-my-port", this.giveTheRendererAPort.bind(this));
-    import_main.app.once("activate", this.onAppActivated.bind(this));
-    import_main.app.once("window-all-closed", this.onAllWindowsClosed.bind(this));
-    console.log("");
-    return this;
-  }
-  /**
-   * Handles the request from the renderer process.
-   * This method creates a Request object from the IPC event data,
-   * processes it through the Router, and sends the response back
-   * to the renderer process using the MessageChannel.
-   */
-  giveTheRendererAPort(event) {
-    const senderId = event.sender.id;
-    if (this.socket.get(senderId)) {
-      this.shutdownChannel(senderId);
-    }
-    const requestChannel = new import_main.MessageChannelMain();
-    const socketChannel = new import_main.MessageChannelMain();
-    requestChannel.port1.on("message", this.onRendererMessage);
-    requestChannel.port1.start();
-    socketChannel.port1.start();
-    this.socket.register(senderId, requestChannel, socketChannel);
-    event.sender.postMessage("port", {
-      senderId
-    }, [
-      requestChannel.port2,
-      socketChannel.port2
-    ]);
-  }
-  /**
-   * MacOS specific behavior.
-   */
-  onAppActivated() {
-    if (process.platform === "darwin" && import_main.BrowserWindow.getAllWindows().length === 0) {
-      this.app?.onActivated();
-    }
-  }
-  /**
-   * Shuts down the message channel for a specific sender ID.
-   * This method closes the IPC channel for the specified sender ID and
-   * removes it from the messagePorts map.
-   * @param channelSenderId - The ID of the sender channel to shut down.
-   * @param remove - Whether to remove the channel from the messagePorts map.
-   */
-  shutdownChannel(channelSenderId) {
-    const channels = this.socket.get(channelSenderId);
-    if (!channels) {
-      Logger.warn(`No message channel found for sender ID: ${channelSenderId}`);
+  static enqueue(target, lifetime) {
+    if (_InjectorExplorer.processed && !_InjectorExplorer.accumulating) {
+      _InjectorExplorer.registerImmediate(target, lifetime);
       return;
     }
-    channels.request.port1.off("message", this.onRendererMessage);
-    channels.request.port1.close();
-    channels.request.port2.close();
-    channels.socket.port1.close();
-    channels.socket.port2.close();
-    this.socket.unregister(channelSenderId);
+    _InjectorExplorer.pending.push({
+      target,
+      lifetime
+    });
   }
   /**
-   * Handles the application shutdown process.
-   * This method is called when all windows are closed, and it cleans up the message channels
+   * Enters accumulation mode. While active, all decorated classes discovered
+   * via dynamic imports are queued in {@link pending} rather than registered
+   * immediately. Call {@link flushAccumulated} to process them with the
+   * full two-phase (bind-then-resolve) guarantee.
    */
-  async onAllWindowsClosed() {
-    for (const senderId of this.socket.getSenderIds()) {
-      this.shutdownChannel(senderId);
+  static beginAccumulate() {
+    _InjectorExplorer.accumulating = true;
+  }
+  /**
+   * Exits accumulation mode and processes every class queued since
+   * {@link beginAccumulate} was called. Uses the same two-phase strategy
+   * as {@link processPending} (register all bindings first, then resolve
+   * singletons / controllers) so import ordering within a lazy batch
+   * does not cause resolution failures.
+   */
+  static flushAccumulated() {
+    _InjectorExplorer.accumulating = false;
+    const queue = [
+      ..._InjectorExplorer.pending
+    ];
+    _InjectorExplorer.pending.length = 0;
+    for (const { target, lifetime } of queue) {
+      if (!RootInjector.bindings.has(target)) {
+        RootInjector.bindings.set(target, {
+          implementation: target,
+          lifetime
+        });
+      }
     }
-    Logger.info("All windows closed, shutting down application...");
-    await this.app?.dispose();
-    if (process.platform !== "darwin") {
-      import_main.app.quit();
+    for (const { target, lifetime } of queue) {
+      _InjectorExplorer.processRegistration(target, lifetime);
     }
   }
-  // ---
   /**
-   * Sets the main BrowserWindow that was created early by bootstrapApplication.
-   * This window will be passed to IApp.onReady when start() is called.
-   * @param window - The BrowserWindow created during bootstrap.
-   */
-  setMainWindow(window) {
-    this.mainWindow = window;
-  }
-  /**
-   * Registers a lazy-loaded route. The module behind this path prefix
-   * will only be dynamically imported when the first IPC request
-   * targets this prefix — like Angular's loadChildren.
+   * Processes all pending registrations in two phases:
+   * 1. Register all bindings (no instantiation) so every dependency is known.
+   * 2. Resolve singletons, register controllers and log module readiness.
    *
-   * @example
-   * ```ts
-   * noxApp.lazy("auth", () => import("./modules/auth/auth.module.js"));
-   * noxApp.lazy("printing", () => import("./modules/printing/printing.module.js"));
-   * ```
-   *
-   * @param pathPrefix - The route prefix (e.g. "auth", "cash-register").
-   * @param loadModule - A function returning a dynamic import promise.
-   * @returns NoxApp instance for method chaining.
+   * This two-phase approach makes the system resilient to import ordering:
+   * all bindings exist before any singleton is instantiated.
    */
-  lazy(pathPrefix, loadModule) {
-    this.router.registerLazyRoute(pathPrefix, loadModule);
-    return this;
+  static processPending() {
+    const queue = _InjectorExplorer.pending;
+    for (const { target, lifetime } of queue) {
+      if (!RootInjector.bindings.has(target)) {
+        RootInjector.bindings.set(target, {
+          implementation: target,
+          lifetime
+        });
+      }
+    }
+    for (const { target, lifetime } of queue) {
+      _InjectorExplorer.processRegistration(target, lifetime);
+    }
+    queue.length = 0;
+    _InjectorExplorer.processed = true;
   }
   /**
-   * Eagerly loads one or more modules with a two-phase DI guarantee.
-   * Use this when a service needed at startup lives inside a module
-   * (e.g. the Application service depends on LoaderService).
-   *
-   * All dynamic imports run in parallel; bindings are registered first,
-   * then singletons are resolved — safe regardless of import ordering.
-   *
-   * @param importFns - Functions returning dynamic import promises.
+   * Registers a single class immediately (post-bootstrap path).
+   * Used for classes discovered via late dynamic imports.
    */
-  async loadModules(importFns) {
-    InjectorExplorer.beginAccumulate();
-    await Promise.all(importFns.map((fn) => fn()));
-    InjectorExplorer.flushAccumulated();
+  static registerImmediate(target, lifetime) {
+    if (RootInjector.bindings.has(target)) {
+      return;
+    }
+    RootInjector.bindings.set(target, {
+      implementation: target,
+      lifetime
+    });
+    _InjectorExplorer.processRegistration(target, lifetime);
   }
   /**
-   * Configures the NoxApp instance with the provided application class.
-   * This method allows you to set the application class that will handle lifecycle events.
-   * @param app - The application class to configure.
-   * @returns NoxApp instance for method chaining.
+   * Performs phase-2 work for a single registration: resolve singletons,
+   * register controllers, and log module readiness.
    */
-  configure(app3) {
-    this.app = inject(app3);
-    return this;
-  }
-  /**
-   * Registers a middleware for the root of the application.
-   * This method allows you to define a middleware that will be applied to all requests
-   * @param middleware - The middleware class to register.
-   * @returns NoxApp instance for method chaining.
-   */
-  use(middleware) {
-    this.router.defineRootMiddleware(middleware);
-    return this;
-  }
-  /**
-   * Should be called after the bootstrapApplication function is called.
-   * Passes the early-created BrowserWindow (if any) to the configured IApp service.
-   * @returns NoxApp instance for method chaining.
-   */
-  start() {
-    this.app?.onReady(this.mainWindow);
-    return this;
+  static processRegistration(target, lifetime) {
+    if (lifetime === "singleton") {
+      RootInjector.resolve(target);
+    }
+    if (getModuleMetadata(target)) {
+      Logger.log(`${target.name} dependencies initialized`);
+      return;
+    }
+    const controllerMeta = getControllerMetadata(target);
+    if (controllerMeta) {
+      const router = RootInjector.resolve(Router);
+      router?.registerController(target);
+      return;
+    }
+    if (getRouteMetadata(target).length > 0) {
+      return;
+    }
+    if (getInjectableMetadata(target)) {
+      Logger.log(`Registered ${target.name} as ${lifetime}`);
+    }
   }
 };
-__name(_NoxApp, "NoxApp");
-var NoxApp = _NoxApp;
-NoxApp = _ts_decorate3([
-  Injectable("singleton"),
-  _ts_metadata("design:type", Function),
-  _ts_metadata("design:paramtypes", [
-    typeof Router === "undefined" ? Object : Router,
-    typeof NoxSocket === "undefined" ? Object : NoxSocket
-  ])
-], NoxApp);
+__name(_InjectorExplorer, "InjectorExplorer");
+__publicField(_InjectorExplorer, "pending", []);
+__publicField(_InjectorExplorer, "processed", false);
+__publicField(_InjectorExplorer, "accumulating", false);
+var InjectorExplorer = _InjectorExplorer;
 
-// src/bootstrap.ts
-var import_main2 = require("electron/main");
-async function bootstrapApplication(rootModule, options) {
-  if (rootModule && !getModuleMetadata(rootModule)) {
-    throw new Error(`Root module must be decorated with @Module`);
-  }
-  await import_main2.app.whenReady();
-  let mainWindow;
-  if (options?.window) {
-    mainWindow = new import_main2.BrowserWindow(options.window);
-    mainWindow.once("ready-to-show", () => {
-      mainWindow?.show();
-    });
-    const primaryDisplay = import_main2.screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.workAreaSize;
-    if (options.window.minWidth && options.window.minHeight) {
-      mainWindow.setSize(Math.min(width, options.window.minWidth), Math.min(height, options.window.minHeight), true);
+// src/decorators/injectable.decorator.ts
+function Injectable(lifetime = "scope") {
+  return (target) => {
+    if (typeof target !== "function" || !target.prototype) {
+      throw new Error(`@Injectable can only be used on classes, not on ${typeof target}`);
     }
-  }
-  InjectorExplorer.processPending();
-  const noxApp = inject(NoxApp);
-  if (mainWindow) {
-    noxApp.setMainWindow(mainWindow);
-  }
-  await noxApp.init();
-  return noxApp;
+    defineInjectableMetadata(target, lifetime);
+    InjectorExplorer.enqueue(target, lifetime);
+  };
 }
-__name(bootstrapApplication, "bootstrapApplication");
+__name(Injectable, "Injectable");
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AppInjector,
-  Authorize,
   BadGatewayException,
   BadRequestException,
-  CONTROLLER_METADATA_KEY,
   ConflictException,
-  Controller,
-  Delete,
   ForbiddenException,
   ForwardReference,
   GatewayTimeoutException,
-  Get,
   HttpVersionNotSupportedException,
   INJECTABLE_METADATA_KEY,
   INJECT_METADATA_KEY,
@@ -1983,52 +1550,30 @@ __name(bootstrapApplication, "bootstrapApplication");
   InternalServerException,
   Logger,
   LoopDetectedException,
-  MODULE_METADATA_KEY,
   MethodNotAllowedException,
-  Module,
   NetworkAuthenticationRequiredException,
   NetworkConnectTimeoutException,
   NotAcceptableException,
   NotExtendedException,
   NotFoundException,
   NotImplementedException,
-  NoxApp,
-  NoxSocket,
-  Patch,
   PaymentRequiredException,
-  Post,
-  Put,
-  RENDERER_EVENT_TYPE,
-  ROUTE_METADATA_KEY,
-  Request,
   RequestTimeoutException,
   ResponseException,
   RootInjector,
-  Router,
   ServiceUnavailableException,
   TooManyRequestsException,
   UnauthorizedException,
   UpgradeRequiredException,
-  UseMiddlewares,
   VariantAlsoNegotiatesException,
-  bootstrapApplication,
-  createRendererEventMessage,
   forwardRef,
-  getControllerMetadata,
-  getGuardForController,
-  getGuardForControllerAction,
   getInjectableMetadata,
-  getMiddlewaresForController,
-  getMiddlewaresForControllerAction,
-  getModuleMetadata,
-  getRouteMetadata,
   hasInjectableMetadata,
-  inject,
-  isRendererEventMessage
+  inject
 });
 /**
  * @copyright 2025 NoxFly
  * @license MIT
  * @author NoxFly
  */
-//# sourceMappingURL=main.js.map
+//# sourceMappingURL=child.js.map
