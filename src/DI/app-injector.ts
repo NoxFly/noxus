@@ -7,7 +7,6 @@
 import { ForwardReference } from '../utils/forward-ref';
 import { Type } from '../utils/types';
 import { Token, TokenKey } from './token';
-import { InjectorExplorer } from './injector-explorer';
 
 /**
  * Lifetime of a binding in the DI container.
@@ -161,6 +160,8 @@ export function resetRootInjector(): void {
     RootInjector.bindings.clear();
     RootInjector.singletons.clear();
     RootInjector.scoped.clear();
+    // Lazy import to avoid circular dependency (InjectorExplorer → app-injector → InjectorExplorer)
+    const { InjectorExplorer } = require('./injector-explorer') as typeof import('./injector-explorer');
     InjectorExplorer.reset();
 }
 

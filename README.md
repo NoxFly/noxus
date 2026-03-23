@@ -120,19 +120,30 @@ export class AppService implements IApp {
 }
 ```
 
-### 4. Bootstrap the application
+### 4. Define routes
+
+```ts
+// routes.ts
+import { defineRoutes } from '@noxfly/noxus/main';
+
+export const routes = defineRoutes([
+    { path: 'users',  load: () => import('./controllers/user.controller.js') },
+    { path: 'orders', load: () => import('./controllers/order.controller.js') },
+]);
+```
+
+### 5. Bootstrap the application
 
 ```ts
 // main.ts
 import { bootstrapApplication } from '@noxfly/noxus/main';
 import { AppService } from './app.service';
+import { routes } from './routes';
 
-const noxApp = await bootstrapApplication();
+const noxApp = await bootstrapApplication({ routes });
 
 noxApp
     .configure(AppService)
-    .lazy('users',  () => import('./controllers/user.controller.js'))
-    .lazy('orders', () => import('./controllers/order.controller.js'))
     .start();
 ```
 
@@ -238,6 +249,21 @@ getProduct(req: Request) {
 }
 ```
 
+### Query parameters
+
+```ts
+// Renderer side:
+await client.request({ method: 'GET', path: 'users/list', query: { role: 'admin', page: '1' } });
+
+// Controller side:
+@Get('list')
+list(req: Request) {
+    const role = req.query['role'];  // 'admin'
+    const page = req.query['page'];  // '1'
+    return this.svc.findAll({ role, page: parseInt(page!) });
+}
+```
+
 ### Request body
 
 ```ts
@@ -261,9 +287,42 @@ create(req: Request, res: IResponse) {
 
 ---
 
+## Route definitions (`defineRoutes`)
+
+`defineRoutes` is the single source of truth for your routing table. It validates prefixes, detects duplicates and overlapping paths, and supports nested routes:
+
+```ts
+import { defineRoutes } from '@noxfly/noxus/main';
+
+export const routes = defineRoutes([
+    { path: 'users',  load: () => import('./modules/users/users.controller.js'), guards: [authGuard] },
+    { path: 'orders', load: () => import('./modules/orders/orders.controller.js') },
+]);
+```
+
+### Nested routes
+
+Parent routes can omit `load` and only serve as a shared prefix with inherited guards/middlewares:
+
+```ts
+export const routes = defineRoutes([
+    {
+        path: 'admin',
+        guards: [authGuard, adminGuard],
+        children: [
+            { path: 'users',    load: () => import('./admin/users.controller.js') },
+            { path: 'products', load: () => import('./admin/products.controller.js') },
+        ],
+    },
+]);
+// Produces flat routes: admin/users and admin/products, both inheriting authGuard + adminGuard.
+```
+
 ## Lazy loading
 
 This is the core mechanism for keeping startup fast. A lazy controller is never imported until an IPC request targets its prefix.
+
+Routes declared via `defineRoutes` are lazy by default. You can also register lazy routes manually:
 
 ```ts
 noxApp
@@ -451,7 +510,7 @@ class UserRepository {
 
 ```ts
 // preload.ts
-import { exposeNoxusBridge } from '@noxfly/noxus/renderer';
+import { exposeNoxusBridge } from '@noxfly/noxus/preload';
 
 exposeNoxusBridge(); // exposes window.__noxus__ to the renderer
 ```
@@ -462,12 +521,15 @@ exposeNoxusBridge(); // exposes window.__noxus__ to the renderer
 // In the renderer (Angular, React, Vue, Vanilla...)
 import { NoxRendererClient } from '@noxfly/noxus';
 
-const client = new NoxRendererClient();
+const client = new NoxRendererClient({
+    requestTimeout: 10_000, // 10s (default). Set to 0 to disable.
+});
 await client.setup(); // requests the MessagePort from main
 
 // Requests
 const users  = await client.request<User[]>({ method: 'GET',    path: 'users/list' });
 const user   = await client.request<User>  ({ method: 'GET',    path: 'users/42' });
+await client.request({ method: 'GET',    path: 'users/list',          query: { role: 'admin' } });
 await client.request({ method: 'POST',   path: 'users/create',        body: { name: 'Bob' } });
 await client.request({ method: 'PUT',    path: 'users/42',            body: { name: 'Bob Updated' } });
 await client.request({ method: 'DELETE', path: 'users/42' });
@@ -511,7 +573,7 @@ Multiple IPC requests in a single round-trip:
 
 ```ts
 const results = await client.batch([
-    { method: 'GET',  path: 'users/list' },
+    { method: 'GET',  path: 'users/list', query: { role: 'admin' } },
     { method: 'GET',  path: 'products/list' },
     { method: 'POST', path: 'orders/create', body: { ... } },
 ]);
@@ -571,3 +633,45 @@ src/
 ```
 
 Each `module/` folder is **self-contained** — the controller imports its own services directly, with no central declaration. `main.ts` only knows the lazy loading paths.
+
+---
+
+## Log level
+
+By default, all framework logs are enabled (`debug` level). Control verbosity via `bootstrapApplication`:
+
+```ts
+const noxApp = await bootstrapApplication({
+    logLevel: 'none',   // 'debug' | 'info' | 'none'
+});
+```
+
+You can also pass an array of specific levels:
+
+```ts
+bootstrapApplication({ logLevel: ['warn', 'error', 'critical'] });
+```
+
+Or change it at runtime:
+
+```ts
+import { Logger } from '@noxfly/noxus/main';
+
+Logger.setLogLevel('info');
+```
+
+---
+
+## Testing
+
+To reset the DI container between tests (avoids leaking singletons across test suites):
+
+```ts
+import { resetRootInjector } from '@noxfly/noxus/main';
+
+afterEach(() => {
+    resetRootInjector();
+});
+```
+
+This clears all bindings, singletons, and scoped instances from the root injector.

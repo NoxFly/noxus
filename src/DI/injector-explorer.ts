@@ -8,7 +8,8 @@ import { Lifetime, RootInjector } from './app-injector';
 import { TokenKey } from './token';
 import { Type } from '../utils/types';
 import { Logger } from '../utils/logger';
-import { Guard, Middleware } from "src/main";
+import { Guard } from '../decorators/guards.decorator';
+import { Middleware } from '../decorators/middleware.decorator';
 
 export interface PendingRegistration {
     key: TokenKey;

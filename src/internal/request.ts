@@ -25,7 +25,7 @@ export class Request {
         public readonly id: string,
         public readonly method: HttpMethod,
         public readonly path: string,
-        public readonly body: any,
+        public readonly body: unknown,
         query?: Record<string, string>,
     ) {
         this.path = path.replace(/^\/|\/$/g, '');
