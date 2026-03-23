@@ -31,6 +31,12 @@ export interface WindowRecord {
 }
 
 /**
+ * @description
+ * The events emitted by WindowManager when windows are created, closed, focused, or blurred.
+ */
+export type WindowEvent = 'created' | 'closed' | 'focused' | 'blurred';
+
+/**
  * WindowManager is a singleton service that centralizes BrowserWindow lifecycle.
  *
  * Features:
@@ -55,6 +61,8 @@ export interface WindowRecord {
 @Injectable({ lifetime: 'singleton' })
 export class WindowManager {
     private readonly _windows = new Map<number, BrowserWindow>();
+    private readonly listeners = new Map<WindowEvent, Set<(win: BrowserWindow) => void>>();
+
     private _mainWindowId: number | undefined;
 
     // -------------------------------------------------------------------------
@@ -178,10 +186,12 @@ export class WindowManager {
     /** Closes and destroys a window by id. */
     public close(id: number): void {
         const win = this._windows.get(id);
+
         if (!win) {
             Logger.warn(`[WindowManager] Window #${id} not found`);
             return;
         }
+
         win.destroy();
     }
 
@@ -219,6 +229,21 @@ export class WindowManager {
     }
 
     // -------------------------------------------------------------------------
+    // Events
+    // -------------------------------------------------------------------------
+
+    public on(event: WindowEvent, handler: (win: BrowserWindow) => void): () => void {
+        const set = this.listeners.get(event) ?? new Set();
+        set.add(handler);
+        this.listeners.set(event, set);
+        return () => set.delete(handler); // retourne unsubscribe
+    }
+
+    private _emit(event: WindowEvent, win: BrowserWindow): void {
+        this.listeners.get(event)?.forEach(h => h(win));
+    }
+
+    // -------------------------------------------------------------------------
     // Private
     // -------------------------------------------------------------------------
 
@@ -229,12 +254,21 @@ export class WindowManager {
             this._mainWindowId = win.id;
         }
 
+        this._emit('created', win);
+
+        win.on('focus', () => this._emit('focused', win));
+        win.on('blur', () => this._emit('blurred', win));
+
         win.once('closed', () => {
             this._windows.delete(win.id);
+
             if (this._mainWindowId === win.id) {
                 this._mainWindowId = undefined;
             }
+
             Logger.log(`[WindowManager] Window #${win.id} closed`);
+
+            this._emit('closed', win);
         });
     }
 

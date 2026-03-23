@@ -24,6 +24,8 @@ export interface RendererClientOptions {
      * Defaults to 10 000 ms. Set to 0 to disable.
      */
     requestTimeout?: number;
+    /** @default true */
+    enableLogging?: boolean;
 }
 
 interface PendingRequest<T = unknown> {
@@ -112,6 +114,8 @@ export class NoxRendererClient {
     private setupResolve: (() => void) | undefined;
     private setupReject: ((reason: Error) => void) | undefined;
 
+    private enableLogging: boolean;
+
     constructor(options: RendererClientOptions = {}) {
         this.windowRef = options.windowRef ?? window;
         const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
@@ -119,6 +123,7 @@ export class NoxRendererClient {
         this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
         this.generateRequestId = options.generateRequestId ?? defaultRequestId;
         this.requestTimeout = options.requestTimeout ?? 10_000;
+        this.enableLogging = options.enableLogging ?? true;
     }
 
     public async setup(): Promise<void> {
@@ -300,6 +305,10 @@ export class NoxRendererClient {
     };
 
     protected onRequestCompleted(pending: PendingRequest, response: IResponse): void {
+        if(!this.enableLogging) {
+            return;
+        }
+
         if(typeof console.groupCollapsed === 'function') {
             console.groupCollapsed(`${response.status} ${pending.request.method} /${pending.request.path}`);
         }

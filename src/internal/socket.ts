@@ -64,8 +64,12 @@ export class NoxSocket {
     }
 
     public emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean {
-        const previousCount = this.channels.size;
+        if(!this.channels.has(senderId)) {
+            return false;
+        }
+
         this.emit(eventName, payload, [senderId]);
-        return this.channels.has(senderId) && previousCount > 0;
+
+        return true;
     }
 }

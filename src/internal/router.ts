@@ -119,6 +119,18 @@ export class Router {
         return this;
     }
 
+    public getRegisteredRoutes(): Array<{ method: string; path: string; }> {
+        const allRoutes = this.routes.collectValues();
+        return allRoutes.map(r => ({ method: r.method, path: r.path }));
+    }
+
+    public getLazyRoutes(): Array<{ prefix: string; loaded: boolean; }> {
+        return [...this.lazyRoutes.entries()].map(([prefix, entry]) => ({
+            prefix,
+            loaded: entry.loaded,
+        }));
+    }
+
     // -------------------------------------------------------------------------
     // Request handling
     // -------------------------------------------------------------------------
@@ -225,8 +237,7 @@ export class Router {
         entry.loading = null;
         entry.load = null;
 
-        InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
-        await InjectorExplorer.waitForFlush();
+        await InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
 
         entry.loaded = true;
 

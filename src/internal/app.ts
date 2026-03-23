@@ -5,7 +5,7 @@
  */
 
 import { app, BrowserWindow, ipcMain, MessageChannelMain } from 'electron/main';
-import { Guard } from "src/main";
+import { Guard } from "../decorators/guards.decorator";
 import { Injectable } from '../decorators/injectable.decorator';
 import { Middleware } from '../decorators/middleware.decorator';
 import { inject } from '../DI/app-injector';
@@ -49,9 +49,11 @@ export interface IApp {
 export class NoxApp {
     private appService: IApp | undefined;
 
-    private readonly router = inject(Router);
-    private readonly socket = inject(NoxSocket);
-    public readonly windowManager = inject(WindowManager);
+    constructor(
+        private readonly router: Router,
+        private readonly socket: NoxSocket,
+        public readonly windowManager: WindowManager,
+    ) {}
 
     // -------------------------------------------------------------------------
     // Initialisation
@@ -99,7 +101,7 @@ export class NoxApp {
     public async load(importFns: Array<() => Promise<unknown>>): Promise<this> {
         InjectorExplorer.beginAccumulate();
         await Promise.all(importFns.map((fn) => fn()));
-        InjectorExplorer.flushAccumulated();
+        await InjectorExplorer.flushAccumulated();
         return this;
     }
 

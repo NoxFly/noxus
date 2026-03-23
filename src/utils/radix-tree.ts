@@ -133,6 +133,31 @@ export class RadixTree<T> {
     }
 
     /**
+     * Collects all values in the subtree rooted at the given node.
+     * This method traverses the subtree starting from the given node and collects all values
+     * @param node - The node to start collecting values from.
+     * @param values - An array to store the collected values. This parameter is optional and can be used for recursive calls.
+     * @returns An array of all values found in the subtree rooted at the given node.
+     */
+    public collectValues(): T[];
+    public collectValues(node: RadixNode<T>, values: T[]): T[];
+    public collectValues(node?: RadixNode<T>, values: T[] = []): T[] {
+        if(!node) {
+            node = this.root;
+        }
+
+        if(node.value !== undefined) {
+            values.push(node.value);
+        }
+
+        for(const child of node.children) {
+            this.collectValues(child, values);
+        }
+
+        return values;
+    }
+
+    /**
      * Recursively searches for a path in the Radix Tree.
      * This method traverses the tree and searches for the segments of the path, collecting parameters
      * @param node - The node to start searching from.

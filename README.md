@@ -206,6 +206,9 @@ import { inject } from '@noxfly/noxus/main';
 const userService = inject(UserService);
 ```
 
+When you decide to inject manually with `inject()`, you may not duplicate the dependency in the `deps` array of `@Injectable`.
+The resolve dependency in deps will be ignored in the constructor and will be re-solved at runtime by `inject()`.
+
 Useful outside a constructor — in callbacks, factories, etc.
 
 ### `forwardRef()` — Circular dependencies

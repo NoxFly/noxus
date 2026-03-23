@@ -94,7 +94,7 @@ export class InjectorExplorer {
         routeGuards: Guard[] = [],
         routeMiddlewares: Middleware[] = [],
         pathPrefix = '',
-    ): void {
+    ): Promise<void> {
         InjectorExplorer.loadingLock = InjectorExplorer.loadingLock.then(() => {
             InjectorExplorer.accumulating = false;
             const queue = [...InjectorExplorer.pending];
@@ -108,6 +108,8 @@ export class InjectorExplorer {
 
             InjectorExplorer._phaseTwo(queue, undefined, routeGuards, routeMiddlewares);
         });
+
+        return InjectorExplorer.loadingLock;
     }
 
     /**
