@@ -115,7 +115,8 @@ declare class Request {
     readonly body: any;
     readonly context: AppInjector;
     readonly params: Record<string, string>;
-    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any);
+    readonly query: Record<string, string>;
+    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any, query?: Record<string, string>);
 }
 /**
  * The IRequest interface defines the structure of a request object.
@@ -128,12 +129,14 @@ interface IRequest<TBody = unknown> {
     path: string;
     method: HttpMethod;
     body?: TBody;
+    query?: Record<string, string>;
 }
 interface IBatchRequestItem<TBody = unknown> {
     requestId?: string;
     path: string;
     method: AtomicHttpMethod;
     body?: TBody;
+    query?: Record<string, string>;
 }
 interface IBatchRequestPayload {
     requests: IBatchRequestItem[];
@@ -208,12 +211,20 @@ interface RendererClientOptions {
     initMessageType?: string;
     windowRef?: Window;
     generateRequestId?: () => string;
+    /**
+     * Timeout in milliseconds for IPC requests.
+     * If the main process does not respond within this duration,
+     * the request Promise is rejected and the pending entry cleaned up.
+     * Defaults to 10 000 ms. Set to 0 to disable.
+     */
+    requestTimeout?: number;
 }
 interface PendingRequest<T = unknown> {
     resolve: (value: T) => void;
     reject: (reason: IResponse<T>) => void;
     request: IRequest;
     submittedAt: number;
+    timer?: ReturnType<typeof setTimeout>;
 }
 declare class NoxRendererClient {
     readonly events: RendererEventRegistry;
@@ -225,6 +236,7 @@ declare class NoxRendererClient {
     private readonly initMessageType;
     private readonly windowRef;
     private readonly generateRequestId;
+    private readonly requestTimeout;
     private isReady;
     private setupPromise;
     private setupResolve;

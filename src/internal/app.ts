@@ -134,7 +134,7 @@ export class NoxApp {
     // -------------------------------------------------------------------------
 
     private readonly onRendererMessage = async (event: Electron.MessageEvent): Promise<void> => {
-        const { senderId, requestId, path, method, body }: import('./request').IRequest = event.data;
+        const { senderId, requestId, path, method, body, query }: import('./request').IRequest = event.data;
         const channels = this.socket.get(senderId);
 
         if (!channels) {
@@ -143,7 +143,7 @@ export class NoxApp {
         }
 
         try {
-            const request = new Request(event, senderId, requestId, method, path, body);
+            const request = new Request(event, senderId, requestId, method, path, body, query);
             const response = await this.router.handle(request);
             channels.request.port1.postMessage(response);
         }

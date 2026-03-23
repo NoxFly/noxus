@@ -120,6 +120,12 @@ declare class AppInjector {
  */
 declare const RootInjector: AppInjector;
 /**
+ * Resets the root injector to a clean state.
+ * **Intended for testing only** — clears all bindings, singletons, and scoped instances
+ * so that each test can start from a fresh DI container without restarting the process.
+ */
+declare function resetRootInjector(): void;
+/**
  * Convenience function: resolve a token from the root injector.
  */
 declare function inject<T>(t: TokenKey<T> | ForwardReference<T>): T;
@@ -175,7 +181,8 @@ declare class Request {
     readonly body: any;
     readonly context: AppInjector;
     readonly params: Record<string, string>;
-    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any);
+    readonly query: Record<string, string>;
+    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any, query?: Record<string, string>);
 }
 /**
  * The IRequest interface defines the structure of a request object.
@@ -188,12 +195,14 @@ interface IRequest<TBody = unknown> {
     path: string;
     method: HttpMethod;
     body?: TBody;
+    query?: Record<string, string>;
 }
 interface IBatchRequestItem<TBody = unknown> {
     requestId?: string;
     path: string;
     method: AtomicHttpMethod;
     body?: TBody;
+    query?: Record<string, string>;
 }
 interface IBatchRequestPayload {
     requests: IBatchRequestItem[];
@@ -455,6 +464,107 @@ declare class NoxApp {
     private shutdownChannel;
 }
 
+/**
+ * Logger is a utility class for logging messages to the console.
+ */
+type LogLevel = 'debug' | 'comment' | 'log' | 'info' | 'warn' | 'error' | 'critical';
+declare namespace Logger {
+    /**
+     * Sets the log level for the logger.
+     * This function allows you to change the log level dynamically at runtime.
+     * This won't affect the startup logs.
+     *
+     * If the parameter is a single LogLevel, all log levels with equal or higher severity will be enabled.
+
+    * If the parameter is an array of LogLevels, only the specified levels will be enabled.
+     *
+     * @param level Sets the log level for the logger.
+     */
+    function setLogLevel(level: LogLevel | LogLevel[]): void;
+    /**
+     * Logs a message to the console with log level LOG.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function log(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level INFO.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function info(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level WARN.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function warn(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level ERROR.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function error(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level ERROR and a grey color scheme.
+     */
+    function errorStack(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level DEBUG.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function debug(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level COMMENT.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function comment(...args: any[]): void;
+    /**
+     * Logs a message to the console with log level CRITICAL.
+     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
+     * It uses different colors for different log levels to enhance readability.
+     * @param args The arguments to log.
+     */
+    function critical(...args: any[]): void;
+    /**
+     * Enables logging to a file output for the specified log levels.
+     * @param filepath The path to the log file.
+     * @param levels The log levels to enable file logging for. Defaults to all levels.
+     */
+    function enableFileLogging(filepath: string, levels?: LogLevel[]): void;
+    /**
+     * Disables logging to a file output for the specified log levels.
+     * @param levels The log levels to disable file logging for. Defaults to all levels.
+     */
+    function disableFileLogging(levels?: LogLevel[]): void;
+    const colors: {
+        black: string;
+        grey: string;
+        red: string;
+        green: string;
+        brown: string;
+        blue: string;
+        purple: string;
+        darkGrey: string;
+        lightRed: string;
+        lightGreen: string;
+        yellow: string;
+        lightBlue: string;
+        magenta: string;
+        cyan: string;
+        white: string;
+        initial: string;
+    };
+}
+
 
 /**
  * A single route entry in the application routing table.
@@ -469,10 +579,12 @@ interface RouteDefinition {
      * Dynamic import function returning the controller file.
      * The controller is loaded lazily on the first IPC request targeting this prefix.
      *
+     * Optional when the route only serves as a parent for `children`.
+     *
      * @example
      * load: () => import('./modules/users/users.controller')
      */
-    load: () => Promise<unknown>;
+    load?: () => Promise<unknown>;
     /**
      * Guards applied to every action in this controller.
      * Merged with action-level guards.
@@ -483,6 +595,11 @@ interface RouteDefinition {
      * Merged with action-level middlewares.
      */
     middlewares?: Middleware[];
+    /**
+     * Nested child routes. Guards and middlewares declared here are
+     * inherited (merged) by all children.
+     */
+    children?: RouteDefinition[];
 }
 /**
  * Defines the application routing table.
@@ -490,6 +607,9 @@ interface RouteDefinition {
  *
  * This is the single source of truth for routing — no path is declared
  * in @Controller(), preventing duplicate route prefixes across controllers.
+ *
+ * Supports nested routes via the `children` property. Guards and middlewares
+ * from parent entries are inherited (merged) into each child.
  *
  * @example
  * export const routes = defineRoutes([
@@ -499,15 +619,16 @@ interface RouteDefinition {
  *         guards: [authGuard],
  *     },
  *     {
- *         path: 'orders',
- *         load: () => import('./modules/orders/orders.controller'),
- *         guards: [authGuard],
- *         middlewares: [logMiddleware],
+ *         path: 'admin',
+ *         guards: [authGuard, adminGuard],
+ *         children: [
+ *             { path: 'users',    load: () => import('./admin/users.controller') },
+ *             { path: 'products', load: () => import('./admin/products.controller') },
+ *         ],
  *     },
  * ]);
  */
 declare function defineRoutes(routes: RouteDefinition[]): RouteDefinition[];
-
 
 /**
  * A singleton value override: provides an already-constructed instance
@@ -563,6 +684,15 @@ interface BootstrapConfig {
      * ]
      */
     eagerLoad?: Array<() => Promise<unknown>>;
+    /**
+     * Controls framework log verbosity.
+     * - `'debug'`: all messages (default during development).
+     * - `'info'`: info, warn, error, critical only.
+     * - `'none'`: completely silent — no framework logs.
+     *
+     * You can also pass an array of specific log levels to enable.
+     */
+    logLevel?: 'debug' | 'info' | 'none' | LogLevel[];
 }
 /**
  * Bootstraps the Noxus application.
@@ -721,107 +851,6 @@ interface InjectableOptions {
  */
 declare function Injectable(options?: InjectableOptions): ClassDecorator;
 
-/**
- * Logger is a utility class for logging messages to the console.
- */
-type LogLevel = 'debug' | 'comment' | 'log' | 'info' | 'warn' | 'error' | 'critical';
-declare namespace Logger {
-    /**
-     * Sets the log level for the logger.
-     * This function allows you to change the log level dynamically at runtime.
-     * This won't affect the startup logs.
-     *
-     * If the parameter is a single LogLevel, all log levels with equal or higher severity will be enabled.
-
-    * If the parameter is an array of LogLevels, only the specified levels will be enabled.
-     *
-     * @param level Sets the log level for the logger.
-     */
-    function setLogLevel(level: LogLevel | LogLevel[]): void;
-    /**
-     * Logs a message to the console with log level LOG.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function log(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level INFO.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function info(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level WARN.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function warn(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level ERROR.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function error(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level ERROR and a grey color scheme.
-     */
-    function errorStack(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level DEBUG.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function debug(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level COMMENT.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function comment(...args: any[]): void;
-    /**
-     * Logs a message to the console with log level CRITICAL.
-     * This function formats the message with a timestamp, process ID, and the name of the caller function or class.
-     * It uses different colors for different log levels to enhance readability.
-     * @param args The arguments to log.
-     */
-    function critical(...args: any[]): void;
-    /**
-     * Enables logging to a file output for the specified log levels.
-     * @param filepath The path to the log file.
-     * @param levels The log levels to enable file logging for. Defaults to all levels.
-     */
-    function enableFileLogging(filepath: string, levels?: LogLevel[]): void;
-    /**
-     * Disables logging to a file output for the specified log levels.
-     * @param levels The log levels to disable file logging for. Defaults to all levels.
-     */
-    function disableFileLogging(levels?: LogLevel[]): void;
-    const colors: {
-        black: string;
-        grey: string;
-        red: string;
-        green: string;
-        brown: string;
-        blue: string;
-        purple: string;
-        darkGrey: string;
-        lightRed: string;
-        lightGreen: string;
-        yellow: string;
-        lightBlue: string;
-        magenta: string;
-        cyan: string;
-        white: string;
-        initial: string;
-    };
-}
-
 interface RendererChannels {
     request: Electron.MessageChannelMain;
     socket: Electron.MessageChannelMain;
@@ -832,8 +861,8 @@ declare class NoxSocket {
     get(senderId: number): RendererChannels | undefined;
     unregister(senderId: number): void;
     getSenderIds(): number[];
-    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number;
+    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): void;
     emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
 }
 
-export { AppInjector, type AtomicHttpMethod, BadGatewayException, BadRequestException, type BootstrapConfig, ConflictException, Controller, type ControllerAction, type ControllerOptions, Delete, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, Get, type Guard, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type ILazyRoute, type IRendererEventMessage, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, type IRouteOptions, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, type Middleware, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, Patch, PaymentRequiredException, Post, Put, RENDERER_EVENT_TYPE, Request, RequestTimeoutException, ResponseException, RootInjector, type RouteDefinition, Router, ServiceUnavailableException, type SingletonOverride, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, type WindowConfig, WindowManager, type WindowRecord, bootstrapApplication, createRendererEventMessage, defineRoutes, forwardRef, getControllerMetadata, getRouteMetadata, inject, isAtomicHttpMethod, isRendererEventMessage, token };
+export { AppInjector, type AtomicHttpMethod, BadGatewayException, BadRequestException, type BootstrapConfig, ConflictException, Controller, type ControllerAction, type ControllerOptions, Delete, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, Get, type Guard, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type ILazyRoute, type IRendererEventMessage, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, type IRouteOptions, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, type Middleware, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, Patch, PaymentRequiredException, Post, Put, RENDERER_EVENT_TYPE, Request, RequestTimeoutException, ResponseException, RootInjector, type RouteDefinition, Router, ServiceUnavailableException, type SingletonOverride, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, type WindowConfig, WindowManager, type WindowRecord, bootstrapApplication, createRendererEventMessage, defineRoutes, forwardRef, getControllerMetadata, getRouteMetadata, inject, isAtomicHttpMethod, isRendererEventMessage, resetRootInjector, token };

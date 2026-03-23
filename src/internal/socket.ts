@@ -37,7 +37,7 @@ export class NoxSocket {
         return [...this.channels.keys()];
     }
 
-    public emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): number {
+    public emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): void {
         const normalizedEvent = eventName.trim();
 
         if(normalizedEvent.length === 0) {
@@ -45,7 +45,6 @@ export class NoxSocket {
         }
 
         const recipients = targetSenderIds ?? this.getSenderIds();
-        let delivered = 0;
 
         for(const senderId of recipients) {
             const channel = this.channels.get(senderId);
@@ -57,17 +56,16 @@ export class NoxSocket {
 
             try {
                 channel.socket.port1.postMessage(createRendererEventMessage(normalizedEvent, payload));
-                delivered++;
             }
             catch(error) {
                 Logger.error(`[Noxus] Failed to emit "${normalizedEvent}" to sender ${senderId}.`, error);
             }
         }
-
-        return delivered;
     }
 
     public emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean {
-        return this.emit(eventName, payload, [senderId]) > 0;
+        const previousCount = this.channels.size;
+        this.emit(eventName, payload, [senderId]);
+        return this.channels.has(senderId) && previousCount > 0;
     }
 }

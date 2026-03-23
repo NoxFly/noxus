@@ -110,6 +110,12 @@ declare class AppInjector {
  */
 declare const RootInjector: AppInjector;
 /**
+ * Resets the root injector to a clean state.
+ * **Intended for testing only** — clears all bindings, singletons, and scoped instances
+ * so that each test can start from a fresh DI container without restarting the process.
+ */
+declare function resetRootInjector(): void;
+/**
  * Convenience function: resolve a token from the root injector.
  */
 declare function inject<T>(t: TokenKey<T> | ForwardReference<T>): T;
@@ -340,4 +346,4 @@ declare namespace Logger {
     };
 }
 
-export { AppInjector, BadGatewayException, BadRequestException, ConflictException, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, HttpVersionNotSupportedException, type IBinding, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, RootInjector, ServiceUnavailableException, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, forwardRef, inject };
+export { AppInjector, BadGatewayException, BadRequestException, ConflictException, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, HttpVersionNotSupportedException, type IBinding, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, PaymentRequiredException, RequestTimeoutException, ResponseException, RootInjector, ServiceUnavailableException, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, forwardRef, inject, resetRootInjector };

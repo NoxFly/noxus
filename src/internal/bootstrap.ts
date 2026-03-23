@@ -8,8 +8,10 @@ import { app } from 'electron/main';
 import { inject, RootInjector } from '../DI/app-injector';
 import { InjectorExplorer } from '../DI/injector-explorer';
 import { TokenKey } from '../DI/token';
+import { Logger } from '../utils/logger';
 import { NoxApp } from './app';
 import { RouteDefinition } from "./routes";
+import { Router } from './router';
 
 /**
  * A singleton value override: provides an already-constructed instance
@@ -68,6 +70,16 @@ export interface BootstrapConfig {
      * ]
      */
     eagerLoad?: Array<() => Promise<unknown>>;
+
+    /**
+     * Controls framework log verbosity.
+     * - `'debug'`: all messages (default during development).
+     * - `'info'`: info, warn, error, critical only.
+     * - `'none'`: completely silent — no framework logs.
+     *
+     * You can also pass an array of specific log levels to enable.
+     */
+    logLevel?: 'debug' | 'info' | 'none' | import('../utils/logger').LogLevel[];
 }
 
 /**
@@ -75,6 +87,17 @@ export interface BootstrapConfig {
  */
 export async function bootstrapApplication(config: BootstrapConfig = {}): Promise<NoxApp> {
     await app.whenReady();
+
+    // Apply log level configuration
+    if (config.logLevel !== undefined) {
+        if (config.logLevel === 'none') {
+            Logger.setLogLevel([]);
+        } else if (Array.isArray(config.logLevel)) {
+            Logger.setLogLevel(config.logLevel);
+        } else {
+            Logger.setLogLevel(config.logLevel);
+        }
+    }
 
     // Build override map for the DI flush phase
     const overrides = new Map<TokenKey, unknown>();
@@ -86,6 +109,13 @@ export async function bootstrapApplication(config: BootstrapConfig = {}): Promis
     }
 
     // Flush all classes enqueued by decorators at import time (two-phase)
+    // Wire the controller registrar so InjectorExplorer can register controllers
+    // without directly importing Router (avoids circular dependency).
+    InjectorExplorer.setControllerRegistrar((controllerClass, pathPrefix, routeGuards, routeMiddlewares) => {
+        const router = inject(Router);
+        router.registerController(controllerClass, pathPrefix, routeGuards, routeMiddlewares);
+    });
+
     InjectorExplorer.processPending(overrides);
 
     // Resolve core framework singletons
@@ -94,7 +124,9 @@ export async function bootstrapApplication(config: BootstrapConfig = {}): Promis
     // Register routes from the routing table
     if (config.routes?.length) {
         for (const route of config.routes) {
-            noxApp.lazy(route.path, route.load, route.guards, route.middlewares);
+            if (route.load) {
+                noxApp.lazy(route.path, route.load, route.guards, route.middlewares);
+            }
         }
     }
 

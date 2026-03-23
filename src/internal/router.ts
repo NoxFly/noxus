@@ -167,7 +167,7 @@ export class Router {
             response.body!.responses = await Promise.all(
                 payload.requests.map((item, i) => {
                     const id = item.requestId ?? `${request.id}:${i}`;
-                    return this.handleAtomic(new Request(request.event, request.senderId, id, item.method, item.path, item.body));
+                    return this.handleAtomic(new Request(request.event, request.senderId, id, item.method, item.path, item.body, item.query));
                 }),
             );
         }
@@ -226,6 +226,7 @@ export class Router {
         entry.load = null;
 
         InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
+        await InjectorExplorer.waitForFlush();
 
         entry.loaded = true;
 

@@ -17,6 +17,13 @@ export interface RendererClientOptions {
     initMessageType?: string;
     windowRef?: Window;
     generateRequestId?: () => string;
+    /**
+     * Timeout in milliseconds for IPC requests.
+     * If the main process does not respond within this duration,
+     * the request Promise is rejected and the pending entry cleaned up.
+     * Defaults to 10 000 ms. Set to 0 to disable.
+     */
+    requestTimeout?: number;
 }
 
 interface PendingRequest<T = unknown> {
@@ -24,6 +31,7 @@ interface PendingRequest<T = unknown> {
     reject: (reason: IResponse<T>) => void;
     request: IRequest;
     submittedAt: number;
+    timer?: ReturnType<typeof setTimeout>;
 }
 
 const DEFAULT_INIT_EVENT = 'init-port';
@@ -97,6 +105,7 @@ export class NoxRendererClient {
     private readonly initMessageType: string;
     private readonly windowRef: Window;
     private readonly generateRequestId: () => string;
+    private readonly requestTimeout: number;
 
     private isReady = false;
     private setupPromise: Promise<void> | undefined;
@@ -109,6 +118,7 @@ export class NoxRendererClient {
         this.bridge = resolvedBridge ?? null;
         this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
         this.generateRequestId = options.generateRequestId ?? defaultRequestId;
+        this.requestTimeout = options.requestTimeout ?? 10_000;
     }
 
     public async setup(): Promise<void> {
@@ -146,6 +156,12 @@ export class NoxRendererClient {
         this.senderId = undefined;
         this.isReady = false;
 
+        for(const pending of this.pendingRequests.values()) {
+            if(pending.timer !== undefined) {
+                clearTimeout(pending.timer);
+            }
+        }
+
         this.pendingRequests.clear();
     }
 
@@ -176,6 +192,13 @@ export class NoxRendererClient {
                 request: message,
                 submittedAt: Date.now(),
             };
+
+            if(this.requestTimeout > 0) {
+                pending.timer = setTimeout(() => {
+                    this.pendingRequests.delete(message.requestId);
+                    reject(this.createErrorResponse<TResponse>(message.requestId, `Request timed out after ${this.requestTimeout}ms`) as IResponse<TResponse>);
+                }, this.requestTimeout);
+            }
 
             this.pendingRequests.set(message.requestId, pending as PendingRequest);
 
@@ -258,6 +281,10 @@ export class NoxRendererClient {
         if(!pending) {
             console.error(`[Noxus] No pending handler found for request ${response.requestId}.`);
             return;
+        }
+
+        if(pending.timer !== undefined) {
+            clearTimeout(pending.timer);
         }
 
         this.pendingRequests.delete(response.requestId);

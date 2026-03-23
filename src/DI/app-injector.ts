@@ -7,6 +7,7 @@
 import { ForwardReference } from '../utils/forward-ref';
 import { Type } from '../utils/types';
 import { Token, TokenKey } from './token';
+import { InjectorExplorer } from './injector-explorer';
 
 /**
  * Lifetime of a binding in the DI container.
@@ -122,21 +123,20 @@ export class AppInjector {
     // -------------------------------------------------------------------------
 
     private _resolveForwardRef<T>(ref: ForwardReference<T>): T {
+        let resolved: T | undefined;
         return new Proxy({} as object, {
             get: (_obj, prop, receiver) => {
-                const realType = ref.forwardRefFn();
-                const instance = this.resolve(realType) as Record<string | symbol, unknown>;
-                const value = Reflect.get(instance, prop, receiver);
-                return typeof value === 'function' ? (value as Function).bind(instance) : value;
+                resolved ??= this.resolve(ref.forwardRefFn()) as T;
+                const value = Reflect.get(resolved as object, prop, receiver);
+                return typeof value === 'function' ? (value as Function).bind(resolved) : value;
             },
             set: (_obj, prop, value, receiver) => {
-                const realType = ref.forwardRefFn();
-                const instance = this.resolve(realType) as object;
-                return Reflect.set(instance, prop, value, receiver);
+                resolved ??= this.resolve(ref.forwardRefFn()) as T;
+                return Reflect.set(resolved as object, prop, value, receiver);
             },
             getPrototypeOf: () => {
-                const realType = ref.forwardRefFn();
-                return (realType as unknown as { prototype: object }).prototype;
+                resolved ??= this.resolve(ref.forwardRefFn()) as T;
+                return Object.getPrototypeOf(resolved);
             },
         }) as T;
     }
@@ -151,6 +151,18 @@ export class AppInjector {
  * The global root injector. All singletons live here.
  */
 export const RootInjector = new AppInjector('root');
+
+/**
+ * Resets the root injector to a clean state.
+ * **Intended for testing only** — clears all bindings, singletons, and scoped instances
+ * so that each test can start from a fresh DI container without restarting the process.
+ */
+export function resetRootInjector(): void {
+    RootInjector.bindings.clear();
+    RootInjector.singletons.clear();
+    RootInjector.scoped.clear();
+    InjectorExplorer.reset();
+}
 
 /**
  * Convenience function: resolve a token from the root injector.

@@ -154,40 +154,48 @@ export class RadixTree<T> {
 
         const [segment, ...rest] = segments;
 
+        // Try static (exact) matches first, then param matches.
+        // This ensures e.g. 'addNote' is preferred over ':id'.
+        const staticChildren: RadixNode<T>[] = [];
+        const paramChildren: RadixNode<T>[] = [];
+
         for(const child of node.children) {
             if(child.isParam) {
-                const paramName = child.paramName!;
-
-                const childParams: Params = {
-                    ...params,
-                    [paramName]: segment ?? "",
-                };
-
-                if(rest.length === 0) {
-                    return {
-                        node: child,
-                        params: childParams
-                    };
-                }
-
-                const result = this.searchRecursive(child, rest, childParams);
-
-                if(result)
-                    return result;
+                paramChildren.push(child);
             }
             else if(segment === child.segment) {
-                if(rest.length === 0) {
-                    return {
-                        node: child,
-                        params
-                    };
-                }
-
-                const result = this.searchRecursive(child, rest, params);
-
-                if(result)
-                    return result;
+                staticChildren.push(child);
             }
+        }
+
+        for(const child of staticChildren) {
+            if(rest.length === 0) {
+                // Only return leaf-level matches (has children for method nodes, or has a value)
+                if(child.value !== undefined || child.children.length > 0) {
+                    return { node: child, params };
+                }
+            }
+
+            const result = this.searchRecursive(child, rest, params);
+            if(result) return result;
+        }
+
+        for(const child of paramChildren) {
+            const paramName = child.paramName!;
+
+            const childParams: Params = {
+                ...params,
+                [paramName]: segment ?? "",
+            };
+
+            if(rest.length === 0) {
+                if(child.value !== undefined || child.children.length > 0) {
+                    return { node: child, params: childParams };
+                }
+            }
+
+            const result = this.searchRecursive(child, rest, childParams);
+            if(result) return result;
         }
 
         return undefined;
