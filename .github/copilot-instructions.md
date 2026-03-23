@@ -68,9 +68,13 @@ Use spaces, 4 for any file type, except yml that are 2 spaces.
     Use PascaleCase for class names and interfaces
     Prefix interface names by an 'I'
     Use PascalCase for enum values
+    Choose wisely enum over union types or consts
+    Prefer interfaces over types when possible
     Use camelCase for function and method names
     Use camelCase for property names and local variables
     Use whole words in names when possible
+    Use kebab-case for file names, and avoid using the same name for multiple files in different directories to prevent confusion
+    suffix file names with their type (e.g., .service.ts, .controller.ts, .component.ts) to make it clear what the file contains and its role in the architecture
 
 ### Types
 
@@ -118,3 +122,7 @@ Use spaces, 4 for any file type, except yml that are 2 spaces.
     Always prefer composition over inheritance. Favor creating small, reusable functions and classes that can be combined to achieve complex behavior, rather than relying on deep inheritance hierarchies which can lead to tight coupling and reduced flexibility.
     Always use strict equality (=== and !==) instead of loose equality (== and !=) to avoid unexpected type coercion and ensure more predictable comparisons.
     Always ensure readme and copilot-instructions files are updated to reflect any architectural, structural, or convention changes made to the codebase. These documents serve as the primary reference for other developers and must accurately represent the current state of the project.
+    Do not hesitate to refactor existing code to improve readability, maintainability, or performance, even if it is not directly related to the task at hand. Continuous improvement of the codebase is essential for long-term success and developer satisfaction.
+    Do not hesitate to ask for help or clarification if a request is unclear.
+    Do not hesitate to suggest improvements or optimizations if you see an opportunity, even if it's outside the scope of your current task.
+    Always write unit tests for new functionality and bug fixes, and ensure existing tests are updated as necessary to reflect changes in the codebase. Aim for high test coverage and meaningful test cases that validate the expected behavior of the code.
