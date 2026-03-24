@@ -410,6 +410,7 @@ var _NoxRendererClient = class _NoxRendererClient {
     this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
     this.generateRequestId = options.generateRequestId ?? defaultRequestId;
     this.requestTimeout = options.requestTimeout ?? 1e4;
+    this.enableLogging = options.enableLogging ?? true;
   }
   async setup() {
     if (this.isReady) {
@@ -489,6 +490,9 @@ var _NoxRendererClient = class _NoxRendererClient {
     return this.senderId;
   }
   onRequestCompleted(pending, response) {
+    if (!this.enableLogging) {
+      return;
+    }
     if (typeof console.groupCollapsed === "function") {
       console.groupCollapsed(`${response.status} ${pending.request.method} /${pending.request.path}`);
     }

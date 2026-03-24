@@ -382,6 +382,7 @@ var init_injector_explorer = __esm({
           }
           _InjectorExplorer._phaseTwo(queue, void 0, routeGuards, routeMiddlewares);
         });
+        return _InjectorExplorer.loadingLock;
       }
       /**
        * Returns a Promise that resolves once all pending flushAccumulated calls
@@ -760,6 +761,18 @@ var _RadixTree = class _RadixTree {
     const segments = this.normalize(path2);
     return this.searchRecursive(this.root, segments, {});
   }
+  collectValues(node, values = []) {
+    if (!node) {
+      node = this.root;
+    }
+    if (node.value !== void 0) {
+      values.push(node.value);
+    }
+    for (const child of node.children) {
+      this.collectValues(child, values);
+    }
+    return values;
+  }
   /**
    * Recursively searches for a path in the Radix Tree.
    * This method traverses the tree and searches for the segments of the path, collecting parameters
@@ -1113,6 +1126,16 @@ var Router = class {
     this.rootMiddlewares.push(middleware);
     return this;
   }
+  getRegisteredRoutes() {
+    const allRoutes = this.routes.collectValues();
+    return allRoutes.map((r) => ({ method: r.method, path: r.path }));
+  }
+  getLazyRoutes() {
+    return [...this.lazyRoutes.entries()].map(([prefix, entry]) => ({
+      prefix,
+      loaded: entry.loaded
+    }));
+  }
   // -------------------------------------------------------------------------
   // Request handling
   // -------------------------------------------------------------------------
@@ -1197,8 +1220,7 @@ var Router = class {
     await entry.load?.();
     entry.loading = null;
     entry.load = null;
-    InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
-    await InjectorExplorer.waitForFlush();
+    await InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
     entry.loaded = true;
     Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
   }
@@ -1317,6 +1339,7 @@ init_logger();
 var WindowManager = class {
   constructor() {
     this._windows = /* @__PURE__ */ new Map();
+    this.listeners = /* @__PURE__ */ new Map();
   }
   // -------------------------------------------------------------------------
   // Creation
@@ -1448,6 +1471,18 @@ var WindowManager = class {
     }
   }
   // -------------------------------------------------------------------------
+  // Events
+  // -------------------------------------------------------------------------
+  on(event, handler) {
+    const set = this.listeners.get(event) ?? /* @__PURE__ */ new Set();
+    set.add(handler);
+    this.listeners.set(event, set);
+    return () => set.delete(handler);
+  }
+  _emit(event, win) {
+    this.listeners.get(event)?.forEach((h) => h(win));
+  }
+  // -------------------------------------------------------------------------
   // Private
   // -------------------------------------------------------------------------
   _register(win, isMain) {
@@ -1455,12 +1490,16 @@ var WindowManager = class {
     if (isMain && this._mainWindowId === void 0) {
       this._mainWindowId = win.id;
     }
+    this._emit("created", win);
+    win.on("focus", () => this._emit("focused", win));
+    win.on("blur", () => this._emit("blurred", win));
     win.once("closed", () => {
       this._windows.delete(win.id);
       if (this._mainWindowId === win.id) {
         this._mainWindowId = void 0;
       }
       Logger.log(`[WindowManager] Window #${win.id} closed`);
+      this._emit("closed", win);
     });
   }
   /**
@@ -1528,9 +1567,11 @@ var NoxSocket = class {
     }
   }
   emitToRenderer(senderId, eventName, payload) {
-    const previousCount = this.channels.size;
+    if (!this.channels.has(senderId)) {
+      return false;
+    }
     this.emit(eventName, payload, [senderId]);
-    return this.channels.has(senderId) && previousCount > 0;
+    return true;
   }
 };
 __name(NoxSocket, "NoxSocket");
@@ -1540,10 +1581,10 @@ NoxSocket = __decorateClass([
 
 // src/internal/app.ts
 var NoxApp = class {
-  constructor() {
-    this.router = inject(Router);
-    this.socket = inject(NoxSocket);
-    this.windowManager = inject(WindowManager);
+  constructor(router, socket, windowManager) {
+    this.router = router;
+    this.socket = socket;
+    this.windowManager = windowManager;
     // -------------------------------------------------------------------------
     // IPC
     // -------------------------------------------------------------------------
@@ -1606,7 +1647,7 @@ var NoxApp = class {
   async load(importFns) {
     InjectorExplorer.beginAccumulate();
     await Promise.all(importFns.map((fn) => fn()));
-    InjectorExplorer.flushAccumulated();
+    await InjectorExplorer.flushAccumulated();
     return this;
   }
   /**

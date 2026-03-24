@@ -112,11 +112,11 @@ declare class Request {
     readonly id: string;
     readonly method: HttpMethod;
     readonly path: string;
-    readonly body: any;
+    readonly body: unknown;
     readonly context: AppInjector;
     readonly params: Record<string, string>;
     readonly query: Record<string, string>;
-    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any, query?: Record<string, string>);
+    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: unknown, query?: Record<string, string>);
 }
 /**
  * The IRequest interface defines the structure of a request object.
@@ -218,6 +218,8 @@ interface RendererClientOptions {
      * Defaults to 10 000 ms. Set to 0 to disable.
      */
     requestTimeout?: number;
+    /** @default true */
+    enableLogging?: boolean;
 }
 interface PendingRequest<T = unknown> {
     resolve: (value: T) => void;
@@ -241,6 +243,7 @@ declare class NoxRendererClient {
     private setupPromise;
     private setupResolve;
     private setupReject;
+    private enableLogging;
     constructor(options?: RendererClientOptions);
     setup(): Promise<void>;
     dispose(): void;

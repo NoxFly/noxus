@@ -178,11 +178,11 @@ declare class Request {
     readonly id: string;
     readonly method: HttpMethod;
     readonly path: string;
-    readonly body: any;
+    readonly body: unknown;
     readonly context: AppInjector;
     readonly params: Record<string, string>;
     readonly query: Record<string, string>;
-    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: any, query?: Record<string, string>);
+    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: unknown, query?: Record<string, string>);
 }
 /**
  * The IRequest interface defines the structure of a request object.
@@ -261,6 +261,14 @@ declare class Router {
     registerController(controllerClass: Type<unknown>, pathPrefix: string, routeGuards?: Guard[], routeMiddlewares?: Middleware[]): this;
     registerLazyRoute(pathPrefix: string, load: () => Promise<unknown>, guards?: Guard[], middlewares?: Middleware[]): this;
     defineRootMiddleware(middleware: Middleware): this;
+    getRegisteredRoutes(): Array<{
+        method: string;
+        path: string;
+    }>;
+    getLazyRoutes(): Array<{
+        prefix: string;
+        loaded: boolean;
+    }>;
     handle(request: Request): Promise<IResponse>;
     private handleAtomic;
     private handleBatch;
@@ -300,6 +308,11 @@ interface WindowRecord {
     id: number;
 }
 /**
+ * @description
+ * The events emitted by WindowManager when windows are created, closed, focused, or blurred.
+ */
+type WindowEvent = 'created' | 'closed' | 'focused' | 'blurred';
+/**
  * WindowManager is a singleton service that centralizes BrowserWindow lifecycle.
  *
  * Features:
@@ -323,6 +336,7 @@ interface WindowRecord {
  */
 declare class WindowManager {
     private readonly _windows;
+    private readonly listeners;
     private _mainWindowId;
     /**
      * Creates a BrowserWindow, optionally performs an animated expand to the
@@ -381,6 +395,8 @@ declare class WindowManager {
      * Broadcasts a message to all open windows.
      */
     broadcast(channel: string, ...args: unknown[]): void;
+    on(event: WindowEvent, handler: (win: BrowserWindow) => void): () => void;
+    private _emit;
     private _register;
     /**
      * Animates the window to the full work area of the primary display.
@@ -388,6 +404,20 @@ declare class WindowManager {
      * afterward gets the correct surface size (no viewbox freeze).
      */
     private _expandToWorkArea;
+}
+
+interface RendererChannels {
+    request: Electron.MessageChannelMain;
+    socket: Electron.MessageChannelMain;
+}
+declare class NoxSocket {
+    private readonly channels;
+    register(senderId: number, requestChannel: Electron.MessageChannelMain, socketChannel: Electron.MessageChannelMain): void;
+    get(senderId: number): RendererChannels | undefined;
+    unregister(senderId: number): void;
+    getSenderIds(): number[];
+    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): void;
+    emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
 }
 
 
@@ -419,10 +449,11 @@ interface IApp {
     onActivated(): Promise<void>;
 }
 declare class NoxApp {
-    private appService;
     private readonly router;
     private readonly socket;
     readonly windowManager: WindowManager;
+    private appService;
+    constructor(router: Router, socket: NoxSocket, windowManager: WindowManager);
     init(): Promise<this>;
     /**
      * Registers a lazy route. The file behind this prefix is dynamically
@@ -851,18 +882,4 @@ interface InjectableOptions {
  */
 declare function Injectable(options?: InjectableOptions): ClassDecorator;
 
-interface RendererChannels {
-    request: Electron.MessageChannelMain;
-    socket: Electron.MessageChannelMain;
-}
-declare class NoxSocket {
-    private readonly channels;
-    register(senderId: number, requestChannel: Electron.MessageChannelMain, socketChannel: Electron.MessageChannelMain): void;
-    get(senderId: number): RendererChannels | undefined;
-    unregister(senderId: number): void;
-    getSenderIds(): number[];
-    emit<TPayload = unknown>(eventName: string, payload?: TPayload, targetSenderIds?: number[]): void;
-    emitToRenderer<TPayload = unknown>(senderId: number, eventName: string, payload?: TPayload): boolean;
-}
-
-export { AppInjector, type AtomicHttpMethod, BadGatewayException, BadRequestException, type BootstrapConfig, ConflictException, Controller, type ControllerAction, type ControllerOptions, Delete, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, Get, type Guard, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type ILazyRoute, type IRendererEventMessage, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, type IRouteOptions, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, type Middleware, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, Patch, PaymentRequiredException, Post, Put, RENDERER_EVENT_TYPE, Request, RequestTimeoutException, ResponseException, RootInjector, type RouteDefinition, Router, ServiceUnavailableException, type SingletonOverride, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, type WindowConfig, WindowManager, type WindowRecord, bootstrapApplication, createRendererEventMessage, defineRoutes, forwardRef, getControllerMetadata, getRouteMetadata, inject, isAtomicHttpMethod, isRendererEventMessage, resetRootInjector, token };
+export { AppInjector, type AtomicHttpMethod, BadGatewayException, BadRequestException, type BootstrapConfig, ConflictException, Controller, type ControllerAction, type ControllerOptions, Delete, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, Get, type Guard, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type ILazyRoute, type IRendererEventMessage, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, type IRouteOptions, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, type Middleware, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, Patch, PaymentRequiredException, Post, Put, RENDERER_EVENT_TYPE, Request, RequestTimeoutException, ResponseException, RootInjector, type RouteDefinition, Router, ServiceUnavailableException, type SingletonOverride, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, type WindowConfig, type WindowEvent, WindowManager, type WindowRecord, bootstrapApplication, createRendererEventMessage, defineRoutes, forwardRef, getControllerMetadata, getRouteMetadata, inject, isAtomicHttpMethod, isRendererEventMessage, resetRootInjector, token };

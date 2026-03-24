@@ -370,6 +370,7 @@ var init_injector_explorer = __esm({
           }
           _InjectorExplorer._phaseTwo(queue, void 0, routeGuards, routeMiddlewares);
         });
+        return _InjectorExplorer.loadingLock;
       }
       /**
        * Returns a Promise that resolves once all pending flushAccumulated calls
