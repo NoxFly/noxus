@@ -15,7 +15,7 @@ const options: Options = {
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,
-    clean: false,  // ← false dans le base config
+    clean: false,
     outDir: "dist",
     external: ["electron"],
     target: "es2020",

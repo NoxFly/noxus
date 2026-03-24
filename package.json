@@ -1,6 +1,15 @@
 {
     "name": "@noxfly/noxus",
     "version": "3.0.0-dev.4",
+    "author": "NoxFly",
+    "license": "MIT",
+    "description": "Lightweight HTTP-like IPC framework for Electron with standalone controllers, explicit DI, and lazy route loading. No reflect-metadata required.",
+    "homepage": "https://github.com/NoxFly/noxus",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/NoxFly/noxus.git"
+    },
+    "files": ["dist"],
     "main": "dist/main.js",
     "module": "dist/main.mjs",
     "types": "dist/main.d.ts",
@@ -64,14 +73,6 @@
         "standalone",
         "lazy-loading"
     ],
-    "author": "NoxFly",
-    "license": "MIT",
-    "description": "Lightweight HTTP-like IPC framework for Electron with standalone controllers, explicit DI, and lazy route loading. No reflect-metadata required.",
-    "homepage": "https://github.com/NoxFly/noxus",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/NoxFly/noxus.git"
-    },
     "engines": {
         "node": ">= 20"
     },
