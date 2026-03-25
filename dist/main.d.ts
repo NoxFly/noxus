@@ -181,8 +181,8 @@ declare class Request {
     readonly body: unknown;
     readonly context: AppInjector;
     readonly params: Record<string, string>;
-    readonly query: Record<string, string>;
-    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: unknown, query?: Record<string, string>);
+    readonly query: Record<string, unknown>;
+    constructor(event: Electron.MessageEvent, senderId: number, id: string, method: HttpMethod, path: string, body: unknown, query?: Record<string, unknown>);
 }
 /**
  * The IRequest interface defines the structure of a request object.
@@ -195,14 +195,14 @@ interface IRequest<TBody = unknown> {
     path: string;
     method: HttpMethod;
     body?: TBody;
-    query?: Record<string, string>;
+    query?: Record<string, unknown>;
 }
 interface IBatchRequestItem<TBody = unknown> {
     requestId?: string;
     path: string;
     method: AtomicHttpMethod;
     body?: TBody;
-    query?: Record<string, string>;
+    query?: Record<string, unknown>;
 }
 interface IBatchRequestPayload {
     requests: IBatchRequestItem[];
