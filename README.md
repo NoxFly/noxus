@@ -536,6 +536,12 @@ await client.request({ method: 'GET',    path: 'users/list',          query: { r
 await client.request({ method: 'POST',   path: 'users/create',        body: { name: 'Bob' } });
 await client.request({ method: 'PUT',    path: 'users/42',            body: { name: 'Bob Updated' } });
 await client.request({ method: 'DELETE', path: 'users/42' });
+
+// Per-request timeout override (takes precedence over the global requestTimeout)
+const report = await client.request<Report>(
+    { method: 'GET', path: 'reports/heavy' },
+    { timeout: 60_000 }, // 60s for this specific request
+);
 ```
 
 ### Push events (main → renderer)

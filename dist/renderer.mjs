@@ -417,7 +417,7 @@ var _NoxRendererClient = class _NoxRendererClient {
     }
     this.pendingRequests.clear();
   }
-  async request(request) {
+  async request(request, options) {
     const senderId = this.senderId;
     const requestId = this.generateRequestId();
     if (senderId === void 0) {
@@ -432,6 +432,7 @@ var _NoxRendererClient = class _NoxRendererClient {
       senderId,
       ...request
     };
+    const effectiveTimeout = options?.timeout ?? this.requestTimeout;
     return new Promise((resolve, reject) => {
       const pending = {
         resolve,
@@ -439,11 +440,11 @@ var _NoxRendererClient = class _NoxRendererClient {
         request: message,
         submittedAt: Date.now()
       };
-      if (this.requestTimeout > 0) {
+      if (effectiveTimeout > 0) {
         pending.timer = setTimeout(() => {
           this.pendingRequests.delete(message.requestId);
-          reject(this.createErrorResponse(message.requestId, `Request timed out after ${this.requestTimeout}ms`));
-        }, this.requestTimeout);
+          reject(this.createErrorResponse(message.requestId, `Request timed out after ${effectiveTimeout}ms`));
+        }, effectiveTimeout);
       }
       this.pendingRequests.set(message.requestId, pending);
       this.requestPort.postMessage(message);

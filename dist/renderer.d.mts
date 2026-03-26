@@ -205,6 +205,17 @@ declare class RendererEventRegistry {
 interface IPortRequester {
     requestPort(): void;
 }
+/**
+ * Per-request options that can override global client defaults.
+ */
+interface RequestOptions {
+    /**
+     * Timeout in milliseconds for this specific request.
+     * Overrides the global `requestTimeout` set on the client.
+     * Set to 0 to disable timeout for this request.
+     */
+    timeout?: number;
+}
 interface RendererClientOptions {
     bridge?: IPortRequester | null;
     bridgeName?: string | string[];
@@ -247,7 +258,7 @@ declare class NoxRendererClient {
     constructor(options?: RendererClientOptions);
     setup(): Promise<void>;
     dispose(): void;
-    request<TResponse, TBody = unknown>(request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>): Promise<TResponse>;
+    request<TResponse, TBody = unknown>(request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>, options?: RequestOptions): Promise<TResponse>;
     batch(requests: Omit<IBatchRequestItem<unknown>, 'requestId'>[]): Promise<IBatchResponsePayload>;
     getSenderId(): number | undefined;
     private readonly onWindowMessage;
@@ -262,4 +273,4 @@ declare class NoxRendererClient {
     isElectronEnvironment(): boolean;
 }
 
-export { type AtomicHttpMethod, type HttpMethod, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IPortRequester, type IRendererEventMessage, type IRequest, type IResponse, NoxRendererClient, RENDERER_EVENT_TYPE, type RendererClientOptions, type RendererEventHandler, RendererEventRegistry, type RendererEventSubscription, Request, createRendererEventMessage, isRendererEventMessage };
+export { type AtomicHttpMethod, type HttpMethod, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IPortRequester, type IRendererEventMessage, type IRequest, type IResponse, NoxRendererClient, RENDERER_EVENT_TYPE, type RendererClientOptions, type RendererEventHandler, RendererEventRegistry, type RendererEventSubscription, Request, type RequestOptions, createRendererEventMessage, isRendererEventMessage };

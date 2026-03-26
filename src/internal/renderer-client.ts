@@ -11,6 +11,18 @@ export interface IPortRequester {
     requestPort(): void;
 }
 
+/**
+ * Per-request options that can override global client defaults.
+ */
+export interface RequestOptions {
+    /**
+     * Timeout in milliseconds for this specific request.
+     * Overrides the global `requestTimeout` set on the client.
+     * Set to 0 to disable timeout for this request.
+     */
+    timeout?: number;
+}
+
 export interface RendererClientOptions {
     bridge?: IPortRequester | null;
     bridgeName?: string | string[];
@@ -170,7 +182,10 @@ export class NoxRendererClient {
         this.pendingRequests.clear();
     }
 
-    public async request<TResponse, TBody = unknown>(request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>): Promise<TResponse> {
+    public async request<TResponse, TBody = unknown>(
+        request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>,
+        options?: RequestOptions,
+    ): Promise<TResponse> {
         const senderId = this.senderId;
         const requestId = this.generateRequestId();
 
@@ -190,6 +205,8 @@ export class NoxRendererClient {
             ...request,
         };
 
+        const effectiveTimeout = options?.timeout ?? this.requestTimeout;
+
         return new Promise<TResponse>((resolve, reject) => {
             const pending: PendingRequest<TResponse> = {
                 resolve,
@@ -198,11 +215,11 @@ export class NoxRendererClient {
                 submittedAt: Date.now(),
             };
 
-            if(this.requestTimeout > 0) {
+            if(effectiveTimeout > 0) {
                 pending.timer = setTimeout(() => {
                     this.pendingRequests.delete(message.requestId);
-                    reject(this.createErrorResponse<TResponse>(message.requestId, `Request timed out after ${this.requestTimeout}ms`) as IResponse<TResponse>);
-                }, this.requestTimeout);
+                    reject(this.createErrorResponse<TResponse>(message.requestId, `Request timed out after ${effectiveTimeout}ms`) as IResponse<TResponse>);
+                }, effectiveTimeout);
             }
 
             this.pendingRequests.set(message.requestId, pending as PendingRequest);
