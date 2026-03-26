@@ -258,6 +258,7 @@ declare class Router {
     private readonly routes;
     private readonly rootMiddlewares;
     private readonly lazyRoutes;
+    private lazyLoadLock;
     registerController(controllerClass: Type<unknown>, pathPrefix: string, routeGuards?: Guard[], routeMiddlewares?: Middleware[]): this;
     registerLazyRoute(pathPrefix: string, load: () => Promise<unknown>, guards?: Guard[], middlewares?: Middleware[]): this;
     defineRootMiddleware(middleware: Middleware): this;

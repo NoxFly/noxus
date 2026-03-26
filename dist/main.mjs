@@ -1086,6 +1086,7 @@ var Router = class {
     this.routes = new RadixTree();
     this.rootMiddlewares = [];
     this.lazyRoutes = /* @__PURE__ */ new Map();
+    this.lazyLoadLock = Promise.resolve();
   }
   // -------------------------------------------------------------------------
   // Registration
@@ -1214,15 +1215,19 @@ var Router = class {
       }
     }
   }
-  async loadLazyModule(prefix, entry) {
-    const t0 = performance.now();
-    InjectorExplorer.beginAccumulate();
-    await entry.load?.();
-    entry.loading = null;
-    entry.load = null;
-    await InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
-    entry.loaded = true;
-    Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
+  loadLazyModule(prefix, entry) {
+    const task = this.lazyLoadLock.then(async () => {
+      const t0 = performance.now();
+      InjectorExplorer.beginAccumulate();
+      await entry.load?.();
+      entry.load = null;
+      await InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
+      entry.loaded = true;
+      entry.loading = null;
+      Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
+    });
+    this.lazyLoadLock = task;
+    return task;
   }
   // -------------------------------------------------------------------------
   // Pipeline

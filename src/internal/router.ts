@@ -53,6 +53,7 @@ export class Router {
     private readonly routes = new RadixTree<IRouteDefinition>();
     private readonly rootMiddlewares: Middleware[] = [];
     private readonly lazyRoutes = new Map<string, LazyRouteEntry>();
+    private lazyLoadLock: Promise<void> = Promise.resolve();
 
     // -------------------------------------------------------------------------
     // Registration
@@ -228,20 +229,30 @@ export class Router {
         }
     }
 
-    private async loadLazyModule(prefix: string, entry: LazyRouteEntry): Promise<void> {
-        const t0 = performance.now();
-        InjectorExplorer.beginAccumulate();
+    private loadLazyModule(prefix: string, entry: LazyRouteEntry): Promise<void> {
+        // Serialise through lazyLoadLock so that only one module's decorators
+        // are accumulated in InjectorExplorer.pending at a time.
+        // Without this, concurrent imports (e.g. from a batch request) would
+        // cross-contaminate the pending queue, stamping controllers with the
+        // wrong path prefix.
+        const task = this.lazyLoadLock.then(async () => {
+            const t0 = performance.now();
+            InjectorExplorer.beginAccumulate();
 
-        await entry.load?.();
+            await entry.load?.();
 
-        entry.loading = null;
-        entry.load = null;
+            entry.load = null;
 
-        await InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
+            await InjectorExplorer.flushAccumulated(entry.guards, entry.middlewares, prefix);
 
-        entry.loaded = true;
+            entry.loaded = true;
+            entry.loading = null;
 
-        Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
+            Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
+        });
+
+        this.lazyLoadLock = task;
+        return task;
     }
 
     // -------------------------------------------------------------------------
