@@ -1354,13 +1354,13 @@ var Router = class {
   }
   normalizeBatchItem(entry, index) {
     if (entry === null || typeof entry !== "object") throw new BadRequestException(`Batch request at index ${index} must be an object.`);
-    const { requestId, path: path2, method, body } = entry;
+    const { requestId, path: path2, method, body, query } = entry;
     if (requestId !== void 0 && typeof requestId !== "string") throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
     if (typeof path2 !== "string" || !path2.length) throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
     if (typeof method !== "string") throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
     const normalized = method.toUpperCase();
     if (!isAtomicHttpMethod(normalized)) throw new BadRequestException(`Batch request at index ${index} uses unsupported method ${method}.`);
-    return { requestId, path: path2, method: normalized, body };
+    return { requestId, path: path2, method: normalized, body, query };
   }
   fillErrorResponse(response, error, setCritical) {
     response.body = void 0;

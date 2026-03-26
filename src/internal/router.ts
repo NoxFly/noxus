@@ -324,13 +324,13 @@ export class Router {
 
     private normalizeBatchItem(entry: unknown, index: number): IBatchRequestItem {
         if (entry === null || typeof entry !== 'object') throw new BadRequestException(`Batch request at index ${index} must be an object.`);
-        const { requestId, path, method, body } = entry as Partial<IBatchRequestItem> & { method?: unknown };
+        const { requestId, path, method, body, query } = entry as Partial<IBatchRequestItem> & { method?: unknown };
         if (requestId !== undefined && typeof requestId !== 'string') throw new BadRequestException(`Batch request at index ${index} has an invalid requestId.`);
         if (typeof path !== 'string' || !path.length) throw new BadRequestException(`Batch request at index ${index} must define a non-empty path.`);
         if (typeof method !== 'string') throw new BadRequestException(`Batch request at index ${index} must define an HTTP method.`);
         const normalized = method.toUpperCase();
         if (!isAtomicHttpMethod(normalized)) throw new BadRequestException(`Batch request at index ${index} uses unsupported method ${method}.`);
-        return { requestId, path, method: normalized, body };
+        return { requestId, path, method: normalized, body, query };
     }
 
     private fillErrorResponse(response: IResponse, error: unknown, setCritical: (v: boolean) => void): void {
