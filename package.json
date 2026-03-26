@@ -1,6 +1,6 @@
 {
     "name": "@noxfly/noxus",
-    "version": "3.0.0-dev.9",
+    "version": "3.0.0-dev.10",
     "author": "NoxFly",
     "license": "MIT",
     "description": "Lightweight HTTP-like IPC framework for Electron with standalone controllers, explicit DI, and lazy route loading. No reflect-metadata required.",
