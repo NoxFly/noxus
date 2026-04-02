@@ -243,7 +243,7 @@ interface InjectableOptions {
  *   constructor(private url: string) {}
  * }
  */
-declare function Injectable(options?: InjectableOptions): ClassDecorator;
+declare function Injectable(options?: InjectableOptions): <T extends new (...args: any[]) => unknown>(target: T, _context: ClassDecoratorContext) => T | void;
 
 /**
  * Logger is a utility class for logging messages to the console.

@@ -10,6 +10,7 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -35,6 +36,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
 // src/utils/forward-ref.ts
 function forwardRef(fn) {
@@ -63,6 +65,7 @@ var init_token = __esm({
     _Token = class _Token {
       constructor(target) {
         this.target = target;
+        __publicField(this, "description");
         this.description = typeof target === "string" ? target : target.name;
       }
       toString() {
@@ -454,11 +457,11 @@ var init_injector_explorer = __esm({
       }
     };
     __name(_InjectorExplorer, "InjectorExplorer");
-    _InjectorExplorer.pending = [];
-    _InjectorExplorer.processed = false;
-    _InjectorExplorer.accumulating = false;
-    _InjectorExplorer.loadingLock = Promise.resolve();
-    _InjectorExplorer.controllerRegistrar = null;
+    __publicField(_InjectorExplorer, "pending", []);
+    __publicField(_InjectorExplorer, "processed", false);
+    __publicField(_InjectorExplorer, "accumulating", false);
+    __publicField(_InjectorExplorer, "loadingLock", Promise.resolve());
+    __publicField(_InjectorExplorer, "controllerRegistrar", null);
     InjectorExplorer = _InjectorExplorer;
   }
 });
@@ -487,9 +490,9 @@ var init_app_injector = __esm({
     _AppInjector = class _AppInjector {
       constructor(name = null) {
         this.name = name;
-        this.bindings = /* @__PURE__ */ new Map();
-        this.singletons = /* @__PURE__ */ new Map();
-        this.scoped = /* @__PURE__ */ new Map();
+        __publicField(this, "bindings", /* @__PURE__ */ new Map());
+        __publicField(this, "singletons", /* @__PURE__ */ new Map());
+        __publicField(this, "scoped", /* @__PURE__ */ new Map());
       }
       /**
        * Creates a child scope for per-request lifetime resolution.
@@ -630,7 +633,7 @@ var _ResponseException = class _ResponseException extends Error {
       message = statusOrMessage;
     }
     super(message ?? "");
-    this.status = 0;
+    __publicField(this, "status", 0);
     if (statusCode !== void 0) {
       this.status = statusCode;
     }
@@ -642,7 +645,7 @@ var ResponseException = _ResponseException;
 var _BadRequestException = class _BadRequestException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 400;
+    __publicField(this, "status", 400);
   }
 };
 __name(_BadRequestException, "BadRequestException");
@@ -650,7 +653,7 @@ var BadRequestException = _BadRequestException;
 var _UnauthorizedException = class _UnauthorizedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 401;
+    __publicField(this, "status", 401);
   }
 };
 __name(_UnauthorizedException, "UnauthorizedException");
@@ -658,7 +661,7 @@ var UnauthorizedException = _UnauthorizedException;
 var _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 402;
+    __publicField(this, "status", 402);
   }
 };
 __name(_PaymentRequiredException, "PaymentRequiredException");
@@ -666,7 +669,7 @@ var PaymentRequiredException = _PaymentRequiredException;
 var _ForbiddenException = class _ForbiddenException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 403;
+    __publicField(this, "status", 403);
   }
 };
 __name(_ForbiddenException, "ForbiddenException");
@@ -674,7 +677,7 @@ var ForbiddenException = _ForbiddenException;
 var _NotFoundException = class _NotFoundException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 404;
+    __publicField(this, "status", 404);
   }
 };
 __name(_NotFoundException, "NotFoundException");
@@ -682,7 +685,7 @@ var NotFoundException = _NotFoundException;
 var _MethodNotAllowedException = class _MethodNotAllowedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 405;
+    __publicField(this, "status", 405);
   }
 };
 __name(_MethodNotAllowedException, "MethodNotAllowedException");
@@ -690,7 +693,7 @@ var MethodNotAllowedException = _MethodNotAllowedException;
 var _NotAcceptableException = class _NotAcceptableException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 406;
+    __publicField(this, "status", 406);
   }
 };
 __name(_NotAcceptableException, "NotAcceptableException");
@@ -698,7 +701,7 @@ var NotAcceptableException = _NotAcceptableException;
 var _RequestTimeoutException = class _RequestTimeoutException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 408;
+    __publicField(this, "status", 408);
   }
 };
 __name(_RequestTimeoutException, "RequestTimeoutException");
@@ -706,7 +709,7 @@ var RequestTimeoutException = _RequestTimeoutException;
 var _ConflictException = class _ConflictException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 409;
+    __publicField(this, "status", 409);
   }
 };
 __name(_ConflictException, "ConflictException");
@@ -714,7 +717,7 @@ var ConflictException = _ConflictException;
 var _UpgradeRequiredException = class _UpgradeRequiredException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 426;
+    __publicField(this, "status", 426);
   }
 };
 __name(_UpgradeRequiredException, "UpgradeRequiredException");
@@ -722,7 +725,7 @@ var UpgradeRequiredException = _UpgradeRequiredException;
 var _TooManyRequestsException = class _TooManyRequestsException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 429;
+    __publicField(this, "status", 429);
   }
 };
 __name(_TooManyRequestsException, "TooManyRequestsException");
@@ -730,7 +733,7 @@ var TooManyRequestsException = _TooManyRequestsException;
 var _InternalServerException = class _InternalServerException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 500;
+    __publicField(this, "status", 500);
   }
 };
 __name(_InternalServerException, "InternalServerException");
@@ -738,7 +741,7 @@ var InternalServerException = _InternalServerException;
 var _NotImplementedException = class _NotImplementedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 501;
+    __publicField(this, "status", 501);
   }
 };
 __name(_NotImplementedException, "NotImplementedException");
@@ -746,7 +749,7 @@ var NotImplementedException = _NotImplementedException;
 var _BadGatewayException = class _BadGatewayException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 502;
+    __publicField(this, "status", 502);
   }
 };
 __name(_BadGatewayException, "BadGatewayException");
@@ -754,7 +757,7 @@ var BadGatewayException = _BadGatewayException;
 var _ServiceUnavailableException = class _ServiceUnavailableException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 503;
+    __publicField(this, "status", 503);
   }
 };
 __name(_ServiceUnavailableException, "ServiceUnavailableException");
@@ -762,7 +765,7 @@ var ServiceUnavailableException = _ServiceUnavailableException;
 var _GatewayTimeoutException = class _GatewayTimeoutException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 504;
+    __publicField(this, "status", 504);
   }
 };
 __name(_GatewayTimeoutException, "GatewayTimeoutException");
@@ -770,7 +773,7 @@ var GatewayTimeoutException = _GatewayTimeoutException;
 var _HttpVersionNotSupportedException = class _HttpVersionNotSupportedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 505;
+    __publicField(this, "status", 505);
   }
 };
 __name(_HttpVersionNotSupportedException, "HttpVersionNotSupportedException");
@@ -778,7 +781,7 @@ var HttpVersionNotSupportedException = _HttpVersionNotSupportedException;
 var _VariantAlsoNegotiatesException = class _VariantAlsoNegotiatesException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 506;
+    __publicField(this, "status", 506);
   }
 };
 __name(_VariantAlsoNegotiatesException, "VariantAlsoNegotiatesException");
@@ -786,7 +789,7 @@ var VariantAlsoNegotiatesException = _VariantAlsoNegotiatesException;
 var _InsufficientStorageException = class _InsufficientStorageException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 507;
+    __publicField(this, "status", 507);
   }
 };
 __name(_InsufficientStorageException, "InsufficientStorageException");
@@ -794,7 +797,7 @@ var InsufficientStorageException = _InsufficientStorageException;
 var _LoopDetectedException = class _LoopDetectedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 508;
+    __publicField(this, "status", 508);
   }
 };
 __name(_LoopDetectedException, "LoopDetectedException");
@@ -802,7 +805,7 @@ var LoopDetectedException = _LoopDetectedException;
 var _NotExtendedException = class _NotExtendedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 510;
+    __publicField(this, "status", 510);
   }
 };
 __name(_NotExtendedException, "NotExtendedException");
@@ -810,7 +813,7 @@ var NotExtendedException = _NotExtendedException;
 var _NetworkAuthenticationRequiredException = class _NetworkAuthenticationRequiredException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 511;
+    __publicField(this, "status", 511);
   }
 };
 __name(_NetworkAuthenticationRequiredException, "NetworkAuthenticationRequiredException");
@@ -818,7 +821,7 @@ var NetworkAuthenticationRequiredException = _NetworkAuthenticationRequiredExcep
 var _NetworkConnectTimeoutException = class _NetworkConnectTimeoutException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 599;
+    __publicField(this, "status", 599);
   }
 };
 __name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
@@ -829,10 +832,7 @@ init_injector_explorer();
 init_token();
 function Injectable(options = {}) {
   const { lifetime = "scope", deps = [] } = options;
-  return (target) => {
-    if (typeof target !== "function" || !target.prototype) {
-      throw new Error(`@Injectable can only be applied to classes, not ${typeof target}`);
-    }
+  return (target, _context) => {
     const key = target;
     InjectorExplorer.enqueue({
       key,

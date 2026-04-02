@@ -58,14 +58,10 @@ export interface InjectableOptions {
  *   constructor(private url: string) {}
  * }
  */
-export function Injectable(options: InjectableOptions = {}): ClassDecorator {
+export function Injectable(options: InjectableOptions = {}) {
     const { lifetime = 'scope', deps = [] } = options;
 
-    return (target) => {
-        if (typeof target !== 'function' || !target.prototype) {
-            throw new Error(`@Injectable can only be applied to classes, not ${typeof target}`);
-        }
-
+    return <T extends new (...args: any[]) => unknown>(target: T, _context: ClassDecoratorContext): T | void => {
         const key = target as unknown as Type<unknown>;
 
         InjectorExplorer.enqueue({

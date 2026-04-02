@@ -35,8 +35,8 @@ const controllerMetaMap = new WeakMap<object, IControllerMetadata>();
  *   getUserById(req: Request) { ... }
  * }
  */
-export function Controller(options: ControllerOptions = {}): ClassDecorator {
-    return (target) => {
+export function Controller(options: ControllerOptions = {}) {
+    return <T extends new (...args: any[]) => unknown>(target: T, _context: ClassDecoratorContext): T | void => {
         const meta: IControllerMetadata = {
             deps: options.deps ?? [],
         };

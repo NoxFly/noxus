@@ -10,6 +10,11 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __knownSymbol = (name, symbol) => (symbol = Symbol[name]) ? symbol : /* @__PURE__ */ Symbol.for("Symbol." + name);
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -35,14 +40,45 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __decorateClass = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
-  for (var i = decorators.length - 1, decorator; i >= 0; i--)
-    if (decorator = decorators[i])
-      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp(target, key, result);
-  return result;
+var __decoratorStart = (base) => [, , , __create(base?.[__knownSymbol("metadata")] ?? null)];
+var __decoratorStrings = ["class", "method", "getter", "setter", "accessor", "field", "value", "get", "set"];
+var __expectFn = (fn) => fn !== void 0 && typeof fn !== "function" ? __typeError("Function expected") : fn;
+var __decoratorContext = (kind, name, done, metadata, fns) => ({ kind: __decoratorStrings[kind], name, metadata, addInitializer: (fn) => done._ ? __typeError("Already initialized") : fns.push(__expectFn(fn || null)) });
+var __decoratorMetadata = (array, target) => __defNormalProp(target, __knownSymbol("metadata"), array[3]);
+var __runInitializers = (array, flags, self, value) => {
+  for (var i = 0, fns = array[flags >> 1], n = fns && fns.length; i < n; i++) flags & 1 ? fns[i].call(self) : value = fns[i].call(self, value);
+  return value;
 };
+var __decorateElement = (array, flags, name, decorators, target, extra) => {
+  var fn, it, done, ctx, access, k = flags & 7, s = !!(flags & 8), p = !!(flags & 16);
+  var j = k > 3 ? array.length + 1 : k ? s ? 1 : 2 : 0, key = __decoratorStrings[k + 5];
+  var initializers = k > 3 && (array[j - 1] = []), extraInitializers = array[j] || (array[j] = []);
+  var desc = k && (!p && !s && (target = target.prototype), k < 5 && (k > 3 || !p) && __getOwnPropDesc(k < 4 ? target : { get [name]() {
+    return __privateGet(this, extra);
+  }, set [name](x) {
+    return __privateSet(this, extra, x);
+  } }, name));
+  k ? p && k < 4 && __name(extra, (k > 2 ? "set " : k > 1 ? "get " : "") + name) : __name(target, name);
+  for (var i = decorators.length - 1; i >= 0; i--) {
+    ctx = __decoratorContext(k, name, done = {}, array[3], extraInitializers);
+    if (k) {
+      ctx.static = s, ctx.private = p, access = ctx.access = { has: p ? (x) => __privateIn(target, x) : (x) => name in x };
+      if (k ^ 3) access.get = p ? (x) => (k ^ 1 ? __privateGet : __privateMethod)(x, target, k ^ 4 ? extra : desc.get) : (x) => x[name];
+      if (k > 2) access.set = p ? (x, y) => __privateSet(x, target, y, k ^ 4 ? extra : desc.set) : (x, y) => x[name] = y;
+    }
+    it = (0, decorators[i])(k ? k < 4 ? p ? extra : desc[key] : k > 4 ? void 0 : { get: desc.get, set: desc.set } : target, ctx), done._ = 1;
+    if (k ^ 4 || it === void 0) __expectFn(it) && (k > 4 ? initializers.unshift(it) : k ? p ? extra = it : desc[key] = it : target = it);
+    else if (typeof it !== "object" || it === null) __typeError("Object expected");
+    else __expectFn(fn = it.get) && (desc.get = fn), __expectFn(fn = it.set) && (desc.set = fn), __expectFn(fn = it.init) && initializers.unshift(fn);
+  }
+  return k || __decoratorMetadata(array, target), desc && __defProp(target, name, desc), p ? k ^ 4 ? extra : desc : target;
+};
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateIn = (member, obj) => Object(obj) !== obj ? __typeError('Cannot use the "in" operator on this value') : member.has(obj);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 
 // src/utils/forward-ref.ts
 function forwardRef(fn) {
@@ -74,6 +110,7 @@ var init_token = __esm({
     _Token = class _Token {
       constructor(target) {
         this.target = target;
+        __publicField(this, "description");
         this.description = typeof target === "string" ? target : target.name;
       }
       toString() {
@@ -466,11 +503,11 @@ var init_injector_explorer = __esm({
       }
     };
     __name(_InjectorExplorer, "InjectorExplorer");
-    _InjectorExplorer.pending = [];
-    _InjectorExplorer.processed = false;
-    _InjectorExplorer.accumulating = false;
-    _InjectorExplorer.loadingLock = Promise.resolve();
-    _InjectorExplorer.controllerRegistrar = null;
+    __publicField(_InjectorExplorer, "pending", []);
+    __publicField(_InjectorExplorer, "processed", false);
+    __publicField(_InjectorExplorer, "accumulating", false);
+    __publicField(_InjectorExplorer, "loadingLock", Promise.resolve());
+    __publicField(_InjectorExplorer, "controllerRegistrar", null);
     InjectorExplorer = _InjectorExplorer;
   }
 });
@@ -499,9 +536,9 @@ var init_app_injector = __esm({
     _AppInjector = class _AppInjector {
       constructor(name = null) {
         this.name = name;
-        this.bindings = /* @__PURE__ */ new Map();
-        this.singletons = /* @__PURE__ */ new Map();
-        this.scoped = /* @__PURE__ */ new Map();
+        __publicField(this, "bindings", /* @__PURE__ */ new Map());
+        __publicField(this, "singletons", /* @__PURE__ */ new Map());
+        __publicField(this, "scoped", /* @__PURE__ */ new Map());
       }
       /**
        * Creates a child scope for per-request lifetime resolution.
@@ -657,7 +694,7 @@ init_token();
 init_injector_explorer();
 var controllerMetaMap = /* @__PURE__ */ new WeakMap();
 function Controller(options = {}) {
-  return (target) => {
+  return (target, _context) => {
     const meta = {
       deps: options.deps ?? []
     };
@@ -682,10 +719,7 @@ init_injector_explorer();
 init_token();
 function Injectable(options = {}) {
   const { lifetime = "scope", deps = [] } = options;
-  return (target) => {
-    if (typeof target !== "function" || !target.prototype) {
-      throw new Error(`@Injectable can only be applied to classes, not ${typeof target}`);
-    }
+  return (target, _context) => {
     const key = target;
     InjectorExplorer.enqueue({
       key,
@@ -704,26 +738,34 @@ function isAtomicHttpMethod(m) {
   return typeof m === "string" && ATOMIC_METHODS.has(m);
 }
 __name(isAtomicHttpMethod, "isAtomicHttpMethod");
-var routeMetaMap = /* @__PURE__ */ new WeakMap();
+var methodMeta = /* @__PURE__ */ new WeakMap();
 function createRouteDecorator(verb) {
   return (path2, options = {}) => {
-    return (target, propertyKey) => {
-      const ctor = target.constructor;
-      const existing = routeMetaMap.get(ctor) ?? [];
-      existing.push({
+    return (value, context) => {
+      methodMeta.set(value, {
         method: verb,
         path: (path2 ?? "").trim().replace(/^\/|\/$/g, ""),
-        handler: propertyKey,
+        handler: context.name,
         guards: options.guards ?? [],
         middlewares: options.middlewares ?? []
       });
-      routeMetaMap.set(ctor, existing);
     };
   };
 }
 __name(createRouteDecorator, "createRouteDecorator");
 function getRouteMetadata(target) {
-  return routeMetaMap.get(target) ?? [];
+  const routes = [];
+  const proto = target.prototype;
+  for (const key of Object.getOwnPropertyNames(proto)) {
+    const fn = proto[key];
+    if (typeof fn === "function" && methodMeta.has(fn)) {
+      const meta = methodMeta.get(fn);
+      if (meta) {
+        routes.push(meta);
+      }
+    }
+  }
+  return routes;
 }
 __name(getRouteMetadata, "getRouteMetadata");
 var Get = createRouteDecorator("GET");
@@ -743,7 +785,11 @@ var _RadixNode = class _RadixNode {
    * @param segment - The segment of the path this node represents.
    */
   constructor(segment) {
-    this.children = [];
+    __publicField(this, "segment");
+    __publicField(this, "children", []);
+    __publicField(this, "value");
+    __publicField(this, "isParam");
+    __publicField(this, "paramName");
     this.segment = segment;
     this.isParam = segment.startsWith(":");
     if (this.isParam) {
@@ -785,7 +831,7 @@ __name(_RadixNode, "RadixNode");
 var RadixNode = _RadixNode;
 var _RadixTree = class _RadixTree {
   constructor() {
-    this.root = new RadixNode("");
+    __publicField(this, "root", new RadixNode(""));
   }
   /**
    * Inserts a path and its associated value into the Radix Tree.
@@ -918,7 +964,7 @@ var _ResponseException = class _ResponseException extends Error {
       message = statusOrMessage;
     }
     super(message ?? "");
-    this.status = 0;
+    __publicField(this, "status", 0);
     if (statusCode !== void 0) {
       this.status = statusCode;
     }
@@ -930,7 +976,7 @@ var ResponseException = _ResponseException;
 var _BadRequestException = class _BadRequestException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 400;
+    __publicField(this, "status", 400);
   }
 };
 __name(_BadRequestException, "BadRequestException");
@@ -938,7 +984,7 @@ var BadRequestException = _BadRequestException;
 var _UnauthorizedException = class _UnauthorizedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 401;
+    __publicField(this, "status", 401);
   }
 };
 __name(_UnauthorizedException, "UnauthorizedException");
@@ -946,7 +992,7 @@ var UnauthorizedException = _UnauthorizedException;
 var _PaymentRequiredException = class _PaymentRequiredException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 402;
+    __publicField(this, "status", 402);
   }
 };
 __name(_PaymentRequiredException, "PaymentRequiredException");
@@ -954,7 +1000,7 @@ var PaymentRequiredException = _PaymentRequiredException;
 var _ForbiddenException = class _ForbiddenException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 403;
+    __publicField(this, "status", 403);
   }
 };
 __name(_ForbiddenException, "ForbiddenException");
@@ -962,7 +1008,7 @@ var ForbiddenException = _ForbiddenException;
 var _NotFoundException = class _NotFoundException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 404;
+    __publicField(this, "status", 404);
   }
 };
 __name(_NotFoundException, "NotFoundException");
@@ -970,7 +1016,7 @@ var NotFoundException = _NotFoundException;
 var _MethodNotAllowedException = class _MethodNotAllowedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 405;
+    __publicField(this, "status", 405);
   }
 };
 __name(_MethodNotAllowedException, "MethodNotAllowedException");
@@ -978,7 +1024,7 @@ var MethodNotAllowedException = _MethodNotAllowedException;
 var _NotAcceptableException = class _NotAcceptableException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 406;
+    __publicField(this, "status", 406);
   }
 };
 __name(_NotAcceptableException, "NotAcceptableException");
@@ -986,7 +1032,7 @@ var NotAcceptableException = _NotAcceptableException;
 var _RequestTimeoutException = class _RequestTimeoutException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 408;
+    __publicField(this, "status", 408);
   }
 };
 __name(_RequestTimeoutException, "RequestTimeoutException");
@@ -994,7 +1040,7 @@ var RequestTimeoutException = _RequestTimeoutException;
 var _ConflictException = class _ConflictException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 409;
+    __publicField(this, "status", 409);
   }
 };
 __name(_ConflictException, "ConflictException");
@@ -1002,7 +1048,7 @@ var ConflictException = _ConflictException;
 var _UpgradeRequiredException = class _UpgradeRequiredException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 426;
+    __publicField(this, "status", 426);
   }
 };
 __name(_UpgradeRequiredException, "UpgradeRequiredException");
@@ -1010,7 +1056,7 @@ var UpgradeRequiredException = _UpgradeRequiredException;
 var _TooManyRequestsException = class _TooManyRequestsException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 429;
+    __publicField(this, "status", 429);
   }
 };
 __name(_TooManyRequestsException, "TooManyRequestsException");
@@ -1018,7 +1064,7 @@ var TooManyRequestsException = _TooManyRequestsException;
 var _InternalServerException = class _InternalServerException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 500;
+    __publicField(this, "status", 500);
   }
 };
 __name(_InternalServerException, "InternalServerException");
@@ -1026,7 +1072,7 @@ var InternalServerException = _InternalServerException;
 var _NotImplementedException = class _NotImplementedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 501;
+    __publicField(this, "status", 501);
   }
 };
 __name(_NotImplementedException, "NotImplementedException");
@@ -1034,7 +1080,7 @@ var NotImplementedException = _NotImplementedException;
 var _BadGatewayException = class _BadGatewayException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 502;
+    __publicField(this, "status", 502);
   }
 };
 __name(_BadGatewayException, "BadGatewayException");
@@ -1042,7 +1088,7 @@ var BadGatewayException = _BadGatewayException;
 var _ServiceUnavailableException = class _ServiceUnavailableException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 503;
+    __publicField(this, "status", 503);
   }
 };
 __name(_ServiceUnavailableException, "ServiceUnavailableException");
@@ -1050,7 +1096,7 @@ var ServiceUnavailableException = _ServiceUnavailableException;
 var _GatewayTimeoutException = class _GatewayTimeoutException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 504;
+    __publicField(this, "status", 504);
   }
 };
 __name(_GatewayTimeoutException, "GatewayTimeoutException");
@@ -1058,7 +1104,7 @@ var GatewayTimeoutException = _GatewayTimeoutException;
 var _HttpVersionNotSupportedException = class _HttpVersionNotSupportedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 505;
+    __publicField(this, "status", 505);
   }
 };
 __name(_HttpVersionNotSupportedException, "HttpVersionNotSupportedException");
@@ -1066,7 +1112,7 @@ var HttpVersionNotSupportedException = _HttpVersionNotSupportedException;
 var _VariantAlsoNegotiatesException = class _VariantAlsoNegotiatesException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 506;
+    __publicField(this, "status", 506);
   }
 };
 __name(_VariantAlsoNegotiatesException, "VariantAlsoNegotiatesException");
@@ -1074,7 +1120,7 @@ var VariantAlsoNegotiatesException = _VariantAlsoNegotiatesException;
 var _InsufficientStorageException = class _InsufficientStorageException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 507;
+    __publicField(this, "status", 507);
   }
 };
 __name(_InsufficientStorageException, "InsufficientStorageException");
@@ -1082,7 +1128,7 @@ var InsufficientStorageException = _InsufficientStorageException;
 var _LoopDetectedException = class _LoopDetectedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 508;
+    __publicField(this, "status", 508);
   }
 };
 __name(_LoopDetectedException, "LoopDetectedException");
@@ -1090,7 +1136,7 @@ var LoopDetectedException = _LoopDetectedException;
 var _NotExtendedException = class _NotExtendedException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 510;
+    __publicField(this, "status", 510);
   }
 };
 __name(_NotExtendedException, "NotExtendedException");
@@ -1098,7 +1144,7 @@ var NotExtendedException = _NotExtendedException;
 var _NetworkAuthenticationRequiredException = class _NetworkAuthenticationRequiredException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 511;
+    __publicField(this, "status", 511);
   }
 };
 __name(_NetworkAuthenticationRequiredException, "NetworkAuthenticationRequiredException");
@@ -1106,7 +1152,7 @@ var NetworkAuthenticationRequiredException = _NetworkAuthenticationRequiredExcep
 var _NetworkConnectTimeoutException = class _NetworkConnectTimeoutException extends ResponseException {
   constructor() {
     super(...arguments);
-    this.status = 599;
+    __publicField(this, "status", 599);
   }
 };
 __name(_NetworkConnectTimeoutException, "NetworkConnectTimeoutException");
@@ -1122,8 +1168,9 @@ var _Request = class _Request {
     this.method = method;
     this.path = path2;
     this.body = body;
-    this.context = RootInjector.createScope();
-    this.params = {};
+    __publicField(this, "context", RootInjector.createScope());
+    __publicField(this, "params", {});
+    __publicField(this, "query");
     this.path = path2.replace(/^\/|\/$/g, "");
     this.query = query ?? {};
   }
@@ -1149,12 +1196,14 @@ function isRendererEventMessage(value) {
 __name(isRendererEventMessage, "isRendererEventMessage");
 
 // src/internal/router.ts
-var Router = class {
+var _Router_decorators, _init;
+_Router_decorators = [Injectable({ lifetime: "singleton" })];
+var _Router = class _Router {
   constructor() {
-    this.routes = new RadixTree();
-    this.rootMiddlewares = [];
-    this.lazyRoutes = /* @__PURE__ */ new Map();
-    this.lazyLoadLock = Promise.resolve();
+    __publicField(this, "routes", new RadixTree());
+    __publicField(this, "rootMiddlewares", []);
+    __publicField(this, "lazyRoutes", /* @__PURE__ */ new Map());
+    __publicField(this, "lazyLoadLock", Promise.resolve());
   }
   // -------------------------------------------------------------------------
   // Registration
@@ -1395,10 +1444,11 @@ var Router = class {
     }
   }
 };
-__name(Router, "Router");
-Router = __decorateClass([
-  Injectable({ lifetime: "singleton" })
-], Router);
+_init = __decoratorStart(null);
+_Router = __decorateElement(_init, 0, "Router", _Router_decorators, _Router);
+__name(_Router, "Router");
+__runInitializers(_init, 1, _Router);
+var Router = _Router;
 
 // src/internal/app.ts
 var import_main2 = require("electron/main");
@@ -1409,10 +1459,13 @@ init_logger();
 // src/window/window-manager.ts
 var import_main = require("electron/main");
 init_logger();
-var WindowManager = class {
+var _WindowManager_decorators, _init2;
+_WindowManager_decorators = [Injectable({ lifetime: "singleton" })];
+var _WindowManager = class _WindowManager {
   constructor() {
-    this._windows = /* @__PURE__ */ new Map();
-    this.listeners = /* @__PURE__ */ new Map();
+    __publicField(this, "_windows", /* @__PURE__ */ new Map());
+    __publicField(this, "listeners", /* @__PURE__ */ new Map());
+    __publicField(this, "_mainWindowId");
   }
   // -------------------------------------------------------------------------
   // Creation
@@ -1597,16 +1650,19 @@ var WindowManager = class {
     });
   }
 };
-__name(WindowManager, "WindowManager");
-WindowManager = __decorateClass([
-  Injectable({ lifetime: "singleton" })
-], WindowManager);
+_init2 = __decoratorStart(null);
+_WindowManager = __decorateElement(_init2, 0, "WindowManager", _WindowManager_decorators, _WindowManager);
+__name(_WindowManager, "WindowManager");
+__runInitializers(_init2, 1, _WindowManager);
+var WindowManager = _WindowManager;
 
 // src/internal/socket.ts
 init_logger();
-var NoxSocket = class {
+var _NoxSocket_decorators, _init3;
+_NoxSocket_decorators = [Injectable({ lifetime: "singleton" })];
+var _NoxSocket = class _NoxSocket {
   constructor() {
-    this.channels = /* @__PURE__ */ new Map();
+    __publicField(this, "channels", /* @__PURE__ */ new Map());
   }
   register(senderId, requestChannel, socketChannel) {
     this.channels.set(senderId, { request: requestChannel, socket: socketChannel });
@@ -1647,21 +1703,25 @@ var NoxSocket = class {
     return true;
   }
 };
-__name(NoxSocket, "NoxSocket");
-NoxSocket = __decorateClass([
-  Injectable({ lifetime: "singleton" })
-], NoxSocket);
+_init3 = __decoratorStart(null);
+_NoxSocket = __decorateElement(_init3, 0, "NoxSocket", _NoxSocket_decorators, _NoxSocket);
+__name(_NoxSocket, "NoxSocket");
+__runInitializers(_init3, 1, _NoxSocket);
+var NoxSocket = _NoxSocket;
 
 // src/internal/app.ts
-var NoxApp = class {
+var _NoxApp_decorators, _init4;
+_NoxApp_decorators = [Injectable({ lifetime: "singleton", deps: [Router, NoxSocket, WindowManager] })];
+var _NoxApp = class _NoxApp {
   constructor(router, socket, windowManager) {
     this.router = router;
     this.socket = socket;
     this.windowManager = windowManager;
+    __publicField(this, "appService");
     // -------------------------------------------------------------------------
     // IPC
     // -------------------------------------------------------------------------
-    this.onRendererMessage = /* @__PURE__ */ __name(async (event) => {
+    __publicField(this, "onRendererMessage", /* @__PURE__ */ __name(async (event) => {
       const { senderId, requestId, path: path2, method, body, query } = event.data;
       const channels = this.socket.get(senderId);
       if (!channels) {
@@ -1681,7 +1741,7 @@ var NoxApp = class {
         };
         channels.request.port1.postMessage(response);
       }
-    }, "onRendererMessage");
+    }, "onRendererMessage"));
   }
   // -------------------------------------------------------------------------
   // Initialisation
@@ -1789,10 +1849,11 @@ var NoxApp = class {
     this.socket.unregister(channelSenderId);
   }
 };
-__name(NoxApp, "NoxApp");
-NoxApp = __decorateClass([
-  Injectable({ lifetime: "singleton", deps: [Router, NoxSocket, WindowManager] })
-], NoxApp);
+_init4 = __decoratorStart(null);
+_NoxApp = __decorateElement(_init4, 0, "NoxApp", _NoxApp_decorators, _NoxApp);
+__name(_NoxApp, "NoxApp");
+__runInitializers(_init4, 1, _NoxApp);
+var NoxApp = _NoxApp;
 
 // src/internal/bootstrap.ts
 var import_main3 = require("electron/main");

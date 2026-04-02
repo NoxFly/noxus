@@ -34,29 +34,39 @@ export interface IRouteMetadata {
     middlewares: Middleware[];
 }
 
-const routeMetaMap = new WeakMap<object, IRouteMetadata[]>();
+const methodMeta = new WeakMap<Function, IRouteMetadata>();
 
 function createRouteDecorator(verb: HttpMethod) {
-    return (path: string, options: IRouteOptions = {}): MethodDecorator => {
-        return (target, propertyKey) => {
-            const ctor = target.constructor;
-            const existing: IRouteMetadata[] = routeMetaMap.get(ctor) ?? [];
-
-            existing.push({
+    return (path: string, options: IRouteOptions = {}) => {
+        return (value: Function, context: ClassMethodDecoratorContext): void => {
+            methodMeta.set(value, {
                 method: verb,
                 path: (path ?? '').trim().replace(/^\/|\/$/g, ''),
-                handler: propertyKey as string,
+                handler: context.name as string,
                 guards: options.guards ?? [],
                 middlewares: options.middlewares ?? [],
             });
-
-            routeMetaMap.set(ctor, existing);
         };
     };
 }
 
 export function getRouteMetadata(target: object): IRouteMetadata[] {
-    return routeMetaMap.get(target) ?? [];
+    const routes: IRouteMetadata[] = [];
+    const proto = (target as { prototype: Record<string, unknown> }).prototype;
+
+    for (const key of Object.getOwnPropertyNames(proto)) {
+        const fn = proto[key];
+
+        if (typeof fn === 'function' && methodMeta.has(fn)) {
+            const meta = methodMeta.get(fn);
+
+            if (meta) {
+                routes.push(meta);
+            }
+        }
+    }
+
+    return routes;
 }
 
 export const Get    = createRouteDecorator('GET');

@@ -160,11 +160,11 @@ interface IRouteMetadata {
     middlewares: Middleware[];
 }
 declare function getRouteMetadata(target: object): IRouteMetadata[];
-declare const Get: (path: string, options?: IRouteOptions) => MethodDecorator;
-declare const Post: (path: string, options?: IRouteOptions) => MethodDecorator;
-declare const Put: (path: string, options?: IRouteOptions) => MethodDecorator;
-declare const Patch: (path: string, options?: IRouteOptions) => MethodDecorator;
-declare const Delete: (path: string, options?: IRouteOptions) => MethodDecorator;
+declare const Get: (path: string, options?: IRouteOptions) => (value: Function, context: ClassMethodDecoratorContext) => void;
+declare const Post: (path: string, options?: IRouteOptions) => (value: Function, context: ClassMethodDecoratorContext) => void;
+declare const Put: (path: string, options?: IRouteOptions) => (value: Function, context: ClassMethodDecoratorContext) => void;
+declare const Patch: (path: string, options?: IRouteOptions) => (value: Function, context: ClassMethodDecoratorContext) => void;
+declare const Delete: (path: string, options?: IRouteOptions) => (value: Function, context: ClassMethodDecoratorContext) => void;
 
 
 /**
@@ -830,7 +830,7 @@ interface IControllerMetadata {
  *   getUserById(req: Request) { ... }
  * }
  */
-declare function Controller(options?: ControllerOptions): ClassDecorator;
+declare function Controller(options?: ControllerOptions): <T extends new (...args: any[]) => unknown>(target: T, _context: ClassDecoratorContext) => T | void;
 declare function getControllerMetadata(target: object): IControllerMetadata | undefined;
 
 
@@ -881,6 +881,6 @@ interface InjectableOptions {
  *   constructor(private url: string) {}
  * }
  */
-declare function Injectable(options?: InjectableOptions): ClassDecorator;
+declare function Injectable(options?: InjectableOptions): <T extends new (...args: any[]) => unknown>(target: T, _context: ClassDecoratorContext) => T | void;
 
 export { AppInjector, type AtomicHttpMethod, BadGatewayException, BadRequestException, type BootstrapConfig, ConflictException, Controller, type ControllerAction, type ControllerOptions, Delete, ForbiddenException, type ForwardRefFn, ForwardReference, GatewayTimeoutException, Get, type Guard, type HttpMethod, HttpVersionNotSupportedException, type IApp, type IBatchRequestItem, type IBatchRequestPayload, type IBatchResponsePayload, type IBinding, type IControllerMetadata, type ILazyRoute, type IRendererEventMessage, type IRequest, type IResponse, type IRouteDefinition, type IRouteMetadata, type IRouteOptions, Injectable, type InjectableOptions, InsufficientStorageException, InternalServerException, type Lifetime, type LogLevel, Logger, LoopDetectedException, type MaybeAsync, MethodNotAllowedException, type Middleware, NetworkAuthenticationRequiredException, NetworkConnectTimeoutException, type NextFunction, NotAcceptableException, NotExtendedException, NotFoundException, NotImplementedException, NoxApp, NoxSocket, Patch, PaymentRequiredException, Post, Put, RENDERER_EVENT_TYPE, Request, RequestTimeoutException, ResponseException, RootInjector, type RouteDefinition, Router, ServiceUnavailableException, type SingletonOverride, Token, type TokenKey, TooManyRequestsException, type Type, UnauthorizedException, UpgradeRequiredException, VariantAlsoNegotiatesException, type WindowConfig, type WindowEvent, WindowManager, type WindowRecord, bootstrapApplication, createRendererEventMessage, defineRoutes, forwardRef, getControllerMetadata, getRouteMetadata, inject, isAtomicHttpMethod, isRendererEventMessage, resetRootInjector, token };

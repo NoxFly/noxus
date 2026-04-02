@@ -8,6 +8,7 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -25,6 +26,7 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
 // src/utils/forward-ref.ts
 var _ForwardReference, ForwardReference;
@@ -49,6 +51,7 @@ var init_token = __esm({
     _Token = class _Token {
       constructor(target) {
         this.target = target;
+        __publicField(this, "description");
         this.description = typeof target === "string" ? target : target.name;
       }
       toString() {
@@ -74,9 +77,9 @@ var init_app_injector = __esm({
     _AppInjector = class _AppInjector {
       constructor(name = null) {
         this.name = name;
-        this.bindings = /* @__PURE__ */ new Map();
-        this.singletons = /* @__PURE__ */ new Map();
-        this.scoped = /* @__PURE__ */ new Map();
+        __publicField(this, "bindings", /* @__PURE__ */ new Map());
+        __publicField(this, "singletons", /* @__PURE__ */ new Map());
+        __publicField(this, "scoped", /* @__PURE__ */ new Map());
       }
       /**
        * Creates a child scope for per-request lifetime resolution.
@@ -187,8 +190,9 @@ var _Request = class _Request {
     this.method = method;
     this.path = path;
     this.body = body;
-    this.context = RootInjector.createScope();
-    this.params = {};
+    __publicField(this, "context", RootInjector.createScope());
+    __publicField(this, "params", {});
+    __publicField(this, "query");
     this.path = path.replace(/^\/|\/$/g, "");
     this.query = query ?? {};
   }
@@ -216,7 +220,7 @@ __name(isRendererEventMessage, "isRendererEventMessage");
 // src/internal/renderer-events.ts
 var _RendererEventRegistry = class _RendererEventRegistry {
   constructor() {
-    this.listeners = /* @__PURE__ */ new Map();
+    __publicField(this, "listeners", /* @__PURE__ */ new Map());
   }
   /**
    *
@@ -342,10 +346,22 @@ function resolveBridgeFromWindow(windowRef, preferred) {
 __name(resolveBridgeFromWindow, "resolveBridgeFromWindow");
 var _NoxRendererClient = class _NoxRendererClient {
   constructor(options = {}) {
-    this.events = new RendererEventRegistry();
-    this.pendingRequests = /* @__PURE__ */ new Map();
-    this.isReady = false;
-    this.onWindowMessage = /* @__PURE__ */ __name((event) => {
+    __publicField(this, "events", new RendererEventRegistry());
+    __publicField(this, "pendingRequests", /* @__PURE__ */ new Map());
+    __publicField(this, "requestPort");
+    __publicField(this, "socketPort");
+    __publicField(this, "senderId");
+    __publicField(this, "bridge");
+    __publicField(this, "initMessageType");
+    __publicField(this, "windowRef");
+    __publicField(this, "generateRequestId");
+    __publicField(this, "requestTimeout");
+    __publicField(this, "isReady", false);
+    __publicField(this, "setupPromise");
+    __publicField(this, "setupResolve");
+    __publicField(this, "setupReject");
+    __publicField(this, "enableLogging");
+    __publicField(this, "onWindowMessage", /* @__PURE__ */ __name((event) => {
       if (event.data?.type !== this.initMessageType) {
         return;
       }
@@ -372,14 +388,14 @@ var _NoxRendererClient = class _NoxRendererClient {
       this.isReady = true;
       this.setupResolve?.();
       this.resetSetupState(true);
-    }, "onWindowMessage");
-    this.onSocketMessage = /* @__PURE__ */ __name((event) => {
+    }, "onWindowMessage"));
+    __publicField(this, "onSocketMessage", /* @__PURE__ */ __name((event) => {
       if (this.events.tryDispatchFromMessageEvent(event)) {
         return;
       }
       console.warn("[Noxus] Received a socket message that is not a renderer event payload.", event.data);
-    }, "onSocketMessage");
-    this.onRequestMessage = /* @__PURE__ */ __name((event) => {
+    }, "onSocketMessage"));
+    __publicField(this, "onRequestMessage", /* @__PURE__ */ __name((event) => {
       if (this.events.tryDispatchFromMessageEvent(event)) {
         return;
       }
@@ -403,7 +419,7 @@ var _NoxRendererClient = class _NoxRendererClient {
         return;
       }
       pending.resolve(response.body);
-    }, "onRequestMessage");
+    }, "onRequestMessage"));
     this.windowRef = options.windowRef ?? window;
     const resolvedBridge = options.bridge ?? resolveBridgeFromWindow(this.windowRef, options.bridgeName);
     this.bridge = resolvedBridge ?? null;
