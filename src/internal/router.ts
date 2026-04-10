@@ -216,17 +216,34 @@ export class Router {
     }
 
     private async tryLoadLazyRoute(requestPath: string): Promise<void> {
-        const firstSegment = requestPath.replace(/^\/+/, '').split('/')[0] ?? '';
+        const normalized = requestPath.replace(/^\/+/, '');
 
         for (const [prefix, entry] of this.lazyRoutes) {
             if (entry.loaded) continue;
-            const normalized = requestPath.replace(/^\/+/, '');
-            if (normalized === prefix || normalized.startsWith(prefix + '/') || firstSegment === prefix) {
+            if (this.pathHasPrefix(normalized, prefix)) {
                 if (!entry.loading) entry.loading = this.loadLazyModule(prefix, entry);
                 await entry.loading;
                 return;
             }
         }
+    }
+
+    /**
+     * Returns true when `requestPath` starts with `prefix`, treating `:param`
+     * segments in the prefix as single-segment wildcards.
+     *
+     * @example
+     * pathHasPrefix('contact/123/notes', 'contact/:id/notes') // true
+     * pathHasPrefix('contact/123/notes/get', 'contact/:id/notes') // true
+     * pathHasPrefix('contact/123', 'contact/:id/notes') // false
+     */
+    private pathHasPrefix(requestPath: string, prefix: string): boolean {
+        const reqSegments = requestPath.split('/');
+        const prefixSegments = prefix.split('/');
+
+        if (reqSegments.length < prefixSegments.length) return false;
+
+        return prefixSegments.every((seg, i) => seg.startsWith(':') || seg === reqSegments[i]);
     }
 
     private loadLazyModule(prefix: string, entry: LazyRouteEntry): Promise<void> {
