@@ -1,9 +1,8 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
-        "rootDir": "./src",
-        "baseUrl": "./",
-        "moduleResolution": "node",
+        "rootDir": ".",
+        "moduleResolution": "bundler",
         "target": "ES2022",
         "module": "CommonJS",
         "forceConsistentCasingInFileNames": true,
@@ -16,7 +15,8 @@
         "esModuleInterop": true,
         "noPropertyAccessFromIndexSignature": false,
         "noUncheckedIndexedAccess": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "ignoreDeprecations": "6.0"
     },
     "include": [
         "src/**/*.ts",

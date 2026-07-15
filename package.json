@@ -9,50 +9,60 @@
         "type": "git",
         "url": "git+https://github.com/NoxFly/noxus.git"
     },
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "main": "dist/main.js",
     "module": "dist/main.mjs",
     "types": "dist/main.d.ts",
     "exports": {
         ".": {
             "browser": {
-                "types":   "./dist/renderer.d.ts",
-                "import":  "./dist/renderer.mjs",
+                "types": "./dist/renderer.d.ts",
+                "import": "./dist/renderer.mjs",
                 "require": "./dist/renderer.js"
             },
             "default": {
-                "types":   "./dist/child.d.ts",
-                "import":  "./dist/child.mjs",
+                "types": "./dist/child.d.ts",
+                "import": "./dist/child.mjs",
                 "require": "./dist/child.js"
             }
         },
         "./main": {
-            "types":   "./dist/main.d.ts",
-            "import":  "./dist/main.mjs",
+            "types": "./dist/main.d.ts",
+            "import": "./dist/main.mjs",
             "require": "./dist/main.js"
         },
         "./renderer": {
-            "types":   "./dist/renderer.d.ts",
-            "import":  "./dist/renderer.mjs",
+            "types": "./dist/renderer.d.ts",
+            "import": "./dist/renderer.mjs",
             "require": "./dist/renderer.js"
         },
         "./preload": {
-            "types":   "./dist/preload.d.ts",
-            "import":  "./dist/preload.mjs",
+            "types": "./dist/preload.d.ts",
+            "import": "./dist/preload.mjs",
             "require": "./dist/preload.js"
         },
         "./child": {
-            "types":   "./dist/child.d.ts",
-            "import":  "./dist/child.mjs",
+            "types": "./dist/child.d.ts",
+            "import": "./dist/child.mjs",
             "require": "./dist/child.js"
         }
     },
     "typesVersions": {
         "*": {
-            "main":     ["./dist/main.d.ts"],
-            "renderer": ["./dist/renderer.d.ts"],
-            "preload":  ["./dist/preload.d.ts"],
-            "child":    ["./dist/child.d.ts"]
+            "main": [
+                "./dist/main.d.ts"
+            ],
+            "renderer": [
+                "./dist/renderer.d.ts"
+            ],
+            "preload": [
+                "./dist/preload.d.ts"
+            ],
+            "child": [
+                "./dist/child.d.ts"
+            ]
         }
     },
     "scripts": {
@@ -74,21 +84,13 @@
         "lazy-loading"
     ],
     "engines": {
-        "node": ">= 20"
+        "node": ">= 22"
     },
     "devDependencies": {
-        "@stylistic/eslint-plugin": "^5.1.0",
-        "@swc/core": "^1.12.14",
-        "@typescript-eslint/eslint-plugin": "^8.36.0",
-        "@typescript-eslint/parser": "^8.36.0",
-        "electron": "^37.2.1",
-        "eslint": "^9.31.0",
-        "eslint-plugin-import": "^2.32.0",
-        "eslint-plugin-jsdoc": "^51.3.4",
-        "eslint-plugin-prefer-arrow": "^1.2.3",
-        "tsc-alias": "^1.8.16",
-        "tsup": "^8.5.0",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.36.0"
+        "@swc/core": "^1.15.43",
+        "electron": "^43.1.1",
+        "tsc-alias": "^1.9.1",
+        "tsup": "^8.5.1",
+        "typescript": "^6.0.3"
     }
 }
