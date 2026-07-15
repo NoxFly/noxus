@@ -86,6 +86,9 @@
     "engines": {
         "node": ">= 22"
     },
+    "publishConfig": {
+        "access": "public"
+    },
     "devDependencies": {
         "@swc/core": "^1.15.43",
         "electron": "^43.1.1",
