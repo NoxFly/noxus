@@ -1,10 +1,9 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
-        "rootDir": "./src",
-        "baseUrl": "./",
-        "moduleResolution": "node",
-        "target": "ES6",
+        "rootDir": ".",
+        "moduleResolution": "bundler",
+        "target": "ES2022",
         "module": "CommonJS",
         "forceConsistentCasingInFileNames": true,
         "strict": true,
@@ -12,23 +11,16 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "sourceMap": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
         "importHelpers": false,
         "esModuleInterop": true,
-        "useDefineForClassFields": false,
         "noPropertyAccessFromIndexSignature": false,
         "noUncheckedIndexedAccess": true,
         "skipLibCheck": true,
-        "types": ["reflect-metadata"],
-    },
-    "tsc-alias": {
-        "resolveFullPaths": true,
-        "verbose": false,
+        "ignoreDeprecations": "6.0"
     },
     "include": [
         "src/**/*.ts",
         "src/**/*.d.ts",
-        "node_modules/electron/electron.d.ts",
-    ],
+        "node_modules/electron/electron.d.ts"
+    ]
 }

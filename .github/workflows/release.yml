@@ -1,0 +1,98 @@
+name: Release
+
+# Publishes a new version to npm on every merge to main.
+# The bump level is inferred from commit messages (conventional commits):
+#   - "feat!:" / "fix!:" / "BREAKING CHANGE" -> major
+#   - "feat:"                                -> minor
+#   - anything else (fix, chore, refactor…)  -> patch
+# workflow_dispatch allows forcing a level manually.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version level (auto = inferred from commits)"
+        type: choice
+        default: auto
+        options: [auto, patch, minor, major]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Avoid looping on the bump commit created by this workflow.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the version commit + tag
+      id-token: write # Trusted Publishing (OIDC) to npm — no token needed
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history to analyze commits and tags
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine bump level
+        id: bump
+        shell: bash
+        run: |
+          INPUT="${{ github.event.inputs.bump }}"
+          if [ -n "$INPUT" ] && [ "$INPUT" != "auto" ]; then
+            echo "level=$INPUT" >> "$GITHUB_OUTPUT"
+            echo "Forced bump: $INPUT"
+            exit 0
+          fi
+
+          # Range of commits introduced by this push / since the last tag.
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          fi
+
+          LOG=$(git log --format='%B' "$BEFORE"..HEAD)
+
+          if echo "$LOG" | grep -qE '^[a-z]+(\([^)]+\))?!:' || echo "$LOG" | grep -q 'BREAKING CHANGE'; then
+            LEVEL=major
+          elif echo "$LOG" | grep -qE '^feat(\([^)]+\))?:'; then
+            LEVEL=minor
+          else
+            LEVEL=patch
+          fi
+
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+          echo "Inferred bump: $LEVEL"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        run: |
+          npm version ${{ steps.bump.outputs.level }} -m "chore(release): %s [skip ci]"
+
+      - name: Build
+        run: npm run build
+
+      # Trusted Publishing (OIDC) requires a recent npm (>= 11.5.1).
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: npm publish
+
+      - name: Push commit and tag
+        run: git push --follow-tags

@@ -4,9 +4,9 @@
  * @author NoxFly
  */
 
-import 'reflect-metadata';
-import { AtomicHttpMethod, HttpMethod } from 'src/decorators/method.decorator';
-import { AppInjector, RootInjector } from 'src/DI/app-injector';
+
+import { AtomicHttpMethod, HttpMethod } from '../decorators/method.decorator';
+import { AppInjector, RootInjector } from '../DI/app-injector';
 
 /**
  * The Request class represents an HTTP request in the Noxus framework.
@@ -17,6 +17,7 @@ export class Request {
     public readonly context: AppInjector = RootInjector.createScope();
 
     public readonly params: Record<string, string> = {};
+    public readonly query: Record<string, unknown>;
 
     constructor(
         public readonly event: Electron.MessageEvent,
@@ -24,9 +25,11 @@ export class Request {
         public readonly id: string,
         public readonly method: HttpMethod,
         public readonly path: string,
-        public readonly body: any,
+        public readonly body: unknown,
+        query?: Record<string, unknown>,
     ) {
         this.path = path.replace(/^\/|\/$/g, '');
+        this.query = query ?? {};
     }
 }
 
@@ -41,6 +44,7 @@ export interface IRequest<TBody = unknown> {
     path: string;
     method: HttpMethod;
     body?: TBody;
+    query?: Record<string, unknown>;
 }
 
 export interface IBatchRequestItem<TBody = unknown> {
@@ -48,6 +52,7 @@ export interface IBatchRequestItem<TBody = unknown> {
     path: string;
     method: AtomicHttpMethod;
     body?: TBody;
+    query?: Record<string, unknown>;
 }
 
 export interface IBatchRequestPayload {

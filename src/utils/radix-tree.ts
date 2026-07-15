@@ -133,6 +133,31 @@ export class RadixTree<T> {
     }
 
     /**
+     * Collects all values in the subtree rooted at the given node.
+     * This method traverses the subtree starting from the given node and collects all values
+     * @param node - The node to start collecting values from.
+     * @param values - An array to store the collected values. This parameter is optional and can be used for recursive calls.
+     * @returns An array of all values found in the subtree rooted at the given node.
+     */
+    public collectValues(): T[];
+    public collectValues(node: RadixNode<T>, values: T[]): T[];
+    public collectValues(node?: RadixNode<T>, values: T[] = []): T[] {
+        if(!node) {
+            node = this.root;
+        }
+
+        if(node.value !== undefined) {
+            values.push(node.value);
+        }
+
+        for(const child of node.children) {
+            this.collectValues(child, values);
+        }
+
+        return values;
+    }
+
+    /**
      * Recursively searches for a path in the Radix Tree.
      * This method traverses the tree and searches for the segments of the path, collecting parameters
      * @param node - The node to start searching from.
@@ -154,40 +179,48 @@ export class RadixTree<T> {
 
         const [segment, ...rest] = segments;
 
+        // Try static (exact) matches first, then param matches.
+        // This ensures e.g. 'addNote' is preferred over ':id'.
+        const staticChildren: RadixNode<T>[] = [];
+        const paramChildren: RadixNode<T>[] = [];
+
         for(const child of node.children) {
             if(child.isParam) {
-                const paramName = child.paramName!;
-
-                const childParams: Params = {
-                    ...params,
-                    [paramName]: segment ?? "",
-                };
-
-                if(rest.length === 0) {
-                    return {
-                        node: child,
-                        params: childParams
-                    };
-                }
-
-                const result = this.searchRecursive(child, rest, childParams);
-
-                if(result)
-                    return result;
+                paramChildren.push(child);
             }
             else if(segment === child.segment) {
-                if(rest.length === 0) {
-                    return {
-                        node: child,
-                        params
-                    };
-                }
-
-                const result = this.searchRecursive(child, rest, params);
-
-                if(result)
-                    return result;
+                staticChildren.push(child);
             }
+        }
+
+        for(const child of staticChildren) {
+            if(rest.length === 0) {
+                // Only return leaf-level matches (has children for method nodes, or has a value)
+                if(child.value !== undefined || child.children.length > 0) {
+                    return { node: child, params };
+                }
+            }
+
+            const result = this.searchRecursive(child, rest, params);
+            if(result) return result;
+        }
+
+        for(const child of paramChildren) {
+            const paramName = child.paramName!;
+
+            const childParams: Params = {
+                ...params,
+                [paramName]: segment ?? "",
+            };
+
+            if(rest.length === 0) {
+                if(child.value !== undefined || child.children.length > 0) {
+                    return { node: child, params: childParams };
+                }
+            }
+
+            const result = this.searchRecursive(child, rest, childParams);
+            if(result) return result;
         }
 
         return undefined;

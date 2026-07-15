@@ -4,11 +4,23 @@
  * @author NoxFly
  */
 
-import { IBatchRequestItem, IBatchResponsePayload, IRequest, IResponse } from 'src/request';
-import { RendererEventRegistry } from 'src/renderer-events';
+import { IBatchRequestItem, IBatchResponsePayload, IRequest, IResponse } from './request';
+import { RendererEventRegistry } from './renderer-events';
 
 export interface IPortRequester {
     requestPort(): void;
+}
+
+/**
+ * Per-request options that can override global client defaults.
+ */
+export interface RequestOptions {
+    /**
+     * Timeout in milliseconds for this specific request.
+     * Overrides the global `requestTimeout` set on the client.
+     * Set to 0 to disable timeout for this request.
+     */
+    timeout?: number;
 }
 
 export interface RendererClientOptions {
@@ -17,6 +29,15 @@ export interface RendererClientOptions {
     initMessageType?: string;
     windowRef?: Window;
     generateRequestId?: () => string;
+    /**
+     * Timeout in milliseconds for IPC requests.
+     * If the main process does not respond within this duration,
+     * the request Promise is rejected and the pending entry cleaned up.
+     * Defaults to 10 000 ms. Set to 0 to disable.
+     */
+    requestTimeout?: number;
+    /** @default true */
+    enableLogging?: boolean;
 }
 
 interface PendingRequest<T = unknown> {
@@ -24,6 +45,7 @@ interface PendingRequest<T = unknown> {
     reject: (reason: IResponse<T>) => void;
     request: IRequest;
     submittedAt: number;
+    timer?: ReturnType<typeof setTimeout>;
 }
 
 const DEFAULT_INIT_EVENT = 'init-port';
@@ -97,11 +119,14 @@ export class NoxRendererClient {
     private readonly initMessageType: string;
     private readonly windowRef: Window;
     private readonly generateRequestId: () => string;
+    private readonly requestTimeout: number;
 
     private isReady = false;
     private setupPromise: Promise<void> | undefined;
     private setupResolve: (() => void) | undefined;
     private setupReject: ((reason: Error) => void) | undefined;
+
+    private enableLogging: boolean;
 
     constructor(options: RendererClientOptions = {}) {
         this.windowRef = options.windowRef ?? window;
@@ -109,6 +134,8 @@ export class NoxRendererClient {
         this.bridge = resolvedBridge ?? null;
         this.initMessageType = options.initMessageType ?? DEFAULT_INIT_EVENT;
         this.generateRequestId = options.generateRequestId ?? defaultRequestId;
+        this.requestTimeout = options.requestTimeout ?? 10_000;
+        this.enableLogging = options.enableLogging ?? true;
     }
 
     public async setup(): Promise<void> {
@@ -146,10 +173,19 @@ export class NoxRendererClient {
         this.senderId = undefined;
         this.isReady = false;
 
+        for(const pending of this.pendingRequests.values()) {
+            if(pending.timer !== undefined) {
+                clearTimeout(pending.timer);
+            }
+        }
+
         this.pendingRequests.clear();
     }
 
-    public async request<TResponse, TBody = unknown>(request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>): Promise<TResponse> {
+    public async request<TResponse, TBody = unknown>(
+        request: Omit<IRequest<TBody>, 'requestId' | 'senderId'>,
+        options?: RequestOptions,
+    ): Promise<TResponse> {
         const senderId = this.senderId;
         const requestId = this.generateRequestId();
 
@@ -169,6 +205,8 @@ export class NoxRendererClient {
             ...request,
         };
 
+        const effectiveTimeout = options?.timeout ?? this.requestTimeout;
+
         return new Promise<TResponse>((resolve, reject) => {
             const pending: PendingRequest<TResponse> = {
                 resolve,
@@ -176,6 +214,13 @@ export class NoxRendererClient {
                 request: message,
                 submittedAt: Date.now(),
             };
+
+            if(effectiveTimeout > 0) {
+                pending.timer = setTimeout(() => {
+                    this.pendingRequests.delete(message.requestId);
+                    reject(this.createErrorResponse<TResponse>(message.requestId, `Request timed out after ${effectiveTimeout}ms`) as IResponse<TResponse>);
+                }, effectiveTimeout);
+            }
 
             this.pendingRequests.set(message.requestId, pending as PendingRequest);
 
@@ -260,6 +305,10 @@ export class NoxRendererClient {
             return;
         }
 
+        if(pending.timer !== undefined) {
+            clearTimeout(pending.timer);
+        }
+
         this.pendingRequests.delete(response.requestId);
 
         this.onRequestCompleted(pending, response);
@@ -273,6 +322,10 @@ export class NoxRendererClient {
     };
 
     protected onRequestCompleted(pending: PendingRequest, response: IResponse): void {
+        if(!this.enableLogging) {
+            return;
+        }
+
         if(typeof console.groupCollapsed === 'function') {
             console.groupCollapsed(`${response.status} ${pending.request.method} /${pending.request.path}`);
         }

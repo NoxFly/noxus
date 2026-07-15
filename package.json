@@ -1,6 +1,17 @@
 {
     "name": "@noxfly/noxus",
-    "version": "2.5.0",
+    "version": "3.0.0-dev.12",
+    "author": "NoxFly",
+    "license": "MIT",
+    "description": "Lightweight HTTP-like IPC framework for Electron with standalone controllers, explicit DI, and lazy route loading. No reflect-metadata required.",
+    "homepage": "https://github.com/NoxFly/noxus",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/NoxFly/noxus.git"
+    },
+    "files": [
+        "dist"
+    ],
     "main": "dist/main.js",
     "module": "dist/main.mjs",
     "types": "dist/main.d.ts",
@@ -17,20 +28,41 @@
                 "require": "./dist/child.js"
             }
         },
-        "./renderer": {
-            "types": "./dist/renderer.d.ts",
-            "import": "./dist/renderer.mjs",
-            "require": "./dist/renderer.js"
-        },
         "./main": {
             "types": "./dist/main.d.ts",
             "import": "./dist/main.mjs",
             "require": "./dist/main.js"
         },
+        "./renderer": {
+            "types": "./dist/renderer.d.ts",
+            "import": "./dist/renderer.mjs",
+            "require": "./dist/renderer.js"
+        },
+        "./preload": {
+            "types": "./dist/preload.d.ts",
+            "import": "./dist/preload.mjs",
+            "require": "./dist/preload.js"
+        },
         "./child": {
             "types": "./dist/child.d.ts",
             "import": "./dist/child.mjs",
             "require": "./dist/child.js"
+        }
+    },
+    "typesVersions": {
+        "*": {
+            "main": [
+                "./dist/main.d.ts"
+            ],
+            "renderer": [
+                "./dist/renderer.d.ts"
+            ],
+            "preload": [
+                "./dist/preload.d.ts"
+            ],
+            "child": [
+                "./dist/child.d.ts"
+            ]
         }
     },
     "scripts": {
@@ -45,36 +77,23 @@
         "nodejs",
         "typescript",
         "framework",
-        "web framework",
-        "electron"
+        "electron",
+        "ipc",
+        "dependency-injection",
+        "standalone",
+        "lazy-loading"
     ],
-    "author": "NoxFly",
-    "license": "MIT",
-    "description": "Simulate lightweight HTTP-like requests between renderer and main process in Electron applications with MessagePort, with structured and modular design.",
-    "homepage": "https://github.com/NoxFly/noxus",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/NoxFly/noxus.git"
-    },
     "engines": {
-        "node": ">= 20"
+        "node": ">= 22"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "devDependencies": {
-        "@stylistic/eslint-plugin": "^5.1.0",
-        "@swc/core": "^1.12.14",
-        "@typescript-eslint/eslint-plugin": "^8.36.0",
-        "@typescript-eslint/parser": "^8.36.0",
-        "electron": "^37.2.1",
-        "eslint": "^9.31.0",
-        "eslint-plugin-import": "^2.32.0",
-        "eslint-plugin-jsdoc": "^51.3.4",
-        "eslint-plugin-prefer-arrow": "^1.2.3",
-        "tsc-alias": "^1.8.16",
-        "tsup": "^8.5.0",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.36.0"
-    },
-    "peerDependencies": {
-        "reflect-metadata": "^0.2.2"
+        "@swc/core": "^1.15.43",
+        "electron": "^43.1.1",
+        "tsc-alias": "^1.9.1",
+        "tsup": "^8.5.1",
+        "typescript": "^6.0.3"
     }
 }

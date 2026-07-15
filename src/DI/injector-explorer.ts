@@ -4,166 +4,198 @@
  * @author NoxFly
  */
 
-import { getControllerMetadata } from "src/decorators/controller.decorator";
-import { getInjectableMetadata } from "src/decorators/injectable.metadata";
-import { getRouteMetadata } from "src/decorators/method.decorator";
-import { getModuleMetadata } from "src/decorators/module.decorator";
-import { Lifetime, RootInjector } from "src/DI/app-injector";
-import { Router } from "src/router";
-import { Logger } from "src/utils/logger";
-import { Type } from "src/utils/types";
+import { Lifetime, RootInjector } from './app-injector';
+import { TokenKey } from './token';
+import { Type } from '../utils/types';
+import { Logger } from '../utils/logger';
+import { Guard } from '../decorators/guards.decorator';
+import { Middleware } from '../decorators/middleware.decorator';
 
-interface PendingRegistration {
-    target: Type<unknown>;
+export interface PendingRegistration {
+    key: TokenKey;
+    implementation: Type<unknown>;
     lifetime: Lifetime;
+    deps: ReadonlyArray<TokenKey>;
+    isController: boolean;
+    pathPrefix?: string;
 }
 
 /**
- * InjectorExplorer is a utility class that explores the dependency injection system at the startup.
- * It collects decorated classes during the import phase and defers their actual registration
- * and resolution to when {@link processPending} is called by bootstrapApplication.
+ * Callback invoked for each controller registration discovered during flush.
+ * Decouples InjectorExplorer from the Router to avoid circular imports.
+ */
+export type ControllerRegistrar = (
+    controllerClass: Type<unknown>,
+    pathPrefix: string,
+    routeGuards: Guard[],
+    routeMiddlewares: Middleware[],
+) => void;
+
+/**
+ * InjectorExplorer accumulates registrations emitted by decorators
+ * at import time, then flushes them in two phases (bind → resolve)
+ * once bootstrapApplication triggers processing.
+ *
+ * Because deps are now explicit arrays (no reflect-metadata), this class
+ * no longer needs to introspect constructor parameter types.
  */
 export class InjectorExplorer {
     private static readonly pending: PendingRegistration[] = [];
     private static processed = false;
     private static accumulating = false;
+    private static loadingLock: Promise<void> = Promise.resolve();
+    private static controllerRegistrar: ControllerRegistrar | null = null;
+
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
 
     /**
-     * Enqueues a class for deferred registration.
-     * Called by the @Injectable decorator at import time.
-     *
-     * If {@link processPending} has already been called (i.e. after bootstrap)
-     * and accumulation mode is not active, the class is registered immediately
-     * so that late dynamic imports (e.g. middlewares loaded after bootstrap)
-     * work correctly.
-     *
-     * When accumulation mode is active (between {@link beginAccumulate} and
-     * {@link flushAccumulated}), classes are queued instead — preserving the
-     * two-phase binding/resolution guarantee for lazy-loaded modules.
+     * Sets the callback used to register controllers.
+     * Must be called once before processPending (typically by bootstrapApplication).
      */
-    public static enqueue(target: Type<unknown>, lifetime: Lifetime): void {
-        if(InjectorExplorer.processed && !InjectorExplorer.accumulating) {
-            InjectorExplorer.registerImmediate(target, lifetime);
+    public static setControllerRegistrar(registrar: ControllerRegistrar): void {
+        InjectorExplorer.controllerRegistrar = registrar;
+    }
+
+    public static enqueue(reg: PendingRegistration): void {
+        if (InjectorExplorer.processed && !InjectorExplorer.accumulating) {
+            InjectorExplorer._registerImmediate(reg);
             return;
         }
-
-        InjectorExplorer.pending.push({ target, lifetime });
+        InjectorExplorer.pending.push(reg);
     }
 
     /**
-     * Enters accumulation mode. While active, all decorated classes discovered
-     * via dynamic imports are queued in {@link pending} rather than registered
-     * immediately. Call {@link flushAccumulated} to process them with the
-     * full two-phase (bind-then-resolve) guarantee.
+     * Two-phase flush of all pending registrations collected at startup.
+     * Called by bootstrapApplication after app.whenReady().
      */
+    public static processPending(singletonOverrides?: Map<TokenKey, unknown>): void {
+        const queue = [...InjectorExplorer.pending];
+        InjectorExplorer.pending.length = 0;
+
+        InjectorExplorer._phaseOne(queue);
+        InjectorExplorer._phaseTwo(queue, singletonOverrides);
+
+        InjectorExplorer.processed = true;
+    }
+
+    /** Enters accumulation mode for lazy-loaded batches. */
     public static beginAccumulate(): void {
         InjectorExplorer.accumulating = true;
     }
 
     /**
-     * Exits accumulation mode and processes every class queued since
-     * {@link beginAccumulate} was called. Uses the same two-phase strategy
-     * as {@link processPending} (register all bindings first, then resolve
-     * singletons / controllers) so import ordering within a lazy batch
-     * does not cause resolution failures.
+     * Exits accumulation mode and flushes queued registrations
+     * with the same two-phase guarantee as processPending.
+     * Serialised through a lock to prevent concurrent lazy loads from corrupting the queue.
      */
-    public static flushAccumulated(): void {
-        InjectorExplorer.accumulating = false;
+    public static flushAccumulated(
+        routeGuards: Guard[] = [],
+        routeMiddlewares: Middleware[] = [],
+        pathPrefix = '',
+    ): Promise<void> {
+        InjectorExplorer.loadingLock = InjectorExplorer.loadingLock.then(() => {
+            InjectorExplorer.accumulating = false;
+            const queue = [...InjectorExplorer.pending];
+            InjectorExplorer.pending.length = 0;
+            InjectorExplorer._phaseOne(queue);
 
-        const queue = [...InjectorExplorer.pending];
-        InjectorExplorer.pending.length = 0;
-
-        // Phase 1: register all bindings without instantiation
-        for(const { target, lifetime } of queue) {
-            if(!RootInjector.bindings.has(target)) {
-                RootInjector.bindings.set(target, {
-                    implementation: target,
-                    lifetime
-                });
+            // Stamp the path prefix on controller registrations
+            for (const reg of queue) {
+                if (reg.isController) reg.pathPrefix = pathPrefix;
             }
-        }
 
-        // Phase 2: resolve singletons, register controllers, log modules
-        for(const { target, lifetime } of queue) {
-            InjectorExplorer.processRegistration(target, lifetime);
-        }
-    }
-
-    /**
-     * Processes all pending registrations in two phases:
-     * 1. Register all bindings (no instantiation) so every dependency is known.
-     * 2. Resolve singletons, register controllers and log module readiness.
-     *
-     * This two-phase approach makes the system resilient to import ordering:
-     * all bindings exist before any singleton is instantiated.
-     */
-    public static processPending(): void {
-        const queue = InjectorExplorer.pending;
-
-        // Phase 1: register all bindings without instantiation
-        for(const { target, lifetime } of queue) {
-            if(!RootInjector.bindings.has(target)) {
-                RootInjector.bindings.set(target, {
-                    implementation: target,
-                    lifetime
-                });
-            }
-        }
-
-        // Phase 2: resolve singletons, register controllers, log modules
-        for(const { target, lifetime } of queue) {
-            InjectorExplorer.processRegistration(target, lifetime);
-        }
-
-        queue.length = 0;
-        InjectorExplorer.processed = true;
-    }
-
-    /**
-     * Registers a single class immediately (post-bootstrap path).
-     * Used for classes discovered via late dynamic imports.
-     */
-    private static registerImmediate(target: Type<unknown>, lifetime: Lifetime): void {
-        if(RootInjector.bindings.has(target)) {
-            return;
-        }
-
-        RootInjector.bindings.set(target, {
-            implementation: target,
-            lifetime
+            InjectorExplorer._phaseTwo(queue, undefined, routeGuards, routeMiddlewares);
         });
 
-        InjectorExplorer.processRegistration(target, lifetime);
+        return InjectorExplorer.loadingLock;
     }
 
     /**
-     * Performs phase-2 work for a single registration: resolve singletons,
-     * register controllers, and log module readiness.
+     * Returns a Promise that resolves once all pending flushAccumulated calls
+     * have completed. Useful for awaiting lazy-load serialisation.
      */
-    private static processRegistration(target: Type<unknown>, lifetime: Lifetime): void {
-        if(lifetime === 'singleton') {
-            RootInjector.resolve(target);
+    public static waitForFlush(): Promise<void> {
+        return InjectorExplorer.loadingLock;
+    }
+
+    /**
+     * Resets the explorer state. Intended for tests only.
+     */
+    public static reset(): void {
+        InjectorExplorer.pending.length = 0;
+        InjectorExplorer.processed = false;
+        InjectorExplorer.accumulating = false;
+        InjectorExplorer.loadingLock = Promise.resolve();
+        InjectorExplorer.controllerRegistrar = null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /** Phase 1: register all bindings without instantiating anything. */
+    private static _phaseOne(queue: PendingRegistration[]): void {
+        for (const reg of queue) {
+            RootInjector.register(reg.key, reg.implementation, reg.lifetime, reg.deps);
+        }
+    }
+
+    /** Phase 2: validate deps, resolve singletons and register controllers via the registrar callback. */
+    private static _phaseTwo(
+        queue: PendingRegistration[],
+        overrides?: Map<TokenKey, unknown>,
+        routeGuards: Guard[] = [],
+        routeMiddlewares: Middleware[] = [],
+    ): void {
+        // Early dependency validation: warn about deps that have no binding
+        for (const reg of queue) {
+            for (const dep of reg.deps) {
+                if (!RootInjector.bindings.has(dep as any) && !RootInjector.singletons.has(dep as any)) {
+                    Logger.warn(`[Noxus DI] "${reg.implementation.name}" declares dep "${(dep as any).name ?? dep}" which has no binding`);
+                }
+            }
         }
 
-        if(getModuleMetadata(target)) {
-            Logger.log(`${target.name} dependencies initialized`);
-            return;
+        for (const reg of queue) {
+            // Apply value overrides (e.g. singleton instances provided via bootstrapApplication config)
+            if (overrides?.has(reg.key)) {
+                const override = overrides.get(reg.key);
+                RootInjector.singletons.set(reg.key as any, override);
+                Logger.log(`Registered ${reg.implementation.name} as singleton (overridden)`);
+                continue;
+            }
+
+            if (reg.lifetime === 'singleton') {
+                RootInjector.resolve(reg.key);
+            }
+
+            if (reg.isController) {
+                if (!InjectorExplorer.controllerRegistrar) {
+                    throw new Error('[Noxus DI] No controller registrar set. Call InjectorExplorer.setControllerRegistrar() before processing.');
+                }
+                InjectorExplorer.controllerRegistrar(
+                    reg.implementation,
+                    reg.pathPrefix ?? '',
+                    routeGuards,
+                    routeMiddlewares,
+                );
+            } else if (reg.lifetime !== 'singleton') {
+                Logger.log(`Registered ${reg.implementation.name} as ${reg.lifetime}`);
+            }
+        }
+    }
+
+    private static _registerImmediate(reg: PendingRegistration): void {
+        RootInjector.register(reg.key, reg.implementation, reg.lifetime, reg.deps);
+
+        if (reg.lifetime === 'singleton') {
+            RootInjector.resolve(reg.key);
         }
 
-        const controllerMeta = getControllerMetadata(target);
-
-        if(controllerMeta) {
-            const router = RootInjector.resolve(Router);
-            router?.registerController(target);
-            return;
-        }
-
-        if(getRouteMetadata(target).length > 0) {
-            return;
-        }
-
-        if(getInjectableMetadata(target)) {
-            Logger.log(`Registered ${target.name} as ${lifetime}`);
+        if (reg.isController && InjectorExplorer.controllerRegistrar) {
+            InjectorExplorer.controllerRegistrar(reg.implementation, '', [], []);
         }
     }
 }
