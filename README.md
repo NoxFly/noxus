@@ -12,15 +12,18 @@ No dependency on `reflect-metadata` or `emitDecoratorMetadata`.
 npm install @noxfly/noxus
 ```
 
-In your `tsconfig.json`:
+Noxus uses native ECMAScript decorators (Stage 3), not the legacy TypeScript ones. Requires TypeScript 5+ and **no** `experimentalDecorators`:
+
 ```json
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": false
+    "target": "ES2022",
+    "experimentalDecorators": false
   }
 }
 ```
+
+> Enabling `experimentalDecorators` switches TypeScript to the old decorator engine, which uses a different call signature — this will break Noxus's decorators.
 
 ---
 
@@ -465,6 +468,10 @@ wm.closeAll()      // close all windows
 // Messaging
 wm.send(id, 'channel', ...args)    // send a message to one window
 wm.broadcast('channel', ...args)   // send to all windows
+
+// Events
+const unsubscribe = wm.on('created', (win) => { ... }); // 'created' | 'closed' | 'focused' | 'blurred'
+unsubscribe();
 ```
 
 ### `createSplash` vs `create`
@@ -504,6 +511,28 @@ class UserRepository {
     constructor(private orm: MikroORM) {}
 }
 ```
+
+---
+
+## Non-Electron child processes
+
+For Node.js child processes spawned by the main process (e.g. via `child_process.fork`) that need DI and logging but must **not** talk to the renderer, use the `/child` entry point:
+
+```ts
+// worker.ts
+import { Injectable, inject, Logger } from '@noxfly/noxus/child';
+
+@Injectable({ lifetime: 'singleton' })
+class WorkerService {
+    run() {
+        Logger.info('working...');
+    }
+}
+
+inject(WorkerService).run();
+```
+
+This entry point exposes only the DI container (`inject`, `resetRootInjector`, `@Injectable`), exceptions, `Logger`, and shared types/utilities — no `Router`, `WindowManager`, or IPC-related APIs.
 
 ---
 
