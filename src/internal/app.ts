@@ -49,6 +49,13 @@ export interface IApp {
 export class NoxApp {
     private appService: IApp | undefined;
 
+    /**
+     * Renderers whose `destroyed` event is already watched. A renderer asks for a
+     * new port on every reload: registering the listener on each handshake would
+     * pile them up on the same webContents.
+     */
+    private readonly watchedSenders = new Set<number>();
+
     constructor(
         private readonly router: Router,
         private readonly socket: NoxSocket,
@@ -174,7 +181,14 @@ export class NoxApp {
         requestChannel.port1.start();
         socketChannel.port1.start();
 
-        event.sender.once('destroyed', () => this.shutdownChannel(senderId));
+        if (!this.watchedSenders.has(senderId)) {
+            this.watchedSenders.add(senderId);
+
+            event.sender.once('destroyed', () => {
+                this.watchedSenders.delete(senderId);
+                this.shutdownChannel(senderId);
+            });
+        }
 
         this.socket.register(senderId, requestChannel, socketChannel);
         event.sender.postMessage('port', { senderId }, [requestChannel.port2, socketChannel.port2]);
