@@ -265,7 +265,7 @@ export class Router {
             entry.loaded = true;
             entry.loading = null;
 
-            Logger.info(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
+            Logger.debug(`Lazy-loaded module for prefix {${prefix}} in ${Math.round(performance.now() - t0)}ms`);
         });
 
         this.lazyLoadLock = task;

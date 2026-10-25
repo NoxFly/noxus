@@ -64,6 +64,26 @@ function getLogPrefix(callee: string, messageType: string, color?: string): stri
 }
 
 /**
+ * JSON replacer that keeps the content of Error instances.
+ * `JSON.stringify` only serializes own enumerable properties, so an Error
+ * (whose `message` and `stack` are not enumerable) would otherwise be logged as `{}`.
+ * Applies to nested errors as well (e.g. `{ cause: error }`).
+ */
+function errorReplacer(_key: string, value: unknown): unknown {
+    if(!(value instanceof Error)) {
+        return value;
+    }
+
+    return {
+        ...value,
+        name: value.name,
+        message: value.message,
+        stack: value.stack?.split('\n').map(line => line.trim()),
+        ...(value.cause !== undefined ? { cause: value.cause } : {}),
+    };
+}
+
+/**
  * Formats an object into a string representation for logging.
  * It converts the object to JSON and adds indentation for readability.
  * @param prefix - The prefix to use for the formatted object.
@@ -71,7 +91,7 @@ function getLogPrefix(callee: string, messageType: string, color?: string): stri
  * @returns A formatted string representation of the object, with each line prefixed by the specified prefix.
  */
 function formatObject(prefix: string, arg: object, enableColor: boolean = true): string {
-    const json = JSON.stringify(arg, null, 2);
+    const json = JSON.stringify(arg, errorReplacer, 2) ?? String(arg);
 
     let colStart = "";
     let colLine = "";
